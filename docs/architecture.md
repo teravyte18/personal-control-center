@@ -2,7 +2,17 @@
 
 ## Initial approach
 
-Build a responsive web application first, with Progressive Web App capabilities added after the core workflow is stable.
+Build a phone-first responsive web application and package the first mobile experience as an installable Progressive Web App (PWA).
+
+Desktop remains supported, but the primary interaction assumptions are:
+
+- Short, frequent capture sessions from a phone
+- One-handed navigation where practical
+- Large touch targets and readable layouts without zooming
+- Fast startup and minimal required input
+- Review sessions that also work comfortably on a larger screen
+
+A separate native Android application should only be introduced if important requirements cannot be met reliably through the PWA.
 
 ## Proposed stack
 
@@ -14,15 +24,30 @@ Build a responsive web application first, with Progressive Web App capabilities 
 - Playwright for critical end-to-end tests
 - Vitest for unit tests
 
-The stack is provisional until the first implementation issue is reviewed.
+The first prototype uses browser-local persistence so the workflow can be tested before committing to hosted infrastructure.
+
+## PWA strategy
+
+The PWA should evolve incrementally:
+
+1. Web-app manifest and app-like mobile metadata
+2. Home-screen installation
+3. Durable hosted storage and authentication
+4. Offline-friendly capture
+5. Background synchronisation where browser support permits it
+6. Push notifications only after the reminder workflow is proven useful
+
+The app must remain usable in a normal browser. Installation should improve convenience rather than create a separate product path.
 
 ## Design principles
 
+- Design the smallest viewport first and progressively enhance larger screens.
 - Keep domain logic independent from UI components.
 - Prefer a small shared item model with explicit specialised extensions.
 - Validate all external data at system boundaries.
 - Never expose service credentials to the browser.
 - Treat integrations as optional adapters so the core app works without them.
+- Save user input early and protect unfinished reviews from accidental loss.
 - Record significant architecture decisions under `docs/decisions/`.
 
 ## Initial domain model
@@ -67,6 +92,7 @@ Supports parent-child items, dependencies, and later references between projects
 - Use database row-level security when authentication is introduced.
 - Request the minimum OAuth scopes required for each integration.
 - Keep imported provider payloads separate from user-authored data where practical.
+- Treat personal reviews, photos, and location information as private data.
 
 ## Architecture decision records
 

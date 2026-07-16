@@ -1,62 +1,47 @@
 # Product Roadmap
 
-This roadmap expresses sequence and dependency, not fixed personal deadlines.
+This roadmap is intentionally compressed around a first usable version. Sequence matters more than fixed dates.
 
-## Phase 0 — Product definition
+## One-week usable target
 
-- Define core workflows
-- Define areas, item types, and statuses
-- Establish architecture and development workflow
-- Create initial interface direction
+### Slice 1 — Foundation and feedback loop
 
-## Phase 1 — Usable core (MVP)
+- Responsive Next.js application shell
+- Quick capture with browser-local persistence
+- Open and completed item status
+- Weekly review that shows open work and items closed during the week
+- Guided reflection fields, location, and photo selection
+- Docker-ready runtime for later Raspberry Pi deployment
 
-- Authentication
-- Inbox capture
-- Areas
-- Projects
-- Tasks and next actions
-- Notes
-- Now view
-- Responsive mobile layout
+### Slice 2 — Make captured items actionable
 
-## Phase 2 — Planning and review
+- Clarify inbox items into tasks, projects, and notes
+- Areas and statuses
+- Project next actions
+- Edit, defer, incubate, archive, and delete items
+- Improve the Now view from real usage feedback
 
-- Weekly review
-- Deadlines and reminders
-- Search
-- Project timeline
-- Recurring items
+### Slice 3 — Durable personal deployment
 
-## Phase 3 — Specialised trackers
+- Persistent database and photo storage
+- Authentication only if remote access requires it
+- Review history and place history
+- Deploy locally or to a Raspberry Pi
+- Backups and data export
+
+## After the first usable week
 
 - Books and reading
-- Habits
-- Running summaries
 - Trips
+- Habits and running summaries
+- Calendar and Strava integrations
+- Notifications and travel-price monitoring
+- Optional AI classification, task breakdown, summaries, and recommendations
+- PWA refinements, offline capture, and push notifications
 
-## Phase 4 — Integrations
+## Delivery rules
 
-- Calendar
-- Strava
-- Notifications
-- Supported travel-price providers
-
-## Phase 5 — AI assistance
-
-- Natural-language inbox
-- Classification suggestions
-- Task breakdown suggestions
-- Weekly summaries
-- Stale-project detection
-
-## Phase 6 — Expanded mobile support
-
-- PWA refinements
-- Offline capture
-- Push notifications
-- Evaluate native application only if justified
-
-## Delivery rule
-
-Only the current phase and its immediate dependencies belong in active development. Later capabilities remain visible without competing for current attention.
+- The app must become usable before specialised trackers are added.
+- AI should be anticipated in the data model but must not block the manual workflow.
+- The visual GitHub Project is optional until the issue list becomes difficult to scan.
+- Hardware purchasing is not a prerequisite for development; Raspberry Pi deployment follows validation of the workflow.

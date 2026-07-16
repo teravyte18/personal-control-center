@@ -79,7 +79,7 @@ export default function Home() {
         </div>
         <nav className="flex rounded-xl bg-slate-200 p-1">
           {(["now", "review"] as const).map((option) => (
-            <button key={option} onClick={() => setView(option)} className={`rounded-lg px-4 py-2 text-sm font-medium ${view === option ? "bg-white text-slate-950 shadow-sm" : "text-slate-600"}`}>
+            <button key={option} onClick={() => setView(option)} className={`rounded-lg px-4 py-2.5 text-sm font-medium ${view === option ? "bg-white text-slate-950 shadow-sm" : "text-slate-600"}`}>
               {option === "now" ? "Now" : "Weekly review"}
             </button>
           ))}
@@ -88,12 +88,12 @@ export default function Home() {
 
       {view === "now" ? (
         <div className="mt-8 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-          <section>
+          <section className="min-w-0">
             <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
               <p className="text-sm font-medium text-slate-500">Quick capture</p>
-              <form onSubmit={submitCapture} className="mt-3 flex gap-2">
-                <input value={capture} onChange={(event) => setCapture(event.target.value)} className="input" placeholder="What is on your mind?" aria-label="Quick capture" />
-                <button className="rounded-xl bg-slate-950 px-4 py-2 font-medium text-white">Save</button>
+              <form onSubmit={submitCapture} className="mt-3 flex min-w-0 gap-2">
+                <input value={capture} onChange={(event) => setCapture(event.target.value)} className="input min-w-0 flex-1" placeholder="What is on your mind?" aria-label="Quick capture" />
+                <button className="shrink-0 rounded-xl bg-slate-950 px-4 py-2 font-medium text-white">Save</button>
               </form>
               <p className="mt-2 text-xs text-slate-500">Only the thought is required. Organise it later.</p>
             </div>
@@ -113,7 +113,7 @@ export default function Home() {
             <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
               <h2 className="font-semibold text-slate-950">Saturday ritual</h2>
               <p className="mt-2 text-sm leading-6 text-slate-600">Review the system’s memory first, then write about the few things that actually mattered.</p>
-              <button onClick={() => setView("review")} className="mt-4 text-sm font-semibold text-slate-950 underline underline-offset-4">Open weekly review</button>
+              <button onClick={() => setView("review")} className="mt-2 flex min-h-11 items-center text-sm font-semibold text-slate-950 underline underline-offset-4">Open weekly review</button>
             </div>
           </aside>
         </div>
@@ -166,8 +166,10 @@ function isCompletedThisWeek(item: Item) {
 function ItemList({ items, onToggle }: { items: Item[]; onToggle: (id: string) => void }) {
   if (!items.length) return <p className="mt-4 text-sm text-slate-500">Nothing here yet.</p>;
   return <ul className="mt-4 divide-y divide-slate-100">{items.map((item) => (
-    <li key={item.id} className="flex items-start gap-3 py-3">
-      <button onClick={() => onToggle(item.id)} className="mt-0.5 h-5 w-5 shrink-0 rounded-full border border-slate-400" aria-label={`Complete ${item.title}`} />
+    <li key={item.id} className="flex items-start py-3">
+      <button onClick={() => onToggle(item.id)} className="-ml-3 flex h-11 w-11 shrink-0 items-start justify-center pt-0.5" aria-label={`Complete ${item.title}`}>
+        <span className="h-5 w-5 rounded-full border border-slate-400" aria-hidden="true" />
+      </button>
       <div><p className="text-sm font-medium text-slate-800">{item.title}</p><p className="mt-1 text-xs capitalize text-slate-500">{item.status}</p></div>
     </li>
   ))}</ul>;

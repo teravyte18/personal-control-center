@@ -1,0 +1,33 @@
+name: Bug
+about: Report unexpected application behaviour
+title: "[Bug] "
+labels: []
+body:
+  - type: textarea
+    id: behaviour
+    attributes:
+      label: What happened?
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: "1. ...\n2. ...\n3. ..."
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: Browser, device, branch, or deployment
+  - type: textarea
+    id: notes
+    attributes:
+      label: Additional context

@@ -11,11 +11,20 @@ Create a single personal control centre that answers:
 1. What matters now?
 2. What requires a next action?
 3. What can safely remain in the background?
-4. What information can be captured automatically?
+4. What changed during the week?
+5. What information can eventually be captured automatically?
 
 ## Initial user
 
 The first version is designed for one user. Multi-user collaboration is out of scope until the personal workflow is useful and stable.
+
+## Product principles
+
+- Capture first; organise later.
+- The application must remain useful without AI or external integrations.
+- AI should be anticipated in the data model but should not block the first release.
+- Reflection should be supported without turning every thought into a productivity task.
+- The weekly review should reconstruct the week from recorded activity so the user does not need to remember every detail.
 
 ## Core concepts
 
@@ -37,6 +46,7 @@ Initial statuses:
 
 - Inbox
 - Active
+- In progress
 - Waiting
 - Incubating
 - Completed
@@ -52,6 +62,31 @@ A deliberately constrained view containing:
 - Waiting items requiring follow-up
 - Recent activity and newly captured inbox items
 
+### Weekly review
+
+A recurring Saturday-morning ritual combining a factual status summary with guided reflection.
+
+Before writing, the review should display:
+
+- Items still open
+- Items completed during the week
+- Items started or changed during the week
+- Unprocessed inbox items
+- Waiting items
+- Relevant upcoming deadlines
+
+The review itself should support:
+
+- Structured reflection prompts
+- A longer open-writing section
+- Location name
+- Optional photo
+- Draft saving
+- Priorities or intentions for the next week
+- Review history and place history
+
+The application should encourage variation in review locations without making a new location mandatory.
+
 ## MVP workflows
 
 ### Capture
@@ -60,7 +95,7 @@ The user can quickly add an item with only a title. Classification and additiona
 
 ### Clarify
 
-An inbox item can become a task, project, note, or archived reference.
+An inbox item can become a task, project, note, book, trip, or archived reference. The first release may implement only the core item types while preserving room for later specialisation.
 
 ### Plan
 
@@ -72,23 +107,38 @@ The Now view surfaces a limited set of relevant items instead of the complete da
 
 ### Review
 
-A weekly review identifies stale projects, unprocessed inbox items, waiting items, and upcoming deadlines.
+The user can open a weekly review, inspect a generated summary of the current situation and recent changes, record a guided reflection, attach a location and optional photo, and choose the next week's focus.
 
-## Non-goals for MVP
+## First usable release
+
+The first release should prioritise a complete, testable loop over breadth:
+
+1. Quick capture
+2. Inbox and basic item statuses
+3. Mark items complete or reopen them
+4. Current-situation summary
+5. Weekly review with automatically listed open and completed items
+6. Local persistence
+7. Responsive web interface
+
+Authentication, hosted persistence, specialised trackers, and external integrations may follow after this loop is comfortable to use.
+
+## Non-goals for the first usable release
 
 - Native iOS or Android applications
 - Social features
 - Complex team permissions
 - Full calendar replacement
 - Automatic travel booking
-- Autonomous AI changes without confirmation
-- Supporting every possible tracker type
+- Autonomous AI changes
+- Voice or video reviews
+- Complete reading, fitness, and travel modules
 
 ## Later specialised modules
 
 ### Reading
 
-Books, reading status, progress, dates, notes, and ratings.
+Books, reading status, progress, dates, notes, ratings, and eventually recommendations grounded in the user's reading history.
 
 ### Fitness
 
@@ -100,7 +150,11 @@ Trip ideas, possible dates, budget, transport and accommodation options, decisio
 
 ### AI assistance
 
-Natural-language capture, classification suggestions, task breakdown, weekly summaries, and stale-project detection. Suggestions must remain reviewable.
+Natural-language classification suggestions, task breakdown, weekly summaries, duplicate detection, and stale-project detection. Suggestions must remain optional, transparent, and reviewable.
+
+### Rich review capture
+
+Voice transcription and optional video journaling may be added after the written review habit is established.
 
 ## Success criteria
 
@@ -109,5 +163,6 @@ The product is successful when:
 - New thoughts can be captured in seconds.
 - Active priorities are visible without searching.
 - Incubating projects remain documented without demanding attention.
-- Weekly review takes less effort than mentally reconstructing all commitments.
-- The app remains useful even when integrations are unavailable.
+- The weekly review presents enough recorded context that the user does not need to reconstruct the entire week from memory.
+- A review can be started, saved as a draft, and resumed safely.
+- The app remains useful when integrations and AI are unavailable.

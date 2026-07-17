@@ -22,6 +22,7 @@ export type Item = {
   id: string;
   title: string;
   description: string;
+  nextAction: string;
   kind: ItemKind;
   status: ItemStatus;
   area: AreaId;
@@ -115,6 +116,7 @@ export function normalizeItem(value: unknown, fallbackNow = new Date()): Item | 
     id: value.id,
     title: value.title,
     description: stringOrEmpty(value.description),
+    nextAction: stringOrEmpty(value.nextAction),
     kind: isItemKind(value.kind) ? value.kind : "unclassified",
     status,
     area: isAreaId(value.area) ? value.area : "uncategorized",
@@ -181,7 +183,7 @@ export function createId() {
 
 export function createItem(
   title: string,
-  options: Partial<Pick<Item, "description" | "kind" | "status" | "area">> = {},
+  options: Partial<Pick<Item, "description" | "nextAction" | "kind" | "status" | "area">> = {},
   now = new Date(),
 ): Item | null {
   const trimmedTitle = title.trim();
@@ -192,6 +194,7 @@ export function createItem(
     id: createId(),
     title: trimmedTitle,
     description: options.description ?? "",
+    nextAction: options.nextAction ?? "",
     kind: options.kind ?? "unclassified",
     status: options.status ?? "inbox",
     area: options.area ?? "uncategorized",
@@ -222,9 +225,7 @@ export function transitionItemStatus(item: Item, nextStatus: ItemStatus, now = n
     return {
       ...item,
       status: "completed",
-      statusBeforeCompletion: item.status === "completed"
-        ? item.statusBeforeCompletion
-        : item.status,
+      statusBeforeCompletion: item.status,
       completedAt: timestamp,
       updatedAt: timestamp,
     };
@@ -243,6 +244,14 @@ export function toggleItemCompleted(item: Item, now = new Date()): Item {
     ? item.statusBeforeCompletion ?? "active"
     : "completed";
   return transitionItemStatus(item, nextStatus, now);
+}
+
+export function projectRequiresNextAction(item: Item) {
+  return item.kind === "project" && ["active", "in-progress"].includes(item.status);
+}
+
+export function projectHasNextAction(item: Item) {
+  return !projectRequiresNextAction(item) || Boolean(item.nextAction.trim());
 }
 
 export function startOfWeek(reference = new Date()) {

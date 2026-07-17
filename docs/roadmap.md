@@ -22,7 +22,7 @@ Delivered:
 
 ## Slice 2 — Make projects actionable
 
-**Status: implementation complete in draft PR #10; final Archive/Restore phone check remains.**
+**Status: complete and phone-validated in PR #10; pending merge.**
 
 Delivered:
 
@@ -39,7 +39,7 @@ Delivered:
 - Completed projects available through an Accomplishments space
 - Recoverable Archive space that restores projects to their previous status
 - Weekly review context for reached dates, opened actions, completed actions, completed projects, unresolved items, and recent thoughts
-- Phone validation of the project workflow, pending one final Archive/Restore check
+- Full phone validation of capture, action timelines, Waiting, Accomplishments, Archive, and Restore
 
 Optional stretch work:
 

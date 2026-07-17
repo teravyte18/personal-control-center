@@ -24,7 +24,7 @@ The current prototype includes:
 - Browser-local persistence with migration from the first prototype
 - A floating five-position phone dock with permanent central Capture
 - A desktop navigation rail using the same page structure
-- An All Spaces directory that already reserves room for Library, Trips, Fitness, Habits, and Settings
+- An All Spaces route that already reserves room for Library, Trips, Fitness, Habits, and Settings
 - An initial PWA manifest and Docker-ready runtime
 
 Data currently stays in the browser where it was entered. Clearing browser storage will remove it, and it is not yet synchronised between devices.
@@ -104,7 +104,9 @@ npm run start:network
 
 Then open the same local-network address on the phone. The phone and computer must be on the same network, and the operating-system firewall may ask for permission to allow Node.js on private networks.
 
-A LAN address using plain HTTP is not a secure browser context. The application avoids depending on secure-only ID generation, but full PWA installation and some future device capabilities will require HTTPS.
+A LAN address using plain HTTP is not a secure browser context. The application uses an HTTP-compatible ID fallback, but full PWA installation and some future device capabilities will require HTTPS.
+
+If the phone still displays an old disabled form after pulling new code, refresh the page completely or close and reopen the tab so it does not reuse stale development assets.
 
 ## Validate a production build
 

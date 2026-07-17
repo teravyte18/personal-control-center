@@ -12,11 +12,13 @@ import {
 } from "react";
 import {
   addProjectAction as addProjectActionToItem,
+  archiveItem as archiveItemInState,
   completeProjectAction as completeProjectActionInItem,
   createId,
   createItem,
   emptyReview,
   isCompletedThisWeek,
+  restoreArchivedItem as restoreArchivedItemInState,
   toggleItemCompleted,
   transitionItemStatus,
   updateItemFields,
@@ -45,6 +47,8 @@ type PersonalDataContextValue = {
   updateItem: (id: string, updates: ItemUpdates) => void;
   setItemStatus: (id: string, status: ItemStatus) => void;
   toggleCompleted: (id: string) => void;
+  archiveItem: (id: string) => void;
+  restoreArchivedItem: (id: string) => void;
   deleteItem: (id: string) => void;
   addProjectAction: (projectId: string, title: string, targetDate: string) => void;
   updateProjectAction: (projectId: string, actionId: string, updates: ProjectActionUpdates) => void;
@@ -190,6 +194,18 @@ export function PersonalDataProvider({ children }: { children: ReactNode }) {
     )));
   }, []);
 
+  const archiveItem = useCallback((id: string) => {
+    setItems((current) => current.map((item) => (
+      item.id === id ? archiveItemInState(item) : item
+    )));
+  }, []);
+
+  const restoreArchivedItem = useCallback((id: string) => {
+    setItems((current) => current.map((item) => (
+      item.id === id ? restoreArchivedItemInState(item) : item
+    )));
+  }, []);
+
   const deleteItem = useCallback((id: string) => {
     setItems((current) => current.filter((item) => item.id !== id));
   }, []);
@@ -252,6 +268,8 @@ export function PersonalDataProvider({ children }: { children: ReactNode }) {
     updateItem,
     setItemStatus,
     toggleCompleted,
+    archiveItem,
+    restoreArchivedItem,
     deleteItem,
     addProjectAction,
     updateProjectAction,
@@ -269,6 +287,8 @@ export function PersonalDataProvider({ children }: { children: ReactNode }) {
     updateItem,
     setItemStatus,
     toggleCompleted,
+    archiveItem,
+    restoreArchivedItem,
     deleteItem,
     addProjectAction,
     updateProjectAction,
@@ -298,6 +318,8 @@ export function usePersonalData() {
     updateItem,
     setItemStatus,
     toggleCompleted,
+    archiveItem,
+    restoreArchivedItem,
     deleteItem,
     addProjectAction,
     updateProjectAction,
@@ -313,6 +335,8 @@ export function usePersonalData() {
     updateItem,
     setItemStatus,
     toggleCompleted,
+    archiveItem,
+    restoreArchivedItem,
     deleteItem,
     addProjectAction,
     updateProjectAction,

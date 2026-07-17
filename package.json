@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "start:network": "next start --hostname 0.0.0.0",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "node --experimental-strip-types --experimental-default-type=module --test tests/*.test.ts"
   },
   "dependencies": {
     "next": "16.2.10",

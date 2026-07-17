@@ -5,6 +5,7 @@ export type IconName =
   | "thoughts"
   | "review"
   | "spaces"
+  | "archive"
   | "library"
   | "trips"
   | "fitness"
@@ -36,9 +37,27 @@ export const destinations: Destination[] = [
     label: "Projects",
     href: "/projects",
     icon: "projects",
-    description: "Track outcomes across work, education, and personal life.",
+    description: "Track active outcomes and their current action points.",
     available: true,
     pinnable: true,
+  },
+  {
+    id: "accomplishments",
+    label: "Accomplishments",
+    href: "/spaces/accomplishments",
+    icon: "projects",
+    description: "Browse completed projects and their action histories.",
+    available: true,
+    pinnable: false,
+  },
+  {
+    id: "archive",
+    label: "Archive",
+    href: "/spaces/archive",
+    icon: "archive",
+    description: "Recover projects removed from active views.",
+    available: true,
+    pinnable: false,
   },
   {
     id: "thoughts",

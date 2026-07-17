@@ -7,6 +7,7 @@ import { defaultPinnedDestinations, isDestinationActive } from "@/lib/navigation
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const spacesActive = pathname === "/spaces" || pathname.startsWith("/spaces/");
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-950">
@@ -19,14 +20,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <RailLink key={destination.id} destination={destination} active={isDestinationActive(pathname, destination.href)} />
           ))}
         </nav>
-        <Link href="/spaces" className={`mt-auto flex min-h-14 w-full flex-col items-center justify-center gap-1 rounded-2xl text-xs font-medium ${pathname === "/spaces" ? "bg-slate-950 text-white" : "text-slate-500 hover:bg-slate-100 hover:text-slate-950"}`} aria-current={pathname === "/spaces" ? "page" : undefined}>
+        <Link href="/spaces" className={`mt-auto flex min-h-14 w-full flex-col items-center justify-center gap-1 rounded-2xl text-xs font-medium ${spacesActive ? "bg-slate-950 text-white" : "text-slate-500 hover:bg-slate-100 hover:text-slate-950"}`} aria-current={spacesActive ? "page" : undefined}>
           <Icon name="spaces" />
           Spaces
         </Link>
       </aside>
 
       <div className="md:pl-24">
-        <Link href="/spaces" className={`fixed right-4 top-4 z-20 flex h-11 w-11 items-center justify-center rounded-2xl border shadow-sm md:hidden ${pathname === "/spaces" ? "border-slate-950 bg-slate-950 text-white" : "border-slate-200 bg-white/95 text-slate-600 backdrop-blur"}`} aria-label="Open all spaces" aria-current={pathname === "/spaces" ? "page" : undefined}>
+        <Link href="/spaces" className={`fixed right-4 top-4 z-20 flex h-11 w-11 items-center justify-center rounded-2xl border shadow-sm md:hidden ${spacesActive ? "border-slate-950 bg-slate-950 text-white" : "border-slate-200 bg-white/95 text-slate-600 backdrop-blur"}`} aria-label="Open all spaces" aria-current={spacesActive ? "page" : undefined}>
           <Icon name="spaces" />
         </Link>
 

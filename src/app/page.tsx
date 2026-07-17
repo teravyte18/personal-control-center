@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
+import { isProjectPastCheckIn } from "@/domain/project-dates";
 import { usePersonalData } from "@/lib/personal-data";
 
 export default function CapturePage() {
   const { items, addItem } = usePersonalData();
   const [capture, setCapture] = useState("");
   const inboxCount = useMemo(() => items.filter((item) => item.status === "inbox").length, [items]);
+  const overdueProjects = useMemo(() => items.filter((item) => isProjectPastCheckIn(item)), [items]);
 
   function submitCapture(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -18,6 +20,22 @@ export default function CapturePage() {
 
   return (
     <section className="mx-auto flex min-h-[68vh] max-w-2xl flex-col justify-center">
+      {overdueProjects.length > 0 ? (
+        <Link
+          href="/projects"
+          className="mb-4 flex min-h-16 items-center justify-between gap-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 text-rose-950 shadow-sm transition active:scale-[0.99]"
+        >
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="h-3 w-3 shrink-0 rounded-full bg-rose-600" aria-hidden="true" />
+            <div className="min-w-0">
+              <p className="text-sm font-semibold">{overdueProjects.length} {overdueProjects.length === 1 ? "project needs" : "projects need"} attention</p>
+              <p className="mt-1 text-xs text-rose-700">A current action is past its check-in date.</p>
+            </div>
+          </div>
+          <span className="shrink-0 text-lg text-rose-500" aria-hidden="true">→</span>
+        </Link>
+      ) : null}
+
       <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
         <p className="text-sm font-medium text-slate-500">Quick capture</p>
         <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">What is on your mind?</h2>

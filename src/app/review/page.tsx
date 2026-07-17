@@ -1,19 +1,64 @@
 "use client";
 
-import { ChangeEvent, useMemo, useState } from "react";
-import { isCreatedThisWeek, Item, usePersonalData, useReviewData } from "@/lib/personal-data";
+import { type ChangeEvent, useMemo, useState } from "react";
+import {
+  getCurrentProjectAction,
+  isCreatedThisWeek,
+  isProjectActionCompletedThisWeek,
+  isProjectActionOpenedThisWeek,
+  isProjectActionTargetReached,
+  projectRequiresNextAction,
+  type Item,
+  usePersonalData,
+  useReviewData,
+} from "@/lib/personal-data";
 
 type Tab = "current" | "history";
 
+type ReviewLine = {
+  id: string;
+  text: string;
+  detail?: string;
+};
+
 export default function ReviewPage() {
-  const { items, openItems, closedThisWeek } = usePersonalData();
+  const { items, closedThisWeek } = usePersonalData();
   const { draft, history, updateDraft, completeReview } = useReviewData();
   const [tab, setTab] = useState<Tab>("current");
   const [saved, setSaved] = useState(false);
+
   const thoughtsThisWeek = useMemo(() => items.filter((item) =>
     ["thought", "note"].includes(item.kind)
     && item.status !== "archived"
     && isCreatedThisWeek(item)), [items]);
+
+  const projectActionContext = useMemo(() => {
+    const opened: ReviewLine[] = [];
+    const completed: ReviewLine[] = [];
+    const attention: ReviewLine[] = [];
+
+    for (const project of items.filter((item) => item.kind === "project" && item.status !== "archived")) {
+      const currentAction = getCurrentProjectAction(project);
+      if (projectRequiresNextAction(project) && !currentAction) {
+        attention.push({ id: `${project.id}-missing`, text: project.title, detail: "Needs a current action point" });
+      } else if (currentAction && !currentAction.targetDate) {
+        attention.push({ id: `${project.id}-date`, text: `${project.title}: ${currentAction.title}`, detail: "Needs a check-in date" });
+      } else if (currentAction && isProjectActionTargetReached(currentAction)) {
+        attention.push({ id: currentAction.id, text: `${project.title}: ${currentAction.title}`, detail: `Check-in reached ${formatDateOnly(currentAction.targetDate)}` });
+      }
+
+      for (const action of project.actions) {
+        if (isProjectActionOpenedThisWeek(action)) {
+          opened.push({ id: `${action.id}-opened`, text: `${project.title}: ${action.title}`, detail: action.targetDate ? `Check in ${formatDateOnly(action.targetDate)}` : undefined });
+        }
+        if (isProjectActionCompletedThisWeek(action)) {
+          completed.push({ id: `${action.id}-completed`, text: `${project.title}: ${action.title}`, detail: action.completionNote || undefined });
+        }
+      }
+    }
+
+    return { opened, completed, attention };
+  }, [items]);
 
   function saveReview() {
     completeReview();
@@ -37,9 +82,11 @@ export default function ReviewPage() {
 
       {tab === "current" ? (
         <div className="mt-7">
-          <div className="grid gap-4 lg:grid-cols-3">
-            <StatusPanel title={`Still open (${openItems.length})`} items={openItems} />
-            <StatusPanel title={`Closed this week (${closedThisWeek.length})`} items={closedThisWeek} />
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+            <TextPanel title={`Needs attention (${projectActionContext.attention.length})`} entries={projectActionContext.attention} />
+            <TextPanel title={`Actions opened (${projectActionContext.opened.length})`} entries={projectActionContext.opened} />
+            <TextPanel title={`Actions completed (${projectActionContext.completed.length})`} entries={projectActionContext.completed} />
+            <StatusPanel title={`Projects completed (${closedThisWeek.length})`} items={closedThisWeek.filter((item) => item.kind === "project")} />
             <StatusPanel title={`Thoughts added (${thoughtsThisWeek.length})`} items={thoughtsThisWeek} />
           </div>
 
@@ -109,6 +156,24 @@ function StatusPanel({ title, items }: { title: string; items: Item[] }) {
   );
 }
 
+function TextPanel({ title, entries }: { title: string; entries: ReviewLine[] }) {
+  return (
+    <div className="max-h-80 overflow-y-auto rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
+      <h3 className="font-semibold text-slate-950">{title}</h3>
+      {entries.length ? (
+        <ul className="mt-4 space-y-2">
+          {entries.slice(0, 20).map((entry) => (
+            <li key={entry.id} className="rounded-xl bg-slate-50 px-3 py-2.5 text-sm text-slate-700">
+              <p>{entry.text}</p>
+              {entry.detail ? <p className="mt-1 line-clamp-3 text-xs leading-5 text-slate-500">{entry.detail}</p> : null}
+            </li>
+          ))}
+        </ul>
+      ) : <p className="mt-4 text-sm text-slate-500">Nothing to show.</p>}
+    </div>
+  );
+}
+
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return <label className="block"><span className="mb-2 block text-sm font-medium text-slate-800">{label}</span>{children}</label>;
 }
@@ -120,4 +185,8 @@ function Prompt({ label, value, onChange }: { label: string; value: string; onCh
 function ReviewExcerpt({ label, value }: { label: string; value: string }) {
   if (!value) return null;
   return <div className="mt-4"><p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">{label}</p><p className="mt-2 line-clamp-4 text-sm leading-6 text-slate-600">{value}</p></div>;
+}
+
+function formatDateOnly(value: string) {
+  return new Date(`${value}T00:00:00`).toLocaleDateString(undefined, { dateStyle: "medium" });
 }

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ExpandButton, ProjectDetail, formatDateOnly } from "@/components/project-detail";
+import { isProjectPastCheckIn } from "@/domain/project-dates";
 import {
   areaLabels,
   getCurrentProjectAction,
@@ -107,13 +108,24 @@ function EmptyProjects() {
 function ProjectCard({ project }: { project: Item }) {
   const [expanded, setExpanded] = useState(false);
   const currentAction = getCurrentProjectAction(project);
+  const overdue = isProjectPastCheckIn(project);
   const needsAction = projectRequiresNextAction(project) && !currentAction;
   const needsDate = Boolean(currentAction && !currentAction.targetDate);
   const statusLabel = projectStatuses.find((option) => option.value === project.status)?.label ?? project.status;
+  const attentionTone = overdue
+    ? "border border-rose-300 bg-rose-50"
+    : needsAction || needsDate
+      ? "border border-amber-200 bg-amber-50"
+      : "bg-slate-50";
+  const labelTone = overdue
+    ? "text-rose-700"
+    : needsAction || needsDate
+      ? "text-amber-700"
+      : "text-slate-400";
 
   return (
     <>
-      <article className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm">
+      <article className={`rounded-[1.75rem] bg-white p-5 shadow-sm ${overdue ? "border border-rose-300" : "border border-slate-200"}`}>
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
@@ -126,15 +138,17 @@ function ProjectCard({ project }: { project: Item }) {
           <ExpandButton label={`Open ${project.title}`} onClick={() => setExpanded(true)} />
         </div>
 
-        <div className={`mt-4 rounded-2xl p-4 ${needsAction || needsDate ? "border border-amber-200 bg-amber-50" : "bg-slate-50"}`}>
-          <p className={`text-xs font-semibold uppercase tracking-[0.14em] ${needsAction || needsDate ? "text-amber-700" : "text-slate-400"}`}>
-            Current action
+        <div className={`mt-4 rounded-2xl p-4 ${attentionTone}`}>
+          <p className={`text-xs font-semibold uppercase tracking-[0.14em] ${labelTone}`}>
+            {overdue ? "Check-in overdue" : "Current action"}
           </p>
           {currentAction ? (
             <>
               <p className="mt-2 text-sm font-medium leading-6 text-slate-900">{currentAction.title}</p>
-              <p className={`mt-2 text-xs ${needsDate ? "font-semibold text-amber-800" : "text-slate-500"}`}>
-                {currentAction.targetDate ? `Check in ${formatDateOnly(currentAction.targetDate)}` : "Choose a check-in date."}
+              <p className={`mt-2 text-xs ${overdue ? "font-semibold text-rose-700" : needsDate ? "font-semibold text-amber-800" : "text-slate-500"}`}>
+                {currentAction.targetDate
+                  ? `${overdue ? "Check-in passed" : "Check in"} ${formatDateOnly(currentAction.targetDate)}`
+                  : "Choose a check-in date."}
               </p>
             </>
           ) : (

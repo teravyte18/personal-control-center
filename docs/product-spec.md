@@ -21,65 +21,71 @@ The first version is designed for one user. Multi-user collaboration is out of s
 ## Product principles
 
 - Capture first; organise later.
-- Phone use is primary; desktop is a progressive enhancement.
 - The application must remain useful without AI or external integrations.
 - AI should be anticipated in the data model but should not block the first release.
 - Reflection should be supported without turning every thought into a productivity task.
 - The weekly review should reconstruct the week from recorded activity so the user does not need to remember every detail.
-- Future modules should not crowd or destabilise primary navigation.
+- Phone navigation and form controls should remain usable during local-network testing, even before full HTTPS/PWA deployment.
 
-## MVP information architecture
+## MVP page map
 
 ### Capture
 
-The root page is a quiet input-first space. Saving requires only text and immediately creates an Inbox item. Capture remains permanently accessible through the central navigation action.
+A quiet landing page centred on one input. Its only permanent secondary element is a compact inbox count showing how many captured items still need clarification.
 
 ### Inbox
 
-Inbox contains unprocessed captures. Each item can be expanded, edited, given context, assigned an area, and classified as a project, task, thought, or note.
+The processing space for new captures. An item can be expanded, edited, assigned a type and area, and then moved out of the inbox.
 
 ### Projects
 
-Projects are finite outcomes requiring multiple actions. Work, Education, and Personal are filters or areas inside Projects rather than separate applications. Incubating is a project status and filter.
+Finite outcomes that require more than one action. Work, Education, Personal, and Incubating are filters or areas within Projects rather than separate top-level pages.
 
 ### Thoughts
 
-Thoughts preserve ideas, observations, questions, and reflections that do not necessarily require a next action, deadline, or completion state.
+Observations, ideas, and notes that should be retained without being forced into a task or completion workflow.
 
 ### Review
 
-Review contains two modes:
+One top-level section with:
 
-- **This week:** current status summary plus guided reflection
-- **History:** completed reviews, locations, photos, and later longer-term patterns
+- This week
+- History
 
-## Navigation and spaces
+The current review combines a generated status recap with structured reflection, place information, and future focus.
 
-The compact navigation model contains:
+### All Spaces
+
+A directory containing all current and future modules. Library, Trips, Fitness, Habits, and Settings can be added here without crowding the persistent phone dock.
+
+## Navigation model
+
+On compact screens:
 
 ```text
-Inbox | Projects | + Capture | Thoughts | Review
+Inbox | Projects | Capture | Thoughts | Review
 ```
 
-The four surrounding destinations are conceptually pinnable. Capture is permanent.
+- Capture is the permanent central action.
+- The other four positions are driven from navigation configuration and may become customisable later.
+- All Spaces is reached through a visible route in the page header.
+- Navigation links should not depend on opening a JavaScript-only modal.
 
-An All Spaces directory contains both core and specialised modules. Library, Trips, Fitness, Habits, Settings, and future modules appear there first and may later replace a pinned destination without redesigning the shell.
-
-Desktop presents the same structure as a navigation rail.
+On larger screens, the same information architecture becomes a slim navigation rail.
 
 ## Core concepts
 
 ### Area
 
-A long-lived responsibility or interest, initially Work, Education, Personal, or Uncategorised. Areas organise projects without becoming independent top-level apps.
+A long-lived responsibility or interest, such as Thesis, Work, Driving Licence, Reading, Fitness, Travel, or Personal Projects.
 
 ### Item
 
-A captured piece of information. Items share a common model and can specialise into tasks, projects, thoughts, notes, books, trips, habits, or automated records.
+A captured piece of information. Items share a small common model and can later specialise into tasks, projects, notes, books, trips, habits, or automated records.
 
 ### Project
 
-A finite outcome requiring multiple actions. Every active project should eventually have a clear next action or an explicit waiting state.
+A finite outcome requiring multiple actions. Every active project should have a clear next action or an explicit waiting state.
 
 ### Status
 
@@ -118,22 +124,44 @@ The review itself should support:
 
 The application should encourage variation in review locations without making a new location mandatory.
 
+## MVP workflows
+
+### Capture
+
+The user can quickly add an item with only a title. Classification and additional metadata are optional at capture time.
+
+### Clarify
+
+An inbox item can become a task, project, note, thought, or archived reference. Later specialised types can reuse the same clarification process.
+
+### Plan
+
+The user can assign an area, status, priority, dates, and next action.
+
+### Focus
+
+The eventual focused overview surfaces a limited set of relevant items instead of the complete database. The Capture landing page itself remains intentionally quiet.
+
+### Review
+
+The user can open a weekly review, inspect a generated summary of the current situation and recent changes, record a guided reflection, attach a location and optional photo, and choose the next week's focus.
+
 ## First usable release
 
 The first release should prioritise a complete, testable loop over breadth:
 
 1. Quiet quick capture
 2. Inbox clarification
-3. Projects grouped by area and status
-4. Non-actionable Thoughts storage
-5. Complete, reopen, incubate, archive, and delete core items
-6. Weekly Review with automatically listed open and completed items
-7. Review History
-8. Browser-local persistence and migration
-9. Phone dock, desktop rail, and All Spaces directory
-10. Installable-PWA foundation
+3. Projects and Thoughts destinations
+4. Basic item statuses
+5. Mark items complete or reopen them
+6. Weekly review with automatically listed open and completed items
+7. Review history
+8. Browser-local persistence
+9. Phone-first navigation with an All Spaces expansion path
+10. Responsive desktop enhancement
 
-Authentication, hosted persistence, detailed next actions, specialised trackers, and external integrations follow after this loop is comfortable to use.
+Authentication, hosted persistence, specialised trackers, and external integrations may follow after this loop is comfortable to use.
 
 ## Non-goals for the first usable release
 
@@ -145,7 +173,7 @@ Authentication, hosted persistence, detailed next actions, specialised trackers,
 - Autonomous AI changes
 - Voice or video reviews
 - Complete reading, fitness, and travel modules
-- Full navigation pin customisation UI
+- Fully configurable navigation pins
 
 ## Later specialised modules
 
@@ -174,10 +202,10 @@ Voice transcription and optional video journaling may be added after the written
 The product is successful when:
 
 - New thoughts can be captured in seconds from a phone.
-- Captured items can be clarified without friction.
-- Active and incubating projects remain distinguishable.
-- Thoughts can be preserved without being forced into tasks.
+- The inbox count makes unfinished clarification visible without cluttering Capture.
+- Active projects can be filtered by the relevant area.
+- Non-actionable thoughts remain documented without demanding attention.
 - The weekly review presents enough recorded context that the user does not need to reconstruct the entire week from memory.
-- A review can be started, saved as a draft, completed, and found in history.
-- New specialised spaces can be added without changing the core shell.
+- A review can be started, saved as a draft, and resumed safely.
+- Navigation can grow to include specialised spaces without redesigning the shell.
 - The app remains useful when integrations and AI are unavailable.

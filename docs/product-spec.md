@@ -21,24 +21,65 @@ The first version is designed for one user. Multi-user collaboration is out of s
 ## Product principles
 
 - Capture first; organise later.
+- Phone use is primary; desktop is a progressive enhancement.
 - The application must remain useful without AI or external integrations.
 - AI should be anticipated in the data model but should not block the first release.
 - Reflection should be supported without turning every thought into a productivity task.
 - The weekly review should reconstruct the week from recorded activity so the user does not need to remember every detail.
+- Future modules should not crowd or destabilise primary navigation.
+
+## MVP information architecture
+
+### Capture
+
+The root page is a quiet input-first space. Saving requires only text and immediately creates an Inbox item. Capture remains permanently accessible through the central navigation action.
+
+### Inbox
+
+Inbox contains unprocessed captures. Each item can be expanded, edited, given context, assigned an area, and classified as a project, task, thought, or note.
+
+### Projects
+
+Projects are finite outcomes requiring multiple actions. Work, Education, and Personal are filters or areas inside Projects rather than separate applications. Incubating is a project status and filter.
+
+### Thoughts
+
+Thoughts preserve ideas, observations, questions, and reflections that do not necessarily require a next action, deadline, or completion state.
+
+### Review
+
+Review contains two modes:
+
+- **This week:** current status summary plus guided reflection
+- **History:** completed reviews, locations, photos, and later longer-term patterns
+
+## Navigation and spaces
+
+The compact navigation model contains:
+
+```text
+Inbox | Projects | + Capture | Thoughts | Review
+```
+
+The four surrounding destinations are conceptually pinnable. Capture is permanent.
+
+An All Spaces directory contains both core and specialised modules. Library, Trips, Fitness, Habits, Settings, and future modules appear there first and may later replace a pinned destination without redesigning the shell.
+
+Desktop presents the same structure as a navigation rail.
 
 ## Core concepts
 
 ### Area
 
-A long-lived responsibility or interest, such as Thesis, Work, Driving Licence, Reading, Fitness, Travel, or Personal Projects.
+A long-lived responsibility or interest, initially Work, Education, Personal, or Uncategorised. Areas organise projects without becoming independent top-level apps.
 
 ### Item
 
-A captured piece of information. Items share a small common model and can later specialise into tasks, projects, notes, books, trips, habits, or automated records.
+A captured piece of information. Items share a common model and can specialise into tasks, projects, thoughts, notes, books, trips, habits, or automated records.
 
 ### Project
 
-A finite outcome requiring multiple actions. Every active project should have a clear next action or an explicit waiting state.
+A finite outcome requiring multiple actions. Every active project should eventually have a clear next action or an explicit waiting state.
 
 ### Status
 
@@ -51,16 +92,6 @@ Initial statuses:
 - Incubating
 - Completed
 - Archived
-
-### Now view
-
-A deliberately constrained view containing:
-
-- Current priorities
-- Due or overdue actions
-- Active projects without a next action
-- Waiting items requiring follow-up
-- Recent activity and newly captured inbox items
 
 ### Weekly review
 
@@ -87,41 +118,22 @@ The review itself should support:
 
 The application should encourage variation in review locations without making a new location mandatory.
 
-## MVP workflows
-
-### Capture
-
-The user can quickly add an item with only a title. Classification and additional metadata are optional at capture time.
-
-### Clarify
-
-An inbox item can become a task, project, note, book, trip, or archived reference. The first release may implement only the core item types while preserving room for later specialisation.
-
-### Plan
-
-The user can assign an area, status, priority, dates, and next action.
-
-### Focus
-
-The Now view surfaces a limited set of relevant items instead of the complete database.
-
-### Review
-
-The user can open a weekly review, inspect a generated summary of the current situation and recent changes, record a guided reflection, attach a location and optional photo, and choose the next week's focus.
-
 ## First usable release
 
 The first release should prioritise a complete, testable loop over breadth:
 
-1. Quick capture
-2. Inbox and basic item statuses
-3. Mark items complete or reopen them
-4. Current-situation summary
-5. Weekly review with automatically listed open and completed items
-6. Local persistence
-7. Responsive web interface
+1. Quiet quick capture
+2. Inbox clarification
+3. Projects grouped by area and status
+4. Non-actionable Thoughts storage
+5. Complete, reopen, incubate, archive, and delete core items
+6. Weekly Review with automatically listed open and completed items
+7. Review History
+8. Browser-local persistence and migration
+9. Phone dock, desktop rail, and All Spaces directory
+10. Installable-PWA foundation
 
-Authentication, hosted persistence, specialised trackers, and external integrations may follow after this loop is comfortable to use.
+Authentication, hosted persistence, detailed next actions, specialised trackers, and external integrations follow after this loop is comfortable to use.
 
 ## Non-goals for the first usable release
 
@@ -133,6 +145,7 @@ Authentication, hosted persistence, specialised trackers, and external integrati
 - Autonomous AI changes
 - Voice or video reviews
 - Complete reading, fitness, and travel modules
+- Full navigation pin customisation UI
 
 ## Later specialised modules
 
@@ -160,9 +173,11 @@ Voice transcription and optional video journaling may be added after the written
 
 The product is successful when:
 
-- New thoughts can be captured in seconds.
-- Active priorities are visible without searching.
-- Incubating projects remain documented without demanding attention.
+- New thoughts can be captured in seconds from a phone.
+- Captured items can be clarified without friction.
+- Active and incubating projects remain distinguishable.
+- Thoughts can be preserved without being forced into tasks.
 - The weekly review presents enough recorded context that the user does not need to reconstruct the entire week from memory.
-- A review can be started, saved as a draft, and resumed safely.
+- A review can be started, saved as a draft, completed, and found in history.
+- New specialised spaces can be added without changing the core shell.
 - The app remains useful when integrations and AI are unavailable.

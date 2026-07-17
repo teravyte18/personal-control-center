@@ -2,16 +2,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
 import { Icon } from "@/components/icon";
 import { defaultPinnedDestinations, destinations, isDestinationActive } from "@/lib/navigation";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const [spacesOpen, setSpacesOpen] = useState(false);
   const title = pathname === "/"
     ? "Capture"
-    : destinations.find((destination) => isDestinationActive(pathname, destination.href))?.label ?? "Personal Control Center";
+    : pathname === "/spaces"
+      ? "All spaces"
+      : destinations.find((destination) => isDestinationActive(pathname, destination.href))?.label ?? "Personal Control Center";
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-950">
@@ -24,10 +24,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <RailLink key={destination.id} destination={destination} active={isDestinationActive(pathname, destination.href)} />
           ))}
         </nav>
-        <button type="button" onClick={() => setSpacesOpen(true)} className="mt-auto flex min-h-14 w-full flex-col items-center justify-center gap-1 rounded-2xl text-xs font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-950">
+        <Link href="/spaces" className={`mt-auto flex min-h-14 w-full flex-col items-center justify-center gap-1 rounded-2xl text-xs font-medium ${pathname === "/spaces" ? "bg-slate-950 text-white" : "text-slate-500 hover:bg-slate-100 hover:text-slate-950"}`} aria-current={pathname === "/spaces" ? "page" : undefined}>
           <Icon name="spaces" />
           Spaces
-        </button>
+        </Link>
       </aside>
 
       <div className="md:pl-24">
@@ -36,9 +36,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-400">Personal Control Center</p>
             <h1 className="text-lg font-semibold tracking-tight text-slate-950">{title}</h1>
           </div>
-          <button type="button" onClick={() => setSpacesOpen(true)} className="flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-600 shadow-sm md:hidden" aria-label="Open all spaces">
+          <Link href="/spaces" className={`flex h-11 w-11 items-center justify-center rounded-2xl border shadow-sm md:hidden ${pathname === "/spaces" ? "border-slate-950 bg-slate-950 text-white" : "border-slate-200 bg-white text-slate-600"}`} aria-label="Open all spaces" aria-current={pathname === "/spaces" ? "page" : undefined}>
             <Icon name="spaces" />
-          </button>
+          </Link>
         </header>
 
         <main className="mx-auto min-h-[calc(100vh-4rem)] max-w-6xl px-4 pb-32 pt-6 sm:px-6 md:px-8 md:pb-10 md:pt-8">
@@ -55,8 +55,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <DockLink destination={defaultPinnedDestinations[2]} active={isDestinationActive(pathname, defaultPinnedDestinations[2].href)} />
         <DockLink destination={defaultPinnedDestinations[3]} active={isDestinationActive(pathname, defaultPinnedDestinations[3].href)} />
       </nav>
-
-      {spacesOpen ? <SpacesSheet pathname={pathname} onClose={() => setSpacesOpen(false)} /> : null}
     </div>
   );
 }
@@ -78,50 +76,5 @@ function DockLink({ destination, active }: { destination: (typeof defaultPinnedD
       </span>
       {destination.label}
     </Link>
-  );
-}
-
-function SpacesSheet({ pathname, onClose }: { pathname: string; onClose: () => void }) {
-  const available = destinations.filter((destination) => destination.available);
-  const future = destinations.filter((destination) => !destination.available);
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/35 p-0 backdrop-blur-sm sm:items-center sm:p-6" role="dialog" aria-modal="true" aria-label="All spaces">
-      <button type="button" className="absolute inset-0" onClick={onClose} aria-label="Close spaces" />
-      <section className="relative max-h-[88vh] w-full overflow-y-auto rounded-t-[2rem] bg-white p-5 shadow-2xl sm:max-w-xl sm:rounded-[2rem] sm:p-7">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-sm font-medium text-slate-500">All spaces</p>
-            <h2 className="mt-1 text-2xl font-semibold tracking-tight">Your app can grow without crowding the dock.</h2>
-          </div>
-          <button type="button" onClick={onClose} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xl text-slate-600" aria-label="Close">×</button>
-        </div>
-
-        <div className="mt-6 grid gap-3 sm:grid-cols-2">
-          {available.map((destination) => (
-            <Link key={destination.id} href={destination.href} onClick={onClose} className={`rounded-2xl border p-4 transition ${isDestinationActive(pathname, destination.href) ? "border-slate-950 bg-slate-50" : "border-slate-200 hover:border-slate-400"}`}>
-              <div className="flex items-center gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-700"><Icon name={destination.icon} /></span>
-                <div><p className="font-semibold">{destination.label}</p><p className="mt-1 text-sm leading-5 text-slate-500">{destination.description}</p></div>
-              </div>
-            </Link>
-          ))}
-        </div>
-
-        <div className="mt-7">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Later spaces</p>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            {future.map((destination) => (
-              <div key={destination.id} className="rounded-2xl border border-dashed border-slate-200 p-4 text-slate-400">
-                <div className="flex items-center gap-3">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-50"><Icon name={destination.icon} /></span>
-                  <div><p className="font-semibold text-slate-500">{destination.label}</p><p className="mt-1 text-sm leading-5">{destination.description}</p></div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-    </div>
   );
 }

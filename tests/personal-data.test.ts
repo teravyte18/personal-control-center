@@ -6,6 +6,8 @@ import {
   normalizeItem,
   normalizeItems,
   normalizeReviewDraft,
+  projectHasNextAction,
+  projectRequiresNextAction,
   toggleItemCompleted,
   transitionItemStatus,
   type Item,
@@ -15,6 +17,7 @@ const baseItem: Item = {
   id: "item-1",
   title: "Neutral example",
   description: "",
+  nextAction: "",
   kind: "project",
   status: "waiting",
   area: "uncategorized",
@@ -30,6 +33,7 @@ test("normalizes legacy items with safe defaults", () => {
   assert.equal(item.status, "inbox");
   assert.equal(item.area, "uncategorized");
   assert.equal(item.description, "");
+  assert.equal(item.nextAction, "");
 });
 
 test("ignores malformed stored entries", () => {
@@ -63,6 +67,17 @@ test("moving away from completed clears completion metadata", () => {
   assert.equal(active.status, "active");
   assert.equal(active.completedAt, undefined);
   assert.equal(active.statusBeforeCompletion, undefined);
+});
+
+test("active projects require a next action while waiting projects do not", () => {
+  const activeProject = { ...baseItem, status: "active" as const };
+  const waitingProject = { ...baseItem, status: "waiting" as const };
+
+  assert.equal(projectRequiresNextAction(activeProject), true);
+  assert.equal(projectHasNextAction(activeProject), false);
+  assert.equal(projectRequiresNextAction(waitingProject), false);
+  assert.equal(projectHasNextAction(waitingProject), true);
+  assert.equal(projectHasNextAction({ ...activeProject, nextAction: "Take one concrete step" }), true);
 });
 
 test("weekly calculations use Monday as the start of the week", () => {

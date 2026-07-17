@@ -99,7 +99,7 @@ Archive removes a project from active views without deleting it. Archived projec
 
 ### Stage 4 — Phone validation and polish
 
-**Status: substantially complete; final Archive/Restore check remains.**
+**Status: complete.**
 
 Validated on phone:
 
@@ -115,9 +115,6 @@ Validated on phone:
 10. Complete a final action and confirm the project appears in Accomplishments.
 11. Reopen a completed project.
 12. Confirm Weekly Review context.
-
-Final check:
-
 13. Archive a project, open Archive from All Spaces, restore it, and confirm it returns to its prior state with history intact.
 
 Only polish friction revealed by this flow. Avoid unrelated visual redesign.
@@ -143,7 +140,7 @@ The browser-local model should remain straightforward to migrate into the Slice 
 
 ## Definition of done
 
-Slice 2 implementation is complete because:
+Slice 2 is complete because:
 
 - Capture-to-project works end to end.
 - Active projects expose a dated action or visibly lack one.
@@ -155,7 +152,7 @@ Slice 2 implementation is complete because:
 - Existing local data migrates safely.
 - Weekly Review reflects reached dates, opened actions, completed actions, completed projects, and recent thoughts.
 - Lint, tests, and production build pass.
-- The project workflow is manually validated on a phone, with only the final Archive/Restore interaction left to confirm.
+- The complete workflow is manually validated on a phone.
 
 ## Out of scope
 

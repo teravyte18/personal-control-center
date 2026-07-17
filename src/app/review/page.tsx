@@ -1,15 +1,19 @@
 "use client";
 
-import { ChangeEvent, useState } from "react";
-import { Item, usePersonalData, useReviewData } from "@/lib/personal-data";
+import { ChangeEvent, useMemo, useState } from "react";
+import { isCreatedThisWeek, Item, usePersonalData, useReviewData } from "@/lib/personal-data";
 
 type Tab = "current" | "history";
 
 export default function ReviewPage() {
-  const { openItems, closedThisWeek } = usePersonalData();
+  const { items, openItems, closedThisWeek } = usePersonalData();
   const { draft, history, updateDraft, completeReview } = useReviewData();
   const [tab, setTab] = useState<Tab>("current");
   const [saved, setSaved] = useState(false);
+  const thoughtsThisWeek = useMemo(() => items.filter((item) =>
+    ["thought", "note"].includes(item.kind)
+    && item.status !== "archived"
+    && isCreatedThisWeek(item)), [items]);
 
   function saveReview() {
     completeReview();
@@ -33,9 +37,10 @@ export default function ReviewPage() {
 
       {tab === "current" ? (
         <div className="mt-7">
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid gap-4 lg:grid-cols-3">
             <StatusPanel title={`Still open (${openItems.length})`} items={openItems} />
             <StatusPanel title={`Closed this week (${closedThisWeek.length})`} items={closedThisWeek} />
+            <StatusPanel title={`Thoughts added (${thoughtsThisWeek.length})`} items={thoughtsThisWeek} />
           </div>
 
           <div className="mt-5 rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-7">

@@ -1,11 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { areaLabels, ItemKind, kindLabels, usePersonalData } from "@/lib/personal-data";
+import { FormEvent } from "react";
+import { areaLabels, Item, ItemKind, kindLabels, usePersonalData } from "@/lib/personal-data";
 
 export default function InboxPage() {
-  const { items, loaded, updateItem, deleteItem } = usePersonalData();
+  const { items, updateItem, deleteItem } = usePersonalData();
   const inbox = items.filter((item) => item.status === "inbox");
+
+  function organiseItem(event: FormEvent<HTMLFormElement>, item: Item) {
+    event.preventDefault();
+    if (item.kind === "unclassified") return;
+    updateItem(item.id, { status: "active" });
+  }
 
   return (
     <section className="mx-auto max-w-3xl">
@@ -17,8 +24,7 @@ export default function InboxPage() {
         <span className="rounded-full bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm">{inbox.length}</span>
       </div>
 
-      {!loaded ? <p className="mt-8 text-sm text-slate-500">Loading your inbox…</p> : null}
-      {loaded && inbox.length === 0 ? (
+      {inbox.length === 0 ? (
         <div className="mt-8 rounded-[2rem] border border-dashed border-slate-300 bg-white p-8 text-center">
           <h3 className="text-lg font-semibold">Inbox clear.</h3>
           <p className="mt-2 text-sm leading-6 text-slate-500">New captures will wait here until you organise them.</p>
@@ -37,10 +43,10 @@ export default function InboxPage() {
               <span className="text-xl text-slate-400 transition group-open:rotate-45">＋</span>
             </summary>
 
-            <div className="border-t border-slate-100 px-4 pb-5 pt-4 sm:px-5">
+            <form onSubmit={(event) => organiseItem(event, item)} className="border-t border-slate-100 px-4 pb-5 pt-4 sm:px-5">
               <label className="block text-sm font-medium text-slate-700">
                 Title
-                <input className="input mt-2" value={item.title} onChange={(event) => updateItem(item.id, { title: event.target.value })} />
+                <input className="input mt-2" value={item.title} onChange={(event) => updateItem(item.id, { title: event.target.value })} required />
               </label>
 
               <label className="mt-4 block text-sm font-medium text-slate-700">
@@ -51,8 +57,9 @@ export default function InboxPage() {
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 <label className="text-sm font-medium text-slate-700">
                   What is it?
-                  <select className="input mt-2" value={item.kind} onChange={(event) => updateItem(item.id, { kind: event.target.value as ItemKind })}>
-                    {Object.entries(kindLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                  <select className="input mt-2" value={item.kind === "unclassified" ? "" : item.kind} onChange={(event) => updateItem(item.id, { kind: event.target.value as ItemKind })} required>
+                    <option value="" disabled>Choose a type</option>
+                    {Object.entries(kindLabels).filter(([value]) => value !== "unclassified").map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                   </select>
                 </label>
                 <label className="text-sm font-medium text-slate-700">
@@ -65,11 +72,11 @@ export default function InboxPage() {
 
               <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
                 <button type="button" onClick={() => deleteItem(item.id)} className="min-h-11 rounded-xl px-4 text-sm font-medium text-rose-600 hover:bg-rose-50">Delete</button>
-                <button type="button" disabled={item.kind === "unclassified"} onClick={() => updateItem(item.id, { status: "active" })} className="min-h-11 rounded-xl bg-slate-950 px-5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-35">
+                <button type="submit" className="min-h-11 rounded-xl bg-slate-950 px-5 text-sm font-semibold text-white active:scale-[0.99]">
                   Organise item
                 </button>
               </div>
-            </div>
+            </form>
           </details>
         ))}
       </div>

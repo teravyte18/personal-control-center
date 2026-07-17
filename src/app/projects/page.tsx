@@ -24,7 +24,7 @@ const projectStatuses: Array<{ value: ItemStatus; label: string }> = [
 ];
 
 export default function ProjectsPage() {
-  const { items, loaded, updateItem, toggleCompleted } = usePersonalData();
+  const { items, updateItem, toggleCompleted } = usePersonalData();
   const [filter, setFilter] = useState<Filter>("all");
 
   const projects = useMemo(() => items.filter((item) => item.kind === "project" && item.status !== "archived"), [items]);
@@ -52,8 +52,7 @@ export default function ProjectsPage() {
         </div>
       </div>
 
-      {!loaded ? <p className="mt-8 text-sm text-slate-500">Loading projects…</p> : null}
-      {loaded && projects.length === 0 ? (
+      {projects.length === 0 ? (
         <div className="mt-6 rounded-[2rem] border border-dashed border-slate-300 bg-white p-8 text-center">
           <h3 className="text-lg font-semibold">No projects yet.</h3>
           <p className="mt-2 text-sm leading-6 text-slate-500">Capture an idea, then classify it as a project from the inbox.</p>
@@ -91,7 +90,7 @@ export default function ProjectsPage() {
         ))}
       </div>
 
-      {loaded && projects.length > 0 && visibleProjects.length === 0 ? <p className="mt-8 text-sm text-slate-500">No projects match this area yet.</p> : null}
+      {projects.length > 0 && visibleProjects.length === 0 ? <p className="mt-8 text-sm text-slate-500">No projects match this area yet.</p> : null}
     </section>
   );
 }

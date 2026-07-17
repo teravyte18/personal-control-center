@@ -88,25 +88,56 @@ function normalizeItem(value: Partial<Item> & { id: string; title: string }): It
   };
 }
 
+function createId() {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+
+  if (typeof crypto !== "undefined" && typeof crypto.getRandomValues === "function") {
+    const bytes = crypto.getRandomValues(new Uint8Array(16));
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+  }
+
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+}
+
 export function usePersonalData() {
   const [items, setItems] = useState<Item[]>(starterItems);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(ITEMS_KEY) ?? localStorage.getItem(LEGACY_ITEMS_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored) as Array<Partial<Item> & { id: string; title: string }>;
-        setItems(parsed.map(normalizeItem));
+    let cancelled = false;
+
+    queueMicrotask(() => {
+      if (cancelled) return;
+      try {
+        const stored = localStorage.getItem(ITEMS_KEY) ?? localStorage.getItem(LEGACY_ITEMS_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored) as Array<Partial<Item> & { id: string; title: string }>;
+          setItems(parsed.map(normalizeItem));
+        }
+      } catch (error) {
+        console.warn("Could not load locally saved items.", error);
+      } finally {
+        if (!cancelled) setLoaded(true);
       }
-    } finally {
-      setLoaded(true);
-    }
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
     if (!loaded) return;
-    localStorage.setItem(ITEMS_KEY, JSON.stringify(items));
+    try {
+      localStorage.setItem(ITEMS_KEY, JSON.stringify(items));
+    } catch (error) {
+      console.warn("Could not save items locally.", error);
+    }
   }, [items, loaded]);
 
   const openItems = useMemo(() => items.filter((item) => !["completed", "archived"].includes(item.status)), [items]);
@@ -117,7 +148,7 @@ export function usePersonalData() {
     if (!trimmedTitle) return null;
     const timestamp = new Date().toISOString();
     const item: Item = {
-      id: crypto.randomUUID(),
+      id: createId(),
       title: trimmedTitle,
       description: options?.description ?? "",
       kind: options?.kind ?? "unclassified",
@@ -162,20 +193,35 @@ export function useReviewData() {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    try {
-      const storedDraft = localStorage.getItem(REVIEW_DRAFT_KEY) ?? localStorage.getItem(LEGACY_REVIEW_KEY);
-      const storedHistory = localStorage.getItem(REVIEW_HISTORY_KEY);
-      if (storedDraft) setDraft({ ...emptyReview, ...(JSON.parse(storedDraft) as Partial<ReviewDraft>) });
-      if (storedHistory) setHistory(JSON.parse(storedHistory) as ReviewEntry[]);
-    } finally {
-      setLoaded(true);
-    }
+    let cancelled = false;
+
+    queueMicrotask(() => {
+      if (cancelled) return;
+      try {
+        const storedDraft = localStorage.getItem(REVIEW_DRAFT_KEY) ?? localStorage.getItem(LEGACY_REVIEW_KEY);
+        const storedHistory = localStorage.getItem(REVIEW_HISTORY_KEY);
+        if (storedDraft) setDraft({ ...emptyReview, ...(JSON.parse(storedDraft) as Partial<ReviewDraft>) });
+        if (storedHistory) setHistory(JSON.parse(storedHistory) as ReviewEntry[]);
+      } catch (error) {
+        console.warn("Could not load locally saved reviews.", error);
+      } finally {
+        if (!cancelled) setLoaded(true);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
     if (!loaded) return;
-    localStorage.setItem(REVIEW_DRAFT_KEY, JSON.stringify(draft));
-    localStorage.setItem(REVIEW_HISTORY_KEY, JSON.stringify(history));
+    try {
+      localStorage.setItem(REVIEW_DRAFT_KEY, JSON.stringify(draft));
+      localStorage.setItem(REVIEW_HISTORY_KEY, JSON.stringify(history));
+    } catch (error) {
+      console.warn("Could not save reviews locally.", error);
+    }
   }, [draft, history, loaded]);
 
   function updateDraft(field: keyof ReviewDraft, value: string) {
@@ -185,7 +231,7 @@ export function useReviewData() {
   function completeReview() {
     const entry: ReviewEntry = {
       ...draft,
-      id: crypto.randomUUID(),
+      id: createId(),
       completedAt: new Date().toISOString(),
     };
     setHistory((current) => [entry, ...current]);

@@ -63,7 +63,7 @@ export default function ReviewPage() {
 
             <div className="mt-6 flex flex-col gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-xs text-slate-500">Your unfinished review is saved automatically in this browser.</p>
-              <button type="button" onClick={saveReview} disabled={!Object.values(draft).some((value) => value.trim())} className="min-h-12 rounded-xl bg-slate-950 px-5 text-sm font-semibold text-white disabled:opacity-35">Complete review</button>
+              <button type="button" onClick={saveReview} className="min-h-12 rounded-xl bg-slate-950 px-5 text-sm font-semibold text-white active:scale-[0.99]">Complete review</button>
             </div>
           </div>
         </div>

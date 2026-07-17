@@ -17,6 +17,7 @@ export const areaIds = ["work", "education", "personal", "uncategorized"] as con
 export type AreaId = (typeof areaIds)[number];
 
 export type RestorableItemStatus = Exclude<ItemStatus, "completed">;
+export type ArchiveReturnStatus = Exclude<ItemStatus, "archived">;
 export type ActionCompletionResolution = "next-action" | "waiting" | "complete-project";
 
 export type ProjectAction = {
@@ -41,6 +42,8 @@ export type Item = {
   updatedAt: string;
   completedAt?: string;
   statusBeforeCompletion?: RestorableItemStatus;
+  archivedAt?: string;
+  statusBeforeArchive?: ArchiveReturnStatus;
 };
 
 export type ReviewDraft = {
@@ -103,6 +106,10 @@ function isRestorableStatus(value: unknown): value is RestorableItemStatus {
   return isItemStatus(value) && value !== "completed";
 }
 
+function isArchiveReturnStatus(value: unknown): value is ArchiveReturnStatus {
+  return isItemStatus(value) && value !== "archived";
+}
+
 function stringOrEmpty(value: unknown) {
   return typeof value === "string" ? value : "";
 }
@@ -152,6 +159,10 @@ export function normalizeItem(value: unknown, fallbackNow = new Date()): Item | 
   const updatedAt = validDateOrFallback(value.updatedAt, createdAt);
   const kind = isItemKind(value.kind) ? value.kind : "unclassified";
   const status = isItemStatus(value.status) ? value.status : "inbox";
+  const statusBeforeArchive = status === "archived" && isArchiveReturnStatus(value.statusBeforeArchive)
+    ? value.statusBeforeArchive
+    : undefined;
+  const preservesCompletion = status === "completed" || (status === "archived" && statusBeforeArchive === "completed");
   const completedAt = typeof value.completedAt === "string" && !Number.isNaN(Date.parse(value.completedAt))
     ? value.completedAt
     : undefined;
@@ -178,10 +189,12 @@ export function normalizeItem(value: unknown, fallbackNow = new Date()): Item | 
     area: isAreaId(value.area) ? value.area : "uncategorized",
     createdAt,
     updatedAt,
-    completedAt: status === "completed" ? completedAt : undefined,
-    statusBeforeCompletion: status === "completed" && isRestorableStatus(value.statusBeforeCompletion)
+    completedAt: preservesCompletion ? completedAt : undefined,
+    statusBeforeCompletion: preservesCompletion && isRestorableStatus(value.statusBeforeCompletion)
       ? value.statusBeforeCompletion
       : undefined,
+    archivedAt: status === "archived" ? validDateOrFallback(value.archivedAt, updatedAt) : undefined,
+    statusBeforeArchive,
   };
 }
 
@@ -269,16 +282,66 @@ export function updateItemFields(
   };
 }
 
+export function archiveItem(item: Item, now = new Date()): Item {
+  if (item.status === "archived") return item;
+  const timestamp = now.toISOString();
+  return {
+    ...item,
+    status: "archived",
+    statusBeforeArchive: item.status,
+    archivedAt: timestamp,
+    updatedAt: timestamp,
+  };
+}
+
+export function restoreArchivedItem(item: Item, now = new Date()): Item {
+  if (item.status !== "archived") return item;
+  const timestamp = now.toISOString();
+  const restoredStatus = item.statusBeforeArchive ?? "active";
+  const {
+    archivedAt: _archivedAt,
+    statusBeforeArchive: _statusBeforeArchive,
+    ...withoutArchiveMetadata
+  } = item;
+
+  if (restoredStatus === "completed") {
+    return {
+      ...withoutArchiveMetadata,
+      status: "completed",
+      updatedAt: timestamp,
+    };
+  }
+
+  const {
+    completedAt: _completedAt,
+    statusBeforeCompletion: _statusBeforeCompletion,
+    ...restored
+  } = withoutArchiveMetadata;
+  return {
+    ...restored,
+    status: restoredStatus,
+    updatedAt: timestamp,
+  };
+}
+
 export function transitionItemStatus(item: Item, nextStatus: ItemStatus, now = new Date()): Item {
   if (item.status === nextStatus) return item;
+  if (nextStatus === "archived") return archiveItem(item, now);
   const timestamp = now.toISOString();
 
   if (nextStatus === "completed") {
     const previousStatus: RestorableItemStatus = item.status === "completed"
       ? item.statusBeforeCompletion ?? "active"
-      : item.status;
+      : item.status === "archived"
+        ? "active"
+        : item.status;
+    const {
+      archivedAt: _archivedAt,
+      statusBeforeArchive: _statusBeforeArchive,
+      ...rest
+    } = item;
     return {
-      ...item,
+      ...rest,
       status: "completed",
       statusBeforeCompletion: previousStatus,
       completedAt: timestamp,
@@ -286,7 +349,13 @@ export function transitionItemStatus(item: Item, nextStatus: ItemStatus, now = n
     };
   }
 
-  const { statusBeforeCompletion: _previousStatus, completedAt: _completedAt, ...rest } = item;
+  const {
+    statusBeforeCompletion: _previousStatus,
+    completedAt: _completedAt,
+    archivedAt: _archivedAt,
+    statusBeforeArchive: _statusBeforeArchive,
+    ...rest
+  } = item;
   return {
     ...rest,
     status: nextStatus,

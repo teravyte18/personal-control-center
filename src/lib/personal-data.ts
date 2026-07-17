@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 export type ItemStatus = "inbox" | "active" | "in-progress" | "waiting" | "incubating" | "completed" | "archived";
 export type ItemKind = "unclassified" | "project" | "task" | "thought" | "note";
 export type AreaId = "work" | "education" | "personal" | "uncategorized";
+type RestorableItemStatus = Exclude<ItemStatus, "completed">;
 
 export type Item = {
   id: string;
@@ -16,6 +17,7 @@ export type Item = {
   createdAt: string;
   updatedAt: string;
   completedAt?: string;
+  statusBeforeCompletion?: RestorableItemStatus;
 };
 
 export type ReviewDraft = {
@@ -39,30 +41,6 @@ const REVIEW_DRAFT_KEY = "pcc-review-draft-v2";
 const LEGACY_REVIEW_KEY = "pcc-review-v1";
 const REVIEW_HISTORY_KEY = "pcc-review-history-v1";
 
-const now = new Date().toISOString();
-const starterItems: Item[] = [
-  {
-    id: "thesis",
-    title: "Define the next concrete thesis milestone",
-    description: "",
-    kind: "project",
-    status: "active",
-    area: "education",
-    createdAt: now,
-    updatedAt: now,
-  },
-  {
-    id: "licence",
-    title: "Choose the next driving licence action",
-    description: "",
-    kind: "unclassified",
-    status: "inbox",
-    area: "personal",
-    createdAt: now,
-    updatedAt: now,
-  },
-];
-
 export const emptyReview: ReviewDraft = {
   location: "",
   photoName: "",
@@ -85,6 +63,7 @@ function normalizeItem(value: Partial<Item> & { id: string; title: string }): It
     createdAt,
     updatedAt: value.updatedAt ?? createdAt,
     completedAt: value.completedAt,
+    statusBeforeCompletion: value.statusBeforeCompletion,
   };
 }
 
@@ -104,8 +83,31 @@ function createId() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
 }
 
+function transitionItemStatus(item: Item, nextStatus: ItemStatus): Item {
+  const timestamp = new Date().toISOString();
+
+  if (nextStatus === "completed") {
+    if (item.status === "completed") return item;
+    return {
+      ...item,
+      status: "completed",
+      statusBeforeCompletion: item.status,
+      completedAt: timestamp,
+      updatedAt: timestamp,
+    };
+  }
+
+  const { statusBeforeCompletion: _previousStatus, ...rest } = item;
+  return {
+    ...rest,
+    status: nextStatus,
+    completedAt: undefined,
+    updatedAt: timestamp,
+  };
+}
+
 export function usePersonalData() {
-  const [items, setItems] = useState<Item[]>(starterItems);
+  const [items, setItems] = useState<Item[]>([]);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
@@ -167,16 +169,17 @@ export function usePersonalData() {
       : item));
   }
 
+  function setItemStatus(id: string, status: ItemStatus) {
+    setItems((current) => current.map((item) => item.id === id ? transitionItemStatus(item, status) : item));
+  }
+
   function toggleCompleted(id: string) {
     setItems((current) => current.map((item) => {
       if (item.id !== id) return item;
-      const completed = item.status === "completed";
-      return {
-        ...item,
-        status: completed ? "active" : "completed",
-        completedAt: completed ? undefined : new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
+      const nextStatus = item.status === "completed"
+        ? item.statusBeforeCompletion ?? "active"
+        : "completed";
+      return transitionItemStatus(item, nextStatus);
     }));
   }
 
@@ -184,7 +187,7 @@ export function usePersonalData() {
     setItems((current) => current.filter((item) => item.id !== id));
   }
 
-  return { items, loaded, openItems, closedThisWeek, addItem, updateItem, toggleCompleted, deleteItem };
+  return { items, loaded, openItems, closedThisWeek, addItem, updateItem, setItemStatus, toggleCompleted, deleteItem };
 }
 
 export function useReviewData() {
@@ -242,13 +245,20 @@ export function useReviewData() {
   return { draft, history, loaded, updateDraft, completeReview };
 }
 
-export function isCompletedThisWeek(item: Item) {
-  if (!item.completedAt) return false;
+function startOfCurrentWeek() {
   const start = new Date();
   const day = (start.getDay() + 6) % 7;
   start.setDate(start.getDate() - day);
   start.setHours(0, 0, 0, 0);
-  return new Date(item.completedAt) >= start;
+  return start;
+}
+
+export function isCompletedThisWeek(item: Item) {
+  return Boolean(item.completedAt && new Date(item.completedAt) >= startOfCurrentWeek());
+}
+
+export function isCreatedThisWeek(item: Item) {
+  return new Date(item.createdAt) >= startOfCurrentWeek();
 }
 
 export const areaLabels: Record<AreaId, string> = {

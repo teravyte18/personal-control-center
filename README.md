@@ -1,8 +1,10 @@
 # Personal Control Center
 
-A phone-first personal planning and tracking application designed to reduce cognitive load by bringing responsibilities, projects, thoughts, reviews, and later specialised modules into one coherent system.
+A phone-first, single-user planning and reflection system designed to reduce cognitive load by bringing responsibilities, projects, thoughts, reviews, and later specialised modules into one coherent place.
 
-## Product principles
+This repository is for personal use rather than a commercial or multi-user product. The code should still follow production-quality engineering, privacy, testing, and maintainability practices.
+
+## System principles
 
 - Capture first; organise later.
 - Design for frequent phone use before optimising desktop layouts.
@@ -11,6 +13,7 @@ A phone-first personal planning and tracking application designed to reduce cogn
 - Let future modules grow without crowding primary navigation.
 - Let AI suggest structure without silently changing user data.
 - Remain useful before any external integrations are configured.
+- Keep all repository examples neutral because the repository is public.
 
 ## Current prototype
 
@@ -19,8 +22,9 @@ The current prototype includes:
 - A quiet Capture landing page
 - Inbox clarification into projects, tasks, thoughts, and notes
 - Project filtering across Work, Education, Personal, and Incubating
-- A dedicated Thoughts space
+- A dedicated Thoughts space with dated, read-only cards and explicit editing
 - Weekly Review and Review History modes
+- Weekly Review context for open items, completed items, and thoughts added during the week
 - Browser-local persistence with migration from the first prototype
 - A floating five-position phone dock with permanent central Capture
 - A desktop navigation rail using the same page structure
@@ -106,7 +110,7 @@ Then open the same local-network address on the phone. The phone and computer mu
 
 A LAN address using plain HTTP is not a secure browser context. The application uses an HTTP-compatible ID fallback, but full PWA installation and some future device capabilities will require HTTPS.
 
-If the phone still displays an old disabled form after pulling new code, refresh the page completely or close and reopen the tab so it does not reuse stale development assets.
+If the phone still displays stale interface state after pulling new code, refresh the page completely or close and reopen the tab so it does not reuse old development assets.
 
 ## Validate a production build
 
@@ -143,7 +147,7 @@ The current branch includes the initial web-app manifest and mobile metadata. Of
 src/app/              Next.js routes
 src/components/       Shared navigation and UI components
 src/lib/              Navigation, data models, and browser persistence
-docs/                 Product and architecture documentation
+docs/                 System design and roadmap documentation
 .github/               Issue templates, PR template, and CI workflow
 ```
 
@@ -152,7 +156,7 @@ docs/                 Product and architecture documentation
 1. Start with a GitHub issue describing the outcome.
 2. Work on a feature branch.
 3. Open a draft pull request.
-4. Review behaviour and product decisions.
+4. Review behaviour and system decisions.
 5. Merge into `main` after approval.
 
 See [`docs/product-spec.md`](docs/product-spec.md), [`docs/roadmap.md`](docs/roadmap.md), and [`CONTRIBUTING.md`](CONTRIBUTING.md).

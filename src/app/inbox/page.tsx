@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent } from "react";
-import { areaLabels, Item, ItemKind, kindLabels, usePersonalData } from "@/lib/personal-data";
+import { type FormEvent } from "react";
+import { areaLabels, type Item, type ItemKind, kindLabels, usePersonalData } from "@/lib/personal-data";
 
 export default function InboxPage() {
   const { items, updateItem, setItemStatus, deleteItem } = usePersonalData();
@@ -69,6 +69,13 @@ export default function InboxPage() {
                   </select>
                 </label>
               </div>
+
+              {item.kind === "project" ? (
+                <label className="mt-4 block text-sm font-medium text-slate-700">
+                  First next action
+                  <input className="input mt-2" value={item.nextAction} onChange={(event) => updateItem(item.id, { nextAction: event.target.value })} placeholder="Optional now; active projects will flag when this is missing" />
+                </label>
+              ) : null}
 
               <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
                 <button type="button" onClick={() => deleteItem(item.id)} className="min-h-11 rounded-xl px-4 text-sm font-medium text-rose-600 hover:bg-rose-50">Delete</button>

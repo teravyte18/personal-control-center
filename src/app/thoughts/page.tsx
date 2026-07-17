@@ -1,17 +1,40 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
-import { areaLabels, usePersonalData } from "@/lib/personal-data";
+import { Item, usePersonalData } from "@/lib/personal-data";
 
 export default function ThoughtsPage() {
-  const { items, addItem, updateItem, deleteItem } = usePersonalData();
+  const { items, addItem, updateItem } = usePersonalData();
   const [thought, setThought] = useState("");
-  const thoughts = useMemo(() => items.filter((item) => ["thought", "note"].includes(item.kind) && item.status !== "archived"), [items]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editText, setEditText] = useState("");
+  const thoughts = useMemo(() => items
+    .filter((item) => ["thought", "note"].includes(item.kind) && item.status !== "archived")
+    .sort((left, right) => right.createdAt.localeCompare(left.createdAt)), [items]);
 
   function submitThought(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const item = addItem(thought, { kind: "thought", status: "active" });
     if (item) setThought("");
+  }
+
+  function beginEditing(item: Item) {
+    setEditingId(item.id);
+    setEditText(item.title);
+  }
+
+  function saveEdit(event: FormEvent<HTMLFormElement>, item: Item) {
+    event.preventDefault();
+    const title = editText.trim();
+    if (!title) return;
+    updateItem(item.id, { title });
+    setEditingId(null);
+    setEditText("");
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setEditText("");
   }
 
   return (
@@ -33,11 +56,25 @@ export default function ThoughtsPage() {
       <div className="mt-6 columns-1 gap-4 sm:columns-2">
         {thoughts.map((item) => (
           <article key={item.id} className="mb-4 break-inside-avoid rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
-            <textarea value={item.title} onChange={(event) => updateItem(item.id, { title: event.target.value })} className="w-full resize-none border-0 bg-transparent text-base font-medium leading-7 outline-none" rows={Math.max(2, Math.ceil(item.title.length / 40))} aria-label="Thought text" />
-            <div className="mt-4 flex items-center justify-between gap-3 text-xs text-slate-400">
-              <span>{areaLabels[item.area]}</span>
-              <button type="button" onClick={() => deleteItem(item.id)} className="min-h-9 rounded-lg px-3 text-rose-500 hover:bg-rose-50">Delete</button>
-            </div>
+            {editingId === item.id ? (
+              <form onSubmit={(event) => saveEdit(event, item)}>
+                <textarea value={editText} onChange={(event) => setEditText(event.target.value)} className="input min-h-28 resize-y text-base leading-7" aria-label="Edit thought" autoFocus required />
+                <div className="mt-3 flex justify-end gap-2">
+                  <button type="button" onClick={cancelEdit} className="min-h-10 rounded-xl px-4 text-sm font-medium text-slate-500 hover:bg-slate-100">Cancel</button>
+                  <button type="submit" className="min-h-10 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white">Save</button>
+                </div>
+              </form>
+            ) : (
+              <>
+                <p className="whitespace-pre-wrap text-base font-medium leading-7 text-slate-800">{item.title}</p>
+                <div className="mt-5 flex items-center justify-between gap-3 border-t border-slate-100 pt-3">
+                  <time dateTime={item.createdAt} className="text-xs text-slate-400">
+                    {new Date(item.createdAt).toLocaleDateString(undefined, { dateStyle: "medium" })}
+                  </time>
+                  <button type="button" onClick={() => beginEditing(item)} className="min-h-9 rounded-lg px-3 text-sm font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-900">Edit</button>
+                </div>
+              </>
+            )}
           </article>
         ))}
       </div>

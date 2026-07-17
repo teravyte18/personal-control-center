@@ -13,6 +13,8 @@ export {
   normalizeItems,
   normalizeReviewDraft,
   normalizeReviewHistory,
+  projectHasNextAction,
+  projectRequiresNextAction,
   startOfWeek,
   toggleItemCompleted,
   transitionItemStatus,

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { AppShell } from "@/components/app-shell";
+import { PersonalDataProvider } from "@/providers/personal-data-provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -28,7 +29,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en">
       <body>
-        <AppShell>{children}</AppShell>
+        <PersonalDataProvider>
+          <AppShell>{children}</AppShell>
+        </PersonalDataProvider>
       </body>
     </html>
   );

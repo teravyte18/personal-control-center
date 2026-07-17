@@ -60,9 +60,14 @@ export function PersonalDataProvider({ children }: { children: ReactNode }) {
   const itemSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reviewSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  itemsRef.current = items;
-  draftRef.current = draft;
-  historyRef.current = history;
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
+
+  useEffect(() => {
+    draftRef.current = draft;
+    historyRef.current = history;
+  }, [draft, history]);
 
   useEffect(() => {
     let cancelled = false;
@@ -179,14 +184,14 @@ export function PersonalDataProvider({ children }: { children: ReactNode }) {
 
   const completeReview = useCallback(() => {
     const entry: ReviewEntry = {
-      ...draftRef.current,
+      ...draft,
       id: createId(),
       completedAt: new Date().toISOString(),
     };
     setHistory((current) => [entry, ...current]);
     setDraft({ ...emptyReview });
     return entry;
-  }, []);
+  }, [draft]);
 
   const value = useMemo<PersonalDataContextValue>(() => ({
     items,

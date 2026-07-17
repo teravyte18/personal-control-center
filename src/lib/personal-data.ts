@@ -109,17 +109,26 @@ export function usePersonalData() {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(ITEMS_KEY) ?? localStorage.getItem(LEGACY_ITEMS_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored) as Array<Partial<Item> & { id: string; title: string }>;
-        setItems(parsed.map(normalizeItem));
+    let cancelled = false;
+
+    queueMicrotask(() => {
+      if (cancelled) return;
+      try {
+        const stored = localStorage.getItem(ITEMS_KEY) ?? localStorage.getItem(LEGACY_ITEMS_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored) as Array<Partial<Item> & { id: string; title: string }>;
+          setItems(parsed.map(normalizeItem));
+        }
+      } catch (error) {
+        console.warn("Could not load locally saved items.", error);
+      } finally {
+        if (!cancelled) setLoaded(true);
       }
-    } catch (error) {
-      console.warn("Could not load locally saved items.", error);
-    } finally {
-      setLoaded(true);
-    }
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -184,16 +193,25 @@ export function useReviewData() {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    try {
-      const storedDraft = localStorage.getItem(REVIEW_DRAFT_KEY) ?? localStorage.getItem(LEGACY_REVIEW_KEY);
-      const storedHistory = localStorage.getItem(REVIEW_HISTORY_KEY);
-      if (storedDraft) setDraft({ ...emptyReview, ...(JSON.parse(storedDraft) as Partial<ReviewDraft>) });
-      if (storedHistory) setHistory(JSON.parse(storedHistory) as ReviewEntry[]);
-    } catch (error) {
-      console.warn("Could not load locally saved reviews.", error);
-    } finally {
-      setLoaded(true);
-    }
+    let cancelled = false;
+
+    queueMicrotask(() => {
+      if (cancelled) return;
+      try {
+        const storedDraft = localStorage.getItem(REVIEW_DRAFT_KEY) ?? localStorage.getItem(LEGACY_REVIEW_KEY);
+        const storedHistory = localStorage.getItem(REVIEW_HISTORY_KEY);
+        if (storedDraft) setDraft({ ...emptyReview, ...(JSON.parse(storedDraft) as Partial<ReviewDraft>) });
+        if (storedHistory) setHistory(JSON.parse(storedHistory) as ReviewEntry[]);
+      } catch (error) {
+        console.warn("Could not load locally saved reviews.", error);
+      } finally {
+        if (!cancelled) setLoaded(true);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {

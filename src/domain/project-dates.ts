@@ -1,4 +1,4 @@
-import { getCurrentProjectAction, type Item, type ProjectAction } from "@/domain/personal-data";
+import { getCurrentProjectAction, type Item, type ProjectAction } from "./personal-data.ts";
 
 function localDateKey(reference: Date) {
   const year = reference.getFullYear();

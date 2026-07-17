@@ -222,10 +222,13 @@ export function transitionItemStatus(item: Item, nextStatus: ItemStatus, now = n
   const timestamp = now.toISOString();
 
   if (nextStatus === "completed") {
+    const previousStatus: RestorableItemStatus = item.status === "completed"
+      ? item.statusBeforeCompletion ?? "active"
+      : item.status;
     return {
       ...item,
       status: "completed",
-      statusBeforeCompletion: item.status,
+      statusBeforeCompletion: previousStatus,
       completedAt: timestamp,
       updatedAt: timestamp,
     };

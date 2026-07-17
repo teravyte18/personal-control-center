@@ -11,6 +11,8 @@ import {
   type ReactNode,
 } from "react";
 import {
+  addProjectAction as addProjectActionToItem,
+  completeProjectAction as completeProjectActionInItem,
   createId,
   createItem,
   emptyReview,
@@ -18,8 +20,11 @@ import {
   toggleItemCompleted,
   transitionItemStatus,
   updateItemFields,
+  updateProjectAction as updateProjectActionInItem,
+  type ActionCompletionResolution,
   type Item,
   type ItemStatus,
+  type ProjectAction,
   type ReviewDraft,
   type ReviewEntry,
 } from "@/domain/personal-data";
@@ -29,6 +34,7 @@ const SAVE_DELAY_MS = 400;
 
 type ItemUpdates = Partial<Omit<Item, "id" | "createdAt">>;
 type AddItemOptions = Partial<Pick<Item, "description" | "kind" | "status" | "area">>;
+type ProjectActionUpdates = Pick<ProjectAction, "title" | "targetDate">;
 
 type PersonalDataContextValue = {
   items: Item[];
@@ -40,6 +46,16 @@ type PersonalDataContextValue = {
   setItemStatus: (id: string, status: ItemStatus) => void;
   toggleCompleted: (id: string) => void;
   deleteItem: (id: string) => void;
+  addProjectAction: (projectId: string, title: string, targetDate: string) => void;
+  updateProjectAction: (projectId: string, actionId: string, updates: ProjectActionUpdates) => void;
+  completeProjectAction: (
+    projectId: string,
+    actionId: string,
+    completionNote: string,
+    resolution: ActionCompletionResolution,
+    nextActionTitle?: string,
+    nextTargetDate?: string,
+  ) => void;
   draft: ReviewDraft;
   history: ReviewEntry[];
   updateDraft: (field: keyof ReviewDraft, value: string) => void;
@@ -178,6 +194,40 @@ export function PersonalDataProvider({ children }: { children: ReactNode }) {
     setItems((current) => current.filter((item) => item.id !== id));
   }, []);
 
+  const addProjectAction = useCallback((projectId: string, title: string, targetDate: string) => {
+    setItems((current) => current.map((item) => (
+      item.id === projectId ? addProjectActionToItem(item, title, targetDate) : item
+    )));
+  }, []);
+
+  const updateProjectAction = useCallback((projectId: string, actionId: string, updates: ProjectActionUpdates) => {
+    setItems((current) => current.map((item) => (
+      item.id === projectId ? updateProjectActionInItem(item, actionId, updates) : item
+    )));
+  }, []);
+
+  const completeProjectAction = useCallback((
+    projectId: string,
+    actionId: string,
+    completionNote: string,
+    resolution: ActionCompletionResolution,
+    nextActionTitle = "",
+    nextTargetDate = "",
+  ) => {
+    setItems((current) => current.map((item) => (
+      item.id === projectId
+        ? completeProjectActionInItem(
+          item,
+          actionId,
+          completionNote,
+          resolution,
+          nextActionTitle,
+          nextTargetDate,
+        )
+        : item
+    )));
+  }, []);
+
   const updateDraft = useCallback((field: keyof ReviewDraft, value: string) => {
     setDraft((current) => ({ ...current, [field]: value }));
   }, []);
@@ -203,6 +253,9 @@ export function PersonalDataProvider({ children }: { children: ReactNode }) {
     setItemStatus,
     toggleCompleted,
     deleteItem,
+    addProjectAction,
+    updateProjectAction,
+    completeProjectAction,
     draft,
     history,
     updateDraft,
@@ -217,6 +270,9 @@ export function PersonalDataProvider({ children }: { children: ReactNode }) {
     setItemStatus,
     toggleCompleted,
     deleteItem,
+    addProjectAction,
+    updateProjectAction,
+    completeProjectAction,
     draft,
     history,
     updateDraft,
@@ -243,6 +299,9 @@ export function usePersonalData() {
     setItemStatus,
     toggleCompleted,
     deleteItem,
+    addProjectAction,
+    updateProjectAction,
+    completeProjectAction,
   } = usePersonalDataContext();
 
   return {
@@ -255,6 +314,9 @@ export function usePersonalData() {
     setItemStatus,
     toggleCompleted,
     deleteItem,
+    addProjectAction,
+    updateProjectAction,
+    completeProjectAction,
   };
 }
 

@@ -109,29 +109,37 @@ function ProjectCard({ project }: { project: Item }) {
   const [expanded, setExpanded] = useState(false);
   const currentAction = getCurrentProjectAction(project);
   const overdue = isProjectPastCheckIn(project);
+  const waiting = project.status === "waiting";
   const needsAction = projectRequiresNextAction(project) && !currentAction;
   const needsDate = Boolean(currentAction && !currentAction.targetDate);
   const statusLabel = projectStatuses.find((option) => option.value === project.status)?.label ?? project.status;
+  const cardTone = overdue
+    ? "border-rose-300 bg-white"
+    : waiting
+      ? "border-amber-200 bg-amber-50/70"
+      : "border-slate-200 bg-white";
   const attentionTone = overdue
     ? "border border-rose-300 bg-rose-50"
-    : needsAction || needsDate
-      ? "border border-amber-200 bg-amber-50"
-      : "bg-slate-50";
+    : waiting
+      ? "border border-amber-200 bg-amber-100/70"
+      : needsAction || needsDate
+        ? "border border-amber-200 bg-amber-50"
+        : "bg-slate-50";
   const labelTone = overdue
     ? "text-rose-700"
-    : needsAction || needsDate
+    : waiting || needsAction || needsDate
       ? "text-amber-700"
       : "text-slate-400";
 
   return (
     <>
-      <article className={`rounded-[1.75rem] bg-white p-5 shadow-sm ${overdue ? "border border-rose-300" : "border border-slate-200"}`}>
+      <article className={`rounded-[1.75rem] border p-5 shadow-sm ${cardTone}`}>
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
               <span>{areaLabels[project.area]}</span>
               <span aria-hidden="true">·</span>
-              <span>{statusLabel}</span>
+              <span className={waiting ? "text-amber-700" : ""}>{statusLabel}</span>
             </div>
             <h3 className="mt-2 text-xl font-semibold tracking-tight text-slate-950">{project.title}</h3>
           </div>
@@ -140,7 +148,7 @@ function ProjectCard({ project }: { project: Item }) {
 
         <div className={`mt-4 rounded-2xl p-4 ${attentionTone}`}>
           <p className={`text-xs font-semibold uppercase tracking-[0.14em] ${labelTone}`}>
-            {overdue ? "Check-in overdue" : "Current action"}
+            {overdue ? "Check-in overdue" : waiting ? "Waiting" : "Current action"}
           </p>
           {currentAction ? (
             <>
@@ -152,8 +160,12 @@ function ProjectCard({ project }: { project: Item }) {
               </p>
             </>
           ) : (
-            <p className={`mt-2 text-sm leading-6 ${needsAction ? "font-medium text-amber-900" : "text-slate-600"}`}>
-              {needsAction ? "This project needs a dated action point." : "No current action while this project is paused."}
+            <p className={`mt-2 text-sm leading-6 ${waiting ? "font-medium text-amber-900" : needsAction ? "font-medium text-amber-900" : "text-slate-600"}`}>
+              {waiting
+                ? "Paused until something external changes."
+                : needsAction
+                  ? "This project needs a dated action point."
+                  : "No current action while this project is paused."}
             </p>
           )}
         </div>

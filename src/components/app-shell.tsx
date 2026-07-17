@@ -3,15 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Icon } from "@/components/icon";
-import { defaultPinnedDestinations, destinations, isDestinationActive } from "@/lib/navigation";
+import { defaultPinnedDestinations, isDestinationActive } from "@/lib/navigation";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const title = pathname === "/"
-    ? "Capture"
-    : pathname === "/spaces"
-      ? "All spaces"
-      : destinations.find((destination) => isDestinationActive(pathname, destination.href))?.label ?? "Personal Control Center";
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-950">
@@ -31,17 +26,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       <div className="md:pl-24">
-        <header className="sticky top-0 z-20 flex min-h-16 items-center justify-between border-b border-slate-200/80 bg-slate-50/90 px-4 backdrop-blur md:px-8">
-          <div>
-            <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-400">Personal Control Center</p>
-            <h1 className="text-lg font-semibold tracking-tight text-slate-950">{title}</h1>
-          </div>
-          <Link href="/spaces" className={`flex h-11 w-11 items-center justify-center rounded-2xl border shadow-sm md:hidden ${pathname === "/spaces" ? "border-slate-950 bg-slate-950 text-white" : "border-slate-200 bg-white text-slate-600"}`} aria-label="Open all spaces" aria-current={pathname === "/spaces" ? "page" : undefined}>
-            <Icon name="spaces" />
-          </Link>
-        </header>
+        <Link href="/spaces" className={`fixed right-4 top-4 z-20 flex h-11 w-11 items-center justify-center rounded-2xl border shadow-sm md:hidden ${pathname === "/spaces" ? "border-slate-950 bg-slate-950 text-white" : "border-slate-200 bg-white/95 text-slate-600 backdrop-blur"}`} aria-label="Open all spaces" aria-current={pathname === "/spaces" ? "page" : undefined}>
+          <Icon name="spaces" />
+        </Link>
 
-        <main className="mx-auto min-h-[calc(100vh-4rem)] max-w-6xl px-4 pb-32 pt-6 sm:px-6 md:px-8 md:pb-10 md:pt-8">
+        <main className="mx-auto min-h-screen max-w-6xl px-4 pb-32 pt-6 sm:px-6 md:px-8 md:pb-10 md:pt-8">
           {children}
         </main>
       </div>

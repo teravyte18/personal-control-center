@@ -22,22 +22,24 @@ Delivered:
 
 ## Slice 2 — Make projects actionable
 
-**Status: active. See issue #9 and `docs/slice-2-plan.md`.**
+**Status: implementation complete in draft PR #10; final Archive/Restore phone check remains.**
 
-Required outcomes:
+Delivered:
 
 - One shared application data provider
 - Domain logic separated from React state and browser persistence
 - Debounced browser writes and safe migration of existing local data
-- Focused automated tests for item transitions and weekly calculations
+- Focused automated tests for item transitions, archive recovery, and weekly calculations
 - Dated project action points with preserved history
 - Compact active-project cards that show only the current action and date
 - Full-screen project details with a three-point timeline preview and full detail available for any recorded history
 - Free-form completion notes followed by a next action, Waiting, or project completion
+- Overdue attention states on Capture, project cards, and timelines
+- Yellow Waiting project treatment without global warnings
 - Completed projects available through an Accomplishments space
-- Consistent Waiting, Incubating, Archive, Restore, and permanent deletion behavior
+- Recoverable Archive space that restores projects to their previous status
 - Weekly review context for reached dates, opened actions, completed actions, completed projects, unresolved items, and recent thoughts
-- Full phone validation of the capture-to-project workflow
+- Phone validation of the project workflow, pending one final Archive/Restore check
 
 Optional stretch work:
 

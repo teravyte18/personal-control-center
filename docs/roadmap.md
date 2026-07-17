@@ -1,10 +1,12 @@
 # Product Roadmap
 
-This roadmap is intentionally compressed around a first usable version. Sequence matters more than fixed dates.
+This roadmap is intentionally compressed around a first usable personal system. Sequence matters more than fixed dates.
 
-## One-week usable target
+## Slice 1 — Phone-first foundation and feedback loop
 
-### Slice 1 — Phone-first foundation and feedback loop
+**Status: complete and merged in PR #7.**
+
+Delivered:
 
 - Mobile-first Next.js application shell
 - Quiet Capture landing page
@@ -12,32 +14,45 @@ This roadmap is intentionally compressed around a first usable version. Sequence
 - Floating mobile dock and matching desktop rail
 - Quick capture with browser-local persistence
 - Open and completed item status
-- Weekly review that shows open work and items closed during the week
-- Guided reflection fields, location, and photo selection
+- Weekly review with open work, completed items, and recent thoughts
+- Guided reflection fields, location, and photo selection metadata
 - Initial PWA manifest and home-screen installation direction
 - Docker-ready runtime for later Raspberry Pi deployment
 - Mobile-resilient navigation and form validation over local-network testing
 
-### Slice 2 — Make captured items actionable
+## Slice 2 — Make captured items actionable
 
-- Clarify inbox items into tasks, projects, and notes
-- Areas and statuses
+**Status: active. See issue #9 and `docs/slice-2-plan.md`.**
+
+Required outcomes:
+
+- One shared application data provider
+- Domain logic separated from React state and browser persistence
+- Debounced browser writes and safe migration of existing local data
+- Focused automated tests for item transitions and weekly calculations
 - Project next actions
-- Decide where standalone tasks are shown
-- Edit, defer, incubate, archive, and delete items
-- Improve the Capture and Projects pages from real phone usage feedback
-- Persist configurable dock pins
+- Standalone and project-linked tasks
+- A clear Tasks view within Projects without another permanent dock destination
+- Consistent edit, wait, defer, incubate, archive, restore, and delete behavior
+- Weekly review context for tasks, project next actions, waiting items, inbox items, completed work, and recent thoughts
+- Full phone validation of the capture-to-action workflow
 
-### Slice 3 — Durable personal deployment
+Optional stretch work:
+
+- Persist configurable dock pins
+- Minor Capture, Inbox, and Projects polish based on real phone usage
+
+## Slice 3 — Durable personal deployment
 
 - Persistent database and photo storage
 - Authentication for secure remote access
-- Review history and place history
+- Shared phone and desktop data
 - Deploy locally or to a Raspberry Pi
-- Backups and data export
+- Backups, data export, and tested restoration
 - Installable PWA validation on Android over HTTPS
+- Durable review and place history
 
-## After the first usable week
+## After the first live version
 
 - Offline-friendly capture and synchronisation
 - Books and reading
@@ -52,7 +67,8 @@ This roadmap is intentionally compressed around a first usable version. Sequence
 ## Delivery rules
 
 - Phone use is the primary interface assumption; desktop is a progressive enhancement.
-- The app must become usable before specialised trackers are added.
+- The complete manual workflow comes before specialised trackers.
+- Slice 2 establishes the workflow; Slice 3 makes it safe to trust with real data.
 - AI should be anticipated in the data model but must not block the manual workflow.
-- The visual GitHub Project is optional until the issue list becomes difficult to scan.
-- Hardware purchasing is not a prerequisite for development; Raspberry Pi deployment follows validation of the workflow.
+- Use only neutral fixtures and examples in the public repository.
+- The visual GitHub Project remains optional until the issue list becomes difficult to scan.

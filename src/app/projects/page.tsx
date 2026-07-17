@@ -24,7 +24,7 @@ const projectStatuses: Array<{ value: ItemStatus; label: string }> = [
 ];
 
 export default function ProjectsPage() {
-  const { items, updateItem, toggleCompleted } = usePersonalData();
+  const { items, setItemStatus, toggleCompleted } = usePersonalData();
   const [filter, setFilter] = useState<Filter>("all");
 
   const projects = useMemo(() => items.filter((item) => item.kind === "project" && item.status !== "archived"), [items]);
@@ -77,7 +77,7 @@ export default function ProjectsPage() {
 
             <label className="mt-5 block text-sm font-medium text-slate-600">
               Status
-              <select className="input mt-2" value={project.status} onChange={(event) => updateItem(project.id, { status: event.target.value as ItemStatus, completedAt: event.target.value === "completed" ? new Date().toISOString() : undefined })}>
+              <select className="input mt-2" value={project.status} onChange={(event) => setItemStatus(project.id, event.target.value as ItemStatus)}>
                 {projectStatuses.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}
               </select>
             </label>

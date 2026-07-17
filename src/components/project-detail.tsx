@@ -19,7 +19,6 @@ const projectStatuses: Array<{ value: ItemStatus; label: string }> = [
   { value: "in-progress", label: "In progress" },
   { value: "waiting", label: "Waiting" },
   { value: "incubating", label: "Incubating" },
-  { value: "archived", label: "Archived" },
 ];
 
 export function ExpandButton({ label, onClick }: { label: string; onClick: () => void }) {
@@ -41,10 +40,12 @@ export function ProjectDetail({
   project,
   onClose,
   accomplishment = false,
+  archived = false,
 }: {
   project: Item;
   onClose: () => void;
   accomplishment?: boolean;
+  archived?: boolean;
 }) {
   const {
     updateItem,
@@ -52,6 +53,8 @@ export function ProjectDetail({
     addProjectAction,
     completeProjectAction,
     toggleCompleted,
+    archiveItem,
+    restoreArchivedItem,
   } = usePersonalData();
   const [editingProject, setEditingProject] = useState(false);
   const [addingAction, setAddingAction] = useState(false);
@@ -87,13 +90,15 @@ export function ProjectDetail({
               <path d="m15 18-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
-          <button
-            type="button"
-            onClick={() => setEditingProject((value) => !value)}
-            className="min-h-10 rounded-xl px-3 text-xs font-semibold text-slate-500"
-          >
-            {editingProject ? "Cancel" : "Edit project"}
-          </button>
+          {!archived ? (
+            <button
+              type="button"
+              onClick={() => setEditingProject((value) => !value)}
+              className="min-h-10 rounded-xl px-3 text-xs font-semibold text-slate-500"
+            >
+              {editingProject ? "Cancel" : "Edit project"}
+            </button>
+          ) : <span />}
         </div>
       </header>
 
@@ -101,12 +106,12 @@ export function ProjectDetail({
         <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
           <span>{areaLabels[project.area]}</span>
           <span aria-hidden="true">·</span>
-          <span>{accomplishment ? "Completed" : statusLabel}</span>
+          <span>{archived ? "Archived" : accomplishment ? "Completed" : statusLabel}</span>
         </div>
         <h2 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">{project.title}</h2>
         {project.description ? <p className="mt-4 whitespace-pre-wrap text-sm leading-7 text-slate-600">{project.description}</p> : null}
 
-        {editingProject ? (
+        {editingProject && !archived ? (
           <ProjectEditForm
             project={project}
             updateItem={updateItem}
@@ -124,7 +129,7 @@ export function ProjectDetail({
             <span className="text-xs text-slate-400">{project.actions.length} total</span>
           </div>
 
-          <Timeline project={project} showAll={showFullTimeline} />
+          <Timeline project={project} showAll={showFullTimeline} showOverdue={!archived} />
 
           {project.actions.length > 0 ? (
             <button
@@ -140,7 +145,7 @@ export function ProjectDetail({
           ) : null}
         </section>
 
-        {!accomplishment && currentAction && completingAction ? (
+        {!archived && !accomplishment && currentAction && completingAction ? (
           <CompleteActionForm
             action={currentAction}
             onCancel={() => setCompletingAction(false)}
@@ -151,7 +156,7 @@ export function ProjectDetail({
           />
         ) : null}
 
-        {!accomplishment && !currentAction && addingAction ? (
+        {!archived && !accomplishment && !currentAction && addingAction ? (
           <AddActionForm
             onCancel={() => setAddingAction(false)}
             onAdd={(actionTitle, targetDate) => {
@@ -162,30 +167,49 @@ export function ProjectDetail({
         ) : null}
 
         <div className="mt-8 flex flex-wrap gap-2 border-t border-slate-200 pt-6">
-          {accomplishment ? (
+          {archived ? (
             <button
               type="button"
-              onClick={() => toggleCompleted(project.id)}
-              className="min-h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700"
-            >
-              Reopen project
-            </button>
-          ) : currentAction ? (
-            <button
-              type="button"
-              onClick={() => setCompletingAction((value) => !value)}
+              onClick={() => restoreArchivedItem(project.id)}
               className="min-h-11 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white"
             >
-              Complete current action
+              Restore project
             </button>
           ) : (
-            <button
-              type="button"
-              onClick={() => setAddingAction((value) => !value)}
-              className="min-h-11 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white"
-            >
-              Add action point
-            </button>
+            <>
+              {accomplishment ? (
+                <button
+                  type="button"
+                  onClick={() => toggleCompleted(project.id)}
+                  className="min-h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700"
+                >
+                  Reopen project
+                </button>
+              ) : currentAction ? (
+                <button
+                  type="button"
+                  onClick={() => setCompletingAction((value) => !value)}
+                  className="min-h-11 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white"
+                >
+                  Complete current action
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setAddingAction((value) => !value)}
+                  className="min-h-11 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white"
+                >
+                  Add action point
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => archiveItem(project.id)}
+                className="min-h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-500"
+              >
+                Archive project
+              </button>
+            </>
           )}
         </div>
       </main>
@@ -249,7 +273,7 @@ function ProjectEditForm({
   );
 }
 
-function Timeline({ project, showAll }: { project: Item; showAll: boolean }) {
+function Timeline({ project, showAll, showOverdue }: { project: Item; showAll: boolean; showOverdue: boolean }) {
   const currentAction = getCurrentProjectAction(project);
   const completedActions = getCompletedProjectActions(project);
   const orderedActions = currentAction ? [currentAction, ...completedActions] : completedActions;
@@ -269,6 +293,7 @@ function Timeline({ project, showAll }: { project: Item; showAll: boolean }) {
           current={action.id === currentAction?.id}
           detailed={showAll}
           last={index === visibleActions.length - 1 && !hasHiddenActions}
+          showOverdue={showOverdue}
         />
       ))}
       {hasHiddenActions ? (
@@ -288,13 +313,15 @@ function TimelinePoint({
   current,
   detailed,
   last,
+  showOverdue,
 }: {
   action: ProjectAction;
   current: boolean;
   detailed: boolean;
   last: boolean;
+  showOverdue: boolean;
 }) {
-  const overdue = current && isProjectActionPastCheckIn(action);
+  const overdue = showOverdue && current && isProjectActionPastCheckIn(action);
 
   return (
     <div className="grid grid-cols-[1.25rem_minmax(0,1fr)] gap-x-3">

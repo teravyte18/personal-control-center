@@ -30,24 +30,19 @@ Required outcomes:
 - Domain logic separated from React state and browser persistence
 - Debounced browser writes and safe migration of existing local data
 - Focused automated tests for item transitions and weekly calculations
-- Dated project action timelines rather than a single replaceable next-action field
-- Compact project cards showing only the current action
-- Expandable recent and full action history
-- Free-form completion notes
-- An explicit next outcome after action completion: next action, Waiting, or project completion
-- Separate Active and Accomplishments project tabs
-- Consistent Waiting, Incubating, Archive, Restore, and deletion behavior
-- Weekly Review context for reached dates, opened actions, completed actions, completed projects, unresolved items, and recent thoughts
-- Full phone validation of the capture-to-action workflow
+- Dated project action points with preserved history
+- Compact project cards that show only the current action and date
+- Full-screen project details with a three-point timeline preview and expandable full history
+- Free-form completion notes followed by a next action, Waiting, or project completion
+- Active projects as the default view and Accomplishments as a secondary view
+- Consistent Waiting, Incubating, Archive, Restore, and permanent deletion behavior
+- Weekly review context for reached dates, opened actions, completed actions, completed projects, unresolved items, and recent thoughts
+- Full phone validation of the capture-to-project workflow
 
-Deferred beyond Slice 2:
+Optional stretch work:
 
-- Standalone tasks and project-independent errands
-- Configurable dock pins
-
-Optional polish:
-
-- Minor Capture, Inbox, Projects, and Review improvements based on real phone usage
+- Persist configurable dock pins
+- Minor Capture, Inbox, and Projects polish based on real phone usage
 
 ## Slice 3 — Durable personal deployment
 
@@ -61,7 +56,7 @@ Optional polish:
 
 ## After the first live version
 
-- Standalone tasks
+- Standalone tasks and errands
 - Offline-friendly capture and synchronisation
 - Books and reading
 - Trips
@@ -76,7 +71,7 @@ Optional polish:
 
 - Phone use is the primary interface assumption; desktop is a progressive enhancement.
 - The complete manual workflow comes before specialised trackers.
-- Slice 2 establishes the project workflow; Slice 3 makes it safe to trust with real data.
+- Slice 2 establishes the workflow; Slice 3 makes it safe to trust with real data.
 - AI should be anticipated in the data model but must not block the manual workflow.
 - Use only neutral fixtures and examples in the public repository.
 - The visual GitHub Project remains optional until the issue list becomes difficult to scan.

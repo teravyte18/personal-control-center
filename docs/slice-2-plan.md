@@ -54,7 +54,7 @@ Thoughts are retained without status pressure, categories, or permanent deletion
 
 ### Archives are recoverable
 
-Archive removes an item from active views without permanently deleting it. Permanent deletion remains limited and deliberate.
+Archive removes a project from active views without deleting it. Archived projects appear under All Spaces, preserve their complete action history and metadata, and restore to the state they had before archiving. Permanent deletion is intentionally deferred to later data-management work.
 
 ## Implementation stages
 
@@ -72,7 +72,7 @@ Archive removes an item from active views without permanently deleting it. Perma
 
 ### Stage 2 — Project action timelines
 
-**Status: implemented; phone validation remains.**
+**Status: complete.**
 
 - Migrate the old single `nextAction` into a timeline entry
 - Require a concrete action and check-in date for new active projects
@@ -87,32 +87,38 @@ Archive removes an item from active views without permanently deleting it. Perma
 
 ### Stage 3 — Item lifecycle and archive recovery
 
-Goal: make non-destructive state changes deliberate and consistent.
+**Status: complete.**
 
-- Standardize Waiting, Incubating, Archive, Restore, and permanent deletion behavior
-- Remove remaining page-specific status rules
-- Add an archive recovery view where needed
-- Ensure unresolved Inbox items, paused projects, and accomplishments have clear destinations
-- Preserve action timelines through every project status transition
-
-Exit condition: no project or item can become orphaned or disappear unintentionally.
+- Waiting projects use a distinct yellow state without landing-page warnings
+- Archive is a deliberate action from expanded project detail
+- Archived projects disappear from Projects and Accomplishments
+- Archive is available under All Spaces
+- Restore returns a project to its exact previous status
+- Action timelines, dates, notes, and completion metadata survive archive and restore
+- Lifecycle behavior is centralized and covered by automated tests
 
 ### Stage 4 — Phone validation and polish
 
-Test this sequence on a phone:
+**Status: substantially complete; final Archive/Restore check remains.**
+
+Validated on phone:
 
 1. Capture an item.
 2. Clarify it as a project with its first action and check-in date.
 3. Confirm the project card shows only the current action.
 4. Open the full-screen project detail.
 5. Expand full timeline detail even with only one or two actions.
-6. Reach or simulate the check-in date and confirm Review surfaces it.
+6. Reach or simulate the check-in date and confirm attention states.
 7. Complete the action with a free-form note.
 8. Open the next action.
-9. Repeat completion and move the project to Waiting.
-10. Complete a final action and confirm the project appears in Accomplishments under All Spaces.
+9. Move the project to Waiting.
+10. Complete a final action and confirm the project appears in Accomplishments.
 11. Reopen a completed project.
-12. Confirm Weekly Review shows opened actions, completed actions, reached dates, completed projects, and recent thoughts.
+12. Confirm Weekly Review context.
+
+Final check:
+
+13. Archive a project, open Archive from All Spaces, restore it, and confirm it returns to its prior state with history intact.
 
 Only polish friction revealed by this flow. Avoid unrelated visual redesign.
 
@@ -121,6 +127,7 @@ Only polish friction revealed by this flow. Avoid unrelated visual redesign.
 ```text
 Project
 ├── title, outcome, area, status
+├── optional archive metadata
 └── action timeline
     ├── current open action
     │   ├── title
@@ -136,22 +143,24 @@ The browser-local model should remain straightforward to migrate into the Slice 
 
 ## Definition of done
 
-Slice 2 is complete when:
+Slice 2 implementation is complete because:
 
 - Capture-to-project works end to end.
 - Active projects expose a dated action or visibly lack one.
 - Action history is preserved and non-deletable.
 - Completing an action always produces a deliberate next project state.
 - Completed projects appear in the Accomplishments space.
+- Archive and restore are recoverable and preserve prior state.
 - Status and lifecycle behavior is centralized and tested.
 - Existing local data migrates safely.
 - Weekly Review reflects reached dates, opened actions, completed actions, completed projects, and recent thoughts.
 - Lint, tests, and production build pass.
-- The full workflow is manually validated on a phone.
+- The project workflow is manually validated on a phone, with only the final Archive/Restore interaction left to confirm.
 
 ## Out of scope
 
 - Standalone task workflow
+- Permanent deletion UI
 - Database and server API
 - Authentication
 - HTTPS production deployment

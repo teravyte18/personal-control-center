@@ -20,7 +20,7 @@ Delivered:
 - Docker-ready runtime for later Raspberry Pi deployment
 - Mobile-resilient navigation and form validation over local-network testing
 
-## Slice 2 — Make captured items actionable
+## Slice 2 — Make projects actionable
 
 **Status: active. See issue #9 and `docs/slice-2-plan.md`.**
 
@@ -30,17 +30,24 @@ Required outcomes:
 - Domain logic separated from React state and browser persistence
 - Debounced browser writes and safe migration of existing local data
 - Focused automated tests for item transitions and weekly calculations
-- Project next actions
-- Standalone and project-linked tasks
-- A clear Tasks view within Projects without another permanent dock destination
-- Consistent edit, wait, defer, incubate, archive, restore, and delete behavior
-- Weekly review context for tasks, project next actions, waiting items, inbox items, completed work, and recent thoughts
+- Dated project action timelines rather than a single replaceable next-action field
+- Compact project cards showing only the current action
+- Expandable recent and full action history
+- Free-form completion notes
+- An explicit next outcome after action completion: next action, Waiting, or project completion
+- Separate Active and Accomplishments project tabs
+- Consistent Waiting, Incubating, Archive, Restore, and deletion behavior
+- Weekly Review context for reached dates, opened actions, completed actions, completed projects, unresolved items, and recent thoughts
 - Full phone validation of the capture-to-action workflow
 
-Optional stretch work:
+Deferred beyond Slice 2:
 
-- Persist configurable dock pins
-- Minor Capture, Inbox, and Projects polish based on real phone usage
+- Standalone tasks and project-independent errands
+- Configurable dock pins
+
+Optional polish:
+
+- Minor Capture, Inbox, Projects, and Review improvements based on real phone usage
 
 ## Slice 3 — Durable personal deployment
 
@@ -54,6 +61,7 @@ Optional stretch work:
 
 ## After the first live version
 
+- Standalone tasks
 - Offline-friendly capture and synchronisation
 - Books and reading
 - Trips
@@ -68,7 +76,7 @@ Optional stretch work:
 
 - Phone use is the primary interface assumption; desktop is a progressive enhancement.
 - The complete manual workflow comes before specialised trackers.
-- Slice 2 establishes the workflow; Slice 3 makes it safe to trust with real data.
+- Slice 2 establishes the project workflow; Slice 3 makes it safe to trust with real data.
 - AI should be anticipated in the data model but must not block the manual workflow.
 - Use only neutral fixtures and examples in the public repository.
 - The visual GitHub Project remains optional until the issue list becomes difficult to scan.

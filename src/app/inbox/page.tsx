@@ -1,18 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { type FormEvent } from "react";
-import { areaLabels, type Item, type ItemKind, kindLabels, usePersonalData } from "@/lib/personal-data";
+import { useState, type FormEvent } from "react";
+import {
+  areaLabels,
+  getCurrentProjectAction,
+  type Item,
+  type ItemKind,
+  kindLabels,
+  usePersonalData,
+} from "@/lib/personal-data";
 
 export default function InboxPage() {
-  const { items, updateItem, setItemStatus, deleteItem } = usePersonalData();
+  const { items } = usePersonalData();
   const inbox = items.filter((item) => item.status === "inbox");
-
-  function organiseItem(event: FormEvent<HTMLFormElement>, item: Item) {
-    event.preventDefault();
-    if (item.kind === "unclassified") return;
-    setItemStatus(item.id, "active");
-  }
 
   return (
     <section className="mx-auto max-w-3xl">
@@ -33,60 +34,94 @@ export default function InboxPage() {
       ) : null}
 
       <div className="mt-6 space-y-3">
-        {inbox.map((item) => (
-          <details key={item.id} className="group rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <summary className="flex min-h-16 cursor-pointer list-none items-center justify-between gap-4 px-4 py-3 sm:px-5">
-              <div className="min-w-0">
-                <p className="truncate font-medium text-slate-900">{item.title}</p>
-                <p className="mt-1 text-xs text-slate-400">Captured {new Date(item.createdAt).toLocaleDateString()}</p>
-              </div>
-              <span className="text-xl text-slate-400 transition group-open:rotate-45">＋</span>
-            </summary>
-
-            <form onSubmit={(event) => organiseItem(event, item)} className="border-t border-slate-100 px-4 pb-5 pt-4 sm:px-5">
-              <label className="block text-sm font-medium text-slate-700">
-                Title
-                <input className="input mt-2" value={item.title} onChange={(event) => updateItem(item.id, { title: event.target.value })} required />
-              </label>
-
-              <label className="mt-4 block text-sm font-medium text-slate-700">
-                Extra context
-                <textarea className="input mt-2 min-h-24 resize-y" value={item.description} onChange={(event) => updateItem(item.id, { description: event.target.value })} placeholder="Optional details, links, or why this matters…" />
-              </label>
-
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <label className="text-sm font-medium text-slate-700">
-                  What is it?
-                  <select className="input mt-2" value={item.kind === "unclassified" ? "" : item.kind} onChange={(event) => updateItem(item.id, { kind: event.target.value as ItemKind })} required>
-                    <option value="" disabled>Choose a type</option>
-                    {Object.entries(kindLabels).filter(([value]) => value !== "unclassified").map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-                  </select>
-                </label>
-                <label className="text-sm font-medium text-slate-700">
-                  Area
-                  <select className="input mt-2" value={item.area} onChange={(event) => updateItem(item.id, { area: event.target.value as keyof typeof areaLabels })}>
-                    {Object.entries(areaLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-                  </select>
-                </label>
-              </div>
-
-              {item.kind === "project" ? (
-                <label className="mt-4 block text-sm font-medium text-slate-700">
-                  First next action
-                  <input className="input mt-2" value={item.nextAction} onChange={(event) => updateItem(item.id, { nextAction: event.target.value })} placeholder="Optional now; active projects will flag when this is missing" />
-                </label>
-              ) : null}
-
-              <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
-                <button type="button" onClick={() => deleteItem(item.id)} className="min-h-11 rounded-xl px-4 text-sm font-medium text-rose-600 hover:bg-rose-50">Delete</button>
-                <button type="submit" className="min-h-11 rounded-xl bg-slate-950 px-5 text-sm font-semibold text-white active:scale-[0.99]">
-                  Organise item
-                </button>
-              </div>
-            </form>
-          </details>
-        ))}
+        {inbox.map((item) => <InboxItem key={item.id} item={item} />)}
       </div>
     </section>
+  );
+}
+
+function InboxItem({ item }: { item: Item }) {
+  const {
+    updateItem,
+    setItemStatus,
+    deleteItem,
+    addProjectAction,
+    updateProjectAction,
+  } = usePersonalData();
+  const existingAction = getCurrentProjectAction(item);
+  const [actionTitle, setActionTitle] = useState(existingAction?.title ?? "");
+  const [targetDate, setTargetDate] = useState(existingAction?.targetDate ?? "");
+
+  function organiseItem(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (item.kind === "unclassified") return;
+
+    if (item.kind === "project") {
+      if (existingAction) {
+        updateProjectAction(item.id, existingAction.id, { title: actionTitle, targetDate });
+      } else {
+        addProjectAction(item.id, actionTitle, targetDate);
+      }
+    }
+
+    setItemStatus(item.id, "active");
+  }
+
+  return (
+    <details className="group rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <summary className="flex min-h-16 cursor-pointer list-none items-center justify-between gap-4 px-4 py-3 sm:px-5">
+        <div className="min-w-0">
+          <p className="truncate font-medium text-slate-900">{item.title}</p>
+          <p className="mt-1 text-xs text-slate-400">Captured {new Date(item.createdAt).toLocaleDateString()}</p>
+        </div>
+        <span className="text-xl text-slate-400 transition group-open:rotate-45">＋</span>
+      </summary>
+
+      <form onSubmit={organiseItem} className="border-t border-slate-100 px-4 pb-5 pt-4 sm:px-5">
+        <label className="block text-sm font-medium text-slate-700">
+          Title
+          <input className="input mt-2" value={item.title} onChange={(event) => updateItem(item.id, { title: event.target.value })} required />
+        </label>
+
+        <label className="mt-4 block text-sm font-medium text-slate-700">
+          Extra context
+          <textarea className="input mt-2 min-h-24 resize-y" value={item.description} onChange={(event) => updateItem(item.id, { description: event.target.value })} placeholder="Optional details, links, or why this matters…" />
+        </label>
+
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <label className="text-sm font-medium text-slate-700">
+            What is it?
+            <select className="input mt-2" value={item.kind === "unclassified" ? "" : item.kind} onChange={(event) => updateItem(item.id, { kind: event.target.value as ItemKind })} required>
+              <option value="" disabled>Choose a type</option>
+              {Object.entries(kindLabels).filter(([value]) => value !== "unclassified").map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </select>
+          </label>
+          <label className="text-sm font-medium text-slate-700">
+            Area
+            <select className="input mt-2" value={item.area} onChange={(event) => updateItem(item.id, { area: event.target.value as keyof typeof areaLabels })}>
+              {Object.entries(areaLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </select>
+          </label>
+        </div>
+
+        {item.kind === "project" ? (
+          <div className="mt-4 grid gap-4 sm:grid-cols-[1fr_11rem]">
+            <label className="block text-sm font-medium text-slate-700">
+              First action point
+              <input className="input mt-2" value={actionTitle} onChange={(event) => setActionTitle(event.target.value)} placeholder="One concrete action to move the project" required />
+            </label>
+            <label className="block text-sm font-medium text-slate-700">
+              Check-in date
+              <input type="date" className="input mt-2" value={targetDate} onChange={(event) => setTargetDate(event.target.value)} required />
+            </label>
+          </div>
+        ) : null}
+
+        <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
+          <button type="button" onClick={() => deleteItem(item.id)} className="min-h-11 rounded-xl px-4 text-sm font-medium text-rose-600 hover:bg-rose-50">Delete</button>
+          <button type="submit" className="min-h-11 rounded-xl bg-slate-950 px-5 text-sm font-semibold text-white active:scale-[0.99]">Organise item</button>
+        </div>
+      </form>
+    </details>
   );
 }

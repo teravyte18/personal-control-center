@@ -2,6 +2,7 @@
 
 export {
   addProjectAction,
+  archiveItem,
   areaIds,
   areaLabels,
   completeProjectAction,
@@ -24,12 +25,14 @@ export {
   projectActionNeedsDate,
   projectHasNextAction,
   projectRequiresNextAction,
+  restoreArchivedItem,
   startOfWeek,
   toggleItemCompleted,
   transitionItemStatus,
   updateItemFields,
   updateProjectAction,
   type ActionCompletionResolution,
+  type ArchiveReturnStatus,
   type AreaId,
   type Item,
   type ItemKind,

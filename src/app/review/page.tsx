@@ -1,7 +1,7 @@
 "use client";
 
-import { ChangeEvent, useMemo, useState } from "react";
-import { isCreatedThisWeek, Item, usePersonalData, useReviewData } from "@/lib/personal-data";
+import { type ChangeEvent, useMemo, useState } from "react";
+import { isCreatedThisWeek, type Item, usePersonalData, useReviewData } from "@/lib/personal-data";
 
 type Tab = "current" | "history";
 
@@ -14,6 +14,11 @@ export default function ReviewPage() {
     ["thought", "note"].includes(item.kind)
     && item.status !== "archived"
     && isCreatedThisWeek(item)), [items]);
+  const projectNextActions = useMemo(() => items
+    .filter((item) => item.kind === "project"
+      && ["active", "in-progress"].includes(item.status)
+      && item.nextAction.trim())
+    .map((item) => ({ id: item.id, text: `${item.title}: ${item.nextAction}` })), [items]);
 
   function saveReview() {
     completeReview();
@@ -37,8 +42,9 @@ export default function ReviewPage() {
 
       {tab === "current" ? (
         <div className="mt-7">
-          <div className="grid gap-4 lg:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <StatusPanel title={`Still open (${openItems.length})`} items={openItems} />
+            <TextPanel title={`Project next actions (${projectNextActions.length})`} entries={projectNextActions} />
             <StatusPanel title={`Closed this week (${closedThisWeek.length})`} items={closedThisWeek} />
             <StatusPanel title={`Thoughts added (${thoughtsThisWeek.length})`} items={thoughtsThisWeek} />
           </div>
@@ -105,6 +111,15 @@ function StatusPanel({ title, items }: { title: string; items: Item[] }) {
     <div className="max-h-80 overflow-y-auto rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
       <h3 className="font-semibold text-slate-950">{title}</h3>
       {items.length ? <ul className="mt-4 space-y-2">{items.slice(0, 20).map((item) => <li key={item.id} className="rounded-xl bg-slate-50 px-3 py-2.5 text-sm text-slate-700">{item.title}</li>)}</ul> : <p className="mt-4 text-sm text-slate-500">Nothing to show.</p>}
+    </div>
+  );
+}
+
+function TextPanel({ title, entries }: { title: string; entries: Array<{ id: string; text: string }> }) {
+  return (
+    <div className="max-h-80 overflow-y-auto rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
+      <h3 className="font-semibold text-slate-950">{title}</h3>
+      {entries.length ? <ul className="mt-4 space-y-2">{entries.slice(0, 20).map((entry) => <li key={entry.id} className="rounded-xl bg-slate-50 px-3 py-2.5 text-sm text-slate-700">{entry.text}</li>)}</ul> : <p className="mt-4 text-sm text-slate-500">Nothing to show.</p>}
     </div>
   );
 }

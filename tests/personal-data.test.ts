@@ -19,6 +19,7 @@ import {
   transitionItemStatus,
   type Item,
 } from "../src/domain/personal-data.ts";
+import { isProjectActionPastCheckIn, isProjectPastCheckIn } from "../src/domain/project-dates.ts";
 
 const baseItem: Item = {
   id: "item-1",
@@ -189,6 +190,24 @@ test("weekly action calculations use Monday as the start of the week", () => {
   assert.equal(isProjectActionCompletedThisWeek(action, reference), true);
   assert.equal(isProjectActionTargetReached(openAction, reference), true);
   assert.equal(isProjectActionTargetReached(action, reference), false);
+});
+
+test("a check-in becomes overdue only after its target date", () => {
+  const action = {
+    id: "action-overdue",
+    title: "Neutral action",
+    targetDate: "2026-07-17",
+    openedAt: "2026-07-10T10:00:00.000Z",
+    updatedAt: "2026-07-10T10:00:00.000Z",
+  };
+  const project = { ...baseItem, status: "active" as const, actions: [action] };
+
+  assert.equal(isProjectActionPastCheckIn(action, new Date(2026, 6, 16, 12)), false);
+  assert.equal(isProjectActionPastCheckIn(action, new Date(2026, 6, 17, 23, 59)), false);
+  assert.equal(isProjectActionPastCheckIn(action, new Date(2026, 6, 18, 0, 1)), true);
+  assert.equal(isProjectPastCheckIn(project, new Date(2026, 6, 18)), true);
+  assert.equal(isProjectPastCheckIn({ ...project, status: "completed" }, new Date(2026, 6, 18)), false);
+  assert.equal(isProjectActionPastCheckIn({ ...action, completedAt: "2026-07-18T08:00:00.000Z" }, new Date(2026, 6, 19)), false);
 });
 
 test("review draft migration keeps only string fields", () => {

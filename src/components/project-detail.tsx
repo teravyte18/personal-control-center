@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
+import { isProjectActionPastCheckIn } from "@/domain/project-dates";
 import {
   areaLabels,
   getCompletedProjectActions,
@@ -293,17 +294,19 @@ function TimelinePoint({
   detailed: boolean;
   last: boolean;
 }) {
+  const overdue = current && isProjectActionPastCheckIn(action);
+
   return (
     <div className="grid grid-cols-[1.25rem_minmax(0,1fr)] gap-x-3">
       <div className="flex flex-col items-center">
-        <span className={`mt-1 h-3.5 w-3.5 shrink-0 rounded-full border-2 ${current ? "border-slate-950 bg-slate-950" : "border-emerald-600 bg-white"}`} />
+        <span className={`mt-1 h-3.5 w-3.5 shrink-0 rounded-full border-2 ${overdue ? "border-rose-600 bg-rose-600" : current ? "border-slate-950 bg-slate-950" : "border-emerald-600 bg-white"}`} />
         {!last ? <span className="my-1 min-h-10 flex-1 border-l-2 border-dotted border-slate-300" /> : null}
       </div>
       <div className={last ? "" : "pb-5"}>
         <p className="text-sm font-semibold leading-6 text-slate-900">{action.title}</p>
-        <p className="mt-1 text-xs text-slate-500">
+        <p className={`mt-1 text-xs ${overdue ? "font-semibold text-rose-700" : "text-slate-500"}`}>
           {current
-            ? action.targetDate ? `Check in ${formatDateOnly(action.targetDate)}` : "Check-in date not set"
+            ? action.targetDate ? `${overdue ? "Check-in passed" : "Check in"} ${formatDateOnly(action.targetDate)}` : "Check-in date not set"
             : action.completedAt ? `Completed ${formatTimestamp(action.completedAt)}` : `Check in ${formatDateOnly(action.targetDate)}`}
         </p>
         {detailed ? (

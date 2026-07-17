@@ -43,6 +43,7 @@ Thoughts (/thoughts)
 Review (/review)
   - This week
   - History
+All Spaces (/spaces)
 ```
 
 The four dock destinations are driven by `src/lib/navigation.ts`. Future modules register in the same destination list and can later become pinnable without rebuilding the application shell.
@@ -80,10 +81,10 @@ After this pull request is merged, the branch-switch step will no longer be nece
 
 ### Test from a phone on the same network
 
-Start the development server so it accepts connections from other devices:
+For quick development testing:
 
 ```bash
-npm run dev -- --hostname 0.0.0.0
+npm run dev:network
 ```
 
 Find the computer's local network IP address and open the following address on the phone:
@@ -94,7 +95,16 @@ http://YOUR_COMPUTER_IP:3000
 
 For example: `http://192.168.1.50:3000`.
 
-The phone and computer must be on the same network. The operating-system firewall may ask for permission to allow Node.js on private networks.
+Development mode compiles routes on demand and can feel noticeably slow over Wi-Fi. For a more realistic phone performance test, use a production build:
+
+```bash
+npm run build
+npm run start:network
+```
+
+Then open the same local-network address on the phone. The phone and computer must be on the same network, and the operating-system firewall may ask for permission to allow Node.js on private networks.
+
+A LAN address using plain HTTP is not a secure browser context. The application avoids depending on secure-only ID generation, but full PWA installation and some future device capabilities will require HTTPS.
 
 ## Validate a production build
 

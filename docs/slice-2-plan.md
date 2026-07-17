@@ -1,153 +1,156 @@
-# Slice 2 — Actionable Items Plan
+# Slice 2 — Project Action Workflow
 
 ## Purpose
 
-Slice 2 turns the existing interface prototype into a complete personal planning workflow.
+Slice 2 turns the phone-first prototype into a usable project workflow before durable deployment begins.
 
-The central requirement is simple:
+The central requirement is:
 
-> Anything captured should have a deliberate destination, and anything that requires action should be easy to find again.
+> Every active project should show what happens next, when it should be checked, and what happened to earlier actions.
 
-This slice remains browser-local. Durable database storage, authentication, deployment, backups, and remote access belong to Slice 3.
+This slice remains browser-local. Database storage, authentication, deployment, backups, and remote access belong to Slice 3.
 
 ## Product decisions
 
-### Tasks do not become another permanent navigation destination
+### Project action points are the focus
 
-The five-position phone dock remains unchanged.
+A project has a timeline of action points. Each action point contains:
 
-Projects becomes the working area for both projects and actionable tasks. The exact presentation can use internal tabs or filters, but standalone tasks must be reachable without opening All Spaces or creating another dock item.
+- a concrete action
+- one check-in date
+- an automatic opened timestamp
+- an automatic completed timestamp
+- a free-form completion note
 
-### Projects and tasks remain distinct
+The project overview shows only the current open action. Expanding the project shows the current action and the three most recent completed actions, with an option to reveal the full timeline.
 
-- A project is a finite outcome requiring more than one action.
-- A task is one actionable step.
-- A task may be standalone or linked to a project.
-- An active or in-progress project should have a next action.
-- Waiting or incubating projects may intentionally have no current next action.
+Action points are not deleted. Their text and date may be corrected explicitly for typos or mistakes.
+
+### Completing an action requires a next outcome
+
+Completing an action records a free-form note and then requires one of three outcomes:
+
+1. Open the next dated action point.
+2. Move the project to Waiting.
+3. Complete the project.
+
+This prevents active projects from silently losing their next action.
+
+### Dates are deliberately simple
+
+There is one check-in date rather than separate due-date and review-date concepts. Once that date is reached, the action remains visible in Review until it is completed or replaced.
+
+### Completed projects become accomplishments
+
+The Projects page has separate Active and Accomplishments tabs. Completed projects keep their full action timeline and can be reopened.
+
+### Standalone tasks are later work
+
+Standalone tasks may eventually exist for actions that do not belong to projects, but they are not required for Slice 2. The existing task kind remains for compatibility and future evolution, but no dedicated task workflow is added here.
 
 ### Thoughts remain non-actionable by default
 
-Thoughts are retained without status pressure, categories, or permanent deletion controls on the Thoughts page. A thought may later be converted through an explicit action, but it should not silently become work.
+Thoughts are retained without status pressure, categories, or permanent deletion controls on the Thoughts page.
 
 ### Archives are recoverable
 
-Archive removes an item from active views without permanently deleting it. Permanent deletion should be limited and deliberate, primarily during inbox clarification or from an archive-management flow.
+Archive removes an item from active views without permanently deleting it. Permanent deletion remains limited and deliberate.
 
 ## Implementation stages
 
 ### Stage 1 — Shared data foundation
 
-Goal: establish one reliable state and domain layer before expanding the model.
+**Status: complete.**
 
-- Add an application-level `PersonalDataProvider`.
-- Replace per-route `usePersonalData()` state instances with a shared context hook.
-- Extract item types and pure transitions from React code.
-- Move browser persistence behind a small storage adapter.
-- Debounce local writes and flush safely when the page is hidden or closed.
-- Keep migration support for existing local-storage data.
-- Add Vitest and focused tests for:
-  - status changes
-  - complete and reopen behavior
-  - migration and normalization
-  - current-week calculations
-  - archive and restore behavior
+- One application-level `PersonalDataProvider`
+- Shared state across routes
+- Pure domain transitions separated from React
+- Browser persistence behind a storage adapter
+- Debounced writes and page-hide flushing
+- Migration support for existing local-storage data
+- Focused automated tests
 
-Exit condition: all current routes use the provider, existing behavior remains intact, and checks pass.
+### Stage 2 — Project action timelines
 
-### Stage 2 — Project next actions
+**Status: implemented; phone validation remains.**
 
-Goal: make projects operational rather than descriptive.
+- Migrate the old single `nextAction` into a timeline entry
+- Require a concrete action and check-in date for new active projects
+- Show the current action on the project overview card
+- Show recent and full action history inside the project
+- Allow explicit text/date corrections without deletion
+- Complete actions with a free-form note
+- Continue with a next action, Waiting, or project completion
+- Separate completed projects into Accomplishments
+- Surface reached dates, opened actions, and completed actions in Weekly Review
 
-- Extend the project model with an explicit next action.
-- Make title, outcome/description, area, status, and next action clearly editable.
-- Show a visible warning or empty state when an active project has no next action.
-- Do not require next actions for waiting, incubating, completed, or archived projects.
-- Include project next actions in weekly review context.
+### Stage 3 — Item lifecycle and archive recovery
 
-Exit condition: every active project can clearly answer “what happens next?”
+Goal: make non-destructive state changes deliberate and consistent.
 
-### Stage 3 — Tasks and project relationships
+- Standardize Waiting, Incubating, Archive, Restore, and permanent deletion behavior
+- Remove remaining page-specific status rules
+- Add an archive recovery view where needed
+- Ensure unresolved Inbox items, paused projects, and accomplishments have clear destinations
+- Preserve action timelines through every project status transition
 
-Goal: make classified tasks usable after leaving the inbox.
+Exit condition: no project or item can become orphaned or disappear unintentionally.
 
-- Extend the task model with an optional project relationship.
-- Add a phone-friendly Tasks view within Projects rather than a new dock destination.
-- Show standalone tasks and project-linked tasks clearly.
-- Allow a task to be linked, unlinked, completed, reopened, deferred, archived, and edited.
-- Show linked tasks from the relevant project.
-- Ensure Inbox classification routes tasks into the actionable view.
-
-Exit condition: a captured task can be found, acted on, completed, and reviewed.
-
-### Stage 4 — Item lifecycle and review context
-
-Goal: make every non-destructive state transition deliberate and consistent.
-
-- Standardize edit, defer, wait, incubate, archive, restore, and delete behavior.
-- Ensure all transitions use shared domain actions.
-- Add archive recovery where needed.
-- Improve weekly review sections for:
-  - open standalone tasks
-  - project next actions
-  - completed work this week
-  - waiting items
-  - incubating items
-  - unresolved inbox items
-  - thoughts created this week
-
-Exit condition: there are no orphaned item types or page-specific status rules.
-
-### Stage 5 — Phone validation and polish
-
-Goal: validate the complete workflow on the primary device.
+### Stage 4 — Phone validation and polish
 
 Test this sequence on a phone:
 
 1. Capture an item.
-2. Clarify it as a project.
-3. Add a next action.
-4. Capture and classify a standalone task.
-5. Link a task to a project.
-6. Complete and reopen tasks and projects.
-7. Move items through waiting, incubating, archive, and restore.
-8. Confirm the weekly review reflects the relevant changes.
+2. Clarify it as a project with its first action and check-in date.
+3. Confirm the project card shows only the current action.
+4. Correct an action typo and date.
+5. Reach or simulate the check-in date and confirm Review surfaces it.
+6. Complete the action with a free-form note.
+7. Open the next action.
+8. Repeat completion and move the project to Waiting.
+9. Complete a final action and move the project to Accomplishments.
+10. Open the timeline and confirm recent/full history behavior.
+11. Reopen a completed project.
+12. Confirm Weekly Review shows opened actions, completed actions, reached dates, completed projects, and recent thoughts.
 
-Only polish friction found during this flow. Avoid unrelated visual redesign.
+Only polish friction revealed by this flow. Avoid unrelated visual redesign.
 
 ## Data-model direction
 
-The implementation may evolve, but the conceptual relationships are:
-
 ```text
-Item
-├── Project
-│   ├── outcome / description
-│   ├── next action
-│   └── linked tasks
-├── Task
-│   └── optional project ID
-├── Thought
-└── Note
+Project
+├── title, outcome, area, status
+└── action timeline
+    ├── current open action
+    │   ├── title
+    │   ├── check-in date
+    │   └── opened timestamp
+    └── completed actions
+        ├── opened timestamp
+        ├── completed timestamp
+        └── free-form completion note
 ```
 
-This browser-local model should remain straightforward to migrate into the durable Slice 3 database.
+The browser-local model should remain straightforward to migrate into the Slice 3 database.
 
 ## Definition of done
 
 Slice 2 is complete when:
 
-- Capture-to-action works end to end.
-- Standalone and project-linked tasks have a clear home.
-- Active projects expose a next action or visibly lack one.
+- Capture-to-project works end to end.
+- Active projects expose a dated action or visibly lack one.
+- Action history is preserved and correctable but not deletable.
+- Completing an action always produces a deliberate next project state.
+- Completed projects appear separately as accomplishments.
 - Status and lifecycle behavior is centralized and tested.
 - Existing local data migrates safely.
-- Weekly review reflects tasks, next actions, completed work, thoughts, and unresolved items.
+- Weekly Review reflects reached dates, opened actions, completed actions, completed projects, and recent thoughts.
 - Lint, tests, and production build pass.
 - The full workflow is manually validated on a phone.
 
 ## Out of scope
 
+- Standalone task workflow
 - Database and server API
 - Authentication
 - HTTPS production deployment

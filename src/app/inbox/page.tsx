@@ -5,13 +5,13 @@ import { FormEvent } from "react";
 import { areaLabels, Item, ItemKind, kindLabels, usePersonalData } from "@/lib/personal-data";
 
 export default function InboxPage() {
-  const { items, updateItem, deleteItem } = usePersonalData();
+  const { items, updateItem, setItemStatus, deleteItem } = usePersonalData();
   const inbox = items.filter((item) => item.status === "inbox");
 
   function organiseItem(event: FormEvent<HTMLFormElement>, item: Item) {
     event.preventDefault();
     if (item.kind === "unclassified") return;
-    updateItem(item.id, { status: "active" });
+    setItemStatus(item.id, "active");
   }
 
   return (

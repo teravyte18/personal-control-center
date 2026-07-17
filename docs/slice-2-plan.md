@@ -22,9 +22,9 @@ A project has a timeline of action points. Each action point contains:
 - an automatic completed timestamp
 - a free-form completion note
 
-The project overview shows only the current open action. Expanding the project shows the current action and the three most recent completed actions, with an option to reveal the full timeline.
+The project overview shows only the current open action. Expanding a project opens a full-screen detail with a lightweight vertical timeline: the current action followed by the two most recent completed actions, plus an ellipsis when older history exists. A second expansion reveals the full timeline with all notes and dates.
 
-Action points are not deleted. Their text and date may be corrected explicitly for typos or mistakes.
+Action points are not deleted or edited after creation. The timeline is treated as a durable record; minor typos are acceptable.
 
 ### Completing an action requires a next outcome
 
@@ -42,7 +42,7 @@ There is one check-in date rather than separate due-date and review-date concept
 
 ### Completed projects become accomplishments
 
-The Projects page has separate Active and Accomplishments tabs. Completed projects keep their full action timeline and can be reopened.
+Active projects remain the default Projects view. Accomplishments are reached through a smaller secondary button rather than an equal-weight tab. Completed projects keep their full action timeline and can be reopened.
 
 ### Standalone tasks are later work
 
@@ -77,11 +77,12 @@ Archive removes an item from active views without permanently deleting it. Perma
 - Migrate the old single `nextAction` into a timeline entry
 - Require a concrete action and check-in date for new active projects
 - Show the current action on the project overview card
-- Show recent and full action history inside the project
-- Allow explicit text/date corrections without deletion
+- Open each project in a full-screen detail
+- Show a compact three-point timeline before full expansion
+- Reveal every action, completion note, and date in full history
 - Complete actions with a free-form note
 - Continue with a next action, Waiting, or project completion
-- Separate completed projects into Accomplishments
+- Keep Active as the default and expose Accomplishments as a secondary view
 - Surface reached dates, opened actions, and completed actions in Weekly Review
 
 ### Stage 3 — Item lifecycle and archive recovery
@@ -103,15 +104,16 @@ Test this sequence on a phone:
 1. Capture an item.
 2. Clarify it as a project with its first action and check-in date.
 3. Confirm the project card shows only the current action.
-4. Correct an action typo and date.
-5. Reach or simulate the check-in date and confirm Review surfaces it.
-6. Complete the action with a free-form note.
-7. Open the next action.
-8. Repeat completion and move the project to Waiting.
-9. Complete a final action and move the project to Accomplishments.
-10. Open the timeline and confirm recent/full history behavior.
-11. Reopen a completed project.
-12. Confirm Weekly Review shows opened actions, completed actions, reached dates, completed projects, and recent thoughts.
+4. Expand the project and confirm the full-screen detail covers the dock.
+5. Confirm the compact timeline shows the current action and two recent actions.
+6. Expand the full timeline and confirm every note and date appears.
+7. Reach or simulate the check-in date and confirm Review surfaces it.
+8. Complete the action with a free-form note.
+9. Open the next action.
+10. Repeat completion and move the project to Waiting.
+11. Complete a final action and move the project to Accomplishments.
+12. Open Accomplishments through the secondary button and reopen a project.
+13. Confirm Weekly Review shows opened actions, completed actions, reached dates, completed projects, and recent thoughts.
 
 Only polish friction revealed by this flow. Avoid unrelated visual redesign.
 
@@ -139,9 +141,9 @@ Slice 2 is complete when:
 
 - Capture-to-project works end to end.
 - Active projects expose a dated action or visibly lack one.
-- Action history is preserved and correctable but not deletable.
+- Action history is preserved and not deletable.
 - Completing an action always produces a deliberate next project state.
-- Completed projects appear separately as accomplishments.
+- Completed projects remain available through the secondary Accomplishments view.
 - Status and lifecycle behavior is centralized and tested.
 - Existing local data migrates safely.
 - Weekly Review reflects reached dates, opened actions, completed actions, completed projects, and recent thoughts.

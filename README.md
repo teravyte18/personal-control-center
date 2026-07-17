@@ -1,6 +1,6 @@
 # Personal Control Center
 
-A phone-first personal planning and tracking application designed to reduce cognitive load by bringing responsibilities, projects, habits, reading, travel plans, and automated activity data into one coherent system.
+A phone-first personal planning and tracking application designed to reduce cognitive load by bringing responsibilities, projects, thoughts, reviews, and later specialised modules into one coherent system.
 
 ## Product principles
 
@@ -8,7 +8,7 @@ A phone-first personal planning and tracking application designed to reduce cogn
 - Design for frequent phone use before optimising desktop layouts.
 - Show what matters now instead of everything stored.
 - Keep active work separate from incubating ideas.
-- Automate data entry where reliable integrations exist.
+- Let future modules grow without crowding primary navigation.
 - Let AI suggest structure without silently changing user data.
 - Remain useful before any external integrations are configured.
 
@@ -16,14 +16,36 @@ A phone-first personal planning and tracking application designed to reduce cogn
 
 The current prototype includes:
 
-- Quick thought capture
-- Browser-local persistence
-- Open and completed item lists
-- A weekly review with current-week context
-- Guided reflection, location, and photo selection
-- Responsive phone-first layout
+- A quiet Capture landing page
+- Inbox clarification into projects, tasks, thoughts, and notes
+- Project filtering across Work, Education, Personal, and Incubating
+- A dedicated Thoughts space
+- Weekly Review and Review History modes
+- Browser-local persistence with migration from the first prototype
+- A floating five-position phone dock with permanent central Capture
+- A desktop navigation rail using the same page structure
+- An All Spaces directory that already reserves room for Library, Trips, Fitness, Habits, and Settings
+- An initial PWA manifest and Docker-ready runtime
 
 Data currently stays in the browser where it was entered. Clearing browser storage will remove it, and it is not yet synchronised between devices.
+
+## MVP page map
+
+```text
+Capture (/)
+Inbox (/inbox)
+Projects (/projects)
+  - Work
+  - Education
+  - Personal
+  - Incubating
+Thoughts (/thoughts)
+Review (/review)
+  - This week
+  - History
+```
+
+The four dock destinations are driven by `src/lib/navigation.ts`. Future modules register in the same destination list and can later become pinnable without rebuilding the application shell.
 
 ## Run locally
 
@@ -33,7 +55,7 @@ Data currently stays in the browser where it was entered. Clearing browser stora
 - npm
 - Git
 
-### Install and start
+### First-time setup
 
 ```bash
 git clone https://github.com/teravyte18/personal-control-center.git
@@ -45,7 +67,16 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) in a browser.
 
-After this pull request is merged, the `git switch feat/first-usable-prototype` step will no longer be necessary when starting from `main`.
+### Update an existing checkout
+
+```bash
+git switch feat/first-usable-prototype
+git pull
+npm install
+npm run dev
+```
+
+After this pull request is merged, the branch-switch step will no longer be necessary when starting from `main`.
 
 ### Test from a phone on the same network
 
@@ -75,6 +106,8 @@ npm start
 
 The production server is available at [http://localhost:3000](http://localhost:3000).
 
+Pull requests also run the same lint and production-build checks through GitHub Actions.
+
 ## Run with Docker
 
 ```bash
@@ -95,11 +128,11 @@ The current branch includes the initial web-app manifest and mobile metadata. Of
 ## Repository structure
 
 ```text
-src/app/              Next.js application
-components/           Shared UI components as the app grows
-lib/                  Domain and infrastructure code as the app grows
+src/app/              Next.js routes
+src/components/       Shared navigation and UI components
+src/lib/              Navigation, data models, and browser persistence
 docs/                 Product and architecture documentation
-.github/               Issue and pull-request templates
+.github/               Issue templates, PR template, and CI workflow
 ```
 
 ## Development workflow

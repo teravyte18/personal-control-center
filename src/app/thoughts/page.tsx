@@ -4,7 +4,7 @@ import { FormEvent, useMemo, useState } from "react";
 import { areaLabels, usePersonalData } from "@/lib/personal-data";
 
 export default function ThoughtsPage() {
-  const { items, loaded, addItem, updateItem, deleteItem } = usePersonalData();
+  const { items, addItem, updateItem, deleteItem } = usePersonalData();
   const [thought, setThought] = useState("");
   const thoughts = useMemo(() => items.filter((item) => ["thought", "note"].includes(item.kind) && item.status !== "archived"), [items]);
 
@@ -22,14 +22,13 @@ export default function ThoughtsPage() {
       </div>
 
       <form onSubmit={submitThought} className="mt-6 rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-        <textarea className="input min-h-24 resize-none" value={thought} onChange={(event) => setThought(event.target.value)} placeholder="Write a thought directly here…" />
+        <textarea className="input min-h-24 resize-none" value={thought} onChange={(event) => setThought(event.target.value)} placeholder="Write a thought directly here…" required />
         <div className="mt-3 flex justify-end">
-          <button type="submit" disabled={!thought.trim()} className="min-h-11 rounded-xl bg-slate-950 px-5 text-sm font-semibold text-white disabled:opacity-35">Save thought</button>
+          <button type="submit" className="min-h-11 rounded-xl bg-slate-950 px-5 text-sm font-semibold text-white active:scale-[0.99]">Save thought</button>
         </div>
       </form>
 
-      {!loaded ? <p className="mt-8 text-sm text-slate-500">Loading thoughts…</p> : null}
-      {loaded && thoughts.length === 0 ? <p className="mt-8 text-sm text-slate-500">No saved thoughts yet.</p> : null}
+      {thoughts.length === 0 ? <p className="mt-8 text-sm text-slate-500">No saved thoughts yet.</p> : null}
 
       <div className="mt-6 columns-1 gap-4 sm:columns-2">
         {thoughts.map((item) => (

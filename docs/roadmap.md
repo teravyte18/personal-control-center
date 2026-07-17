@@ -4,48 +4,41 @@ This roadmap is intentionally compressed around a first usable version. Sequence
 
 ## One-week usable target
 
-### Slice 1 — Phone-first shell and capture loop
+### Slice 1 — Phone-first foundation and feedback loop
 
 - Mobile-first Next.js application shell
 - Quiet Capture landing page
-- Floating phone dock with permanent central Capture
-- Matching desktop navigation rail
-- All Spaces directory for future modules
-- Browser-local persistence and migration
+- Inbox, Projects, Thoughts, Review, and All Spaces routes
+- Floating mobile dock and matching desktop rail
+- Quick capture with browser-local persistence
+- Open and completed item status
+- Weekly review that shows open work and items closed during the week
+- Guided reflection fields, location, and photo selection
 - Initial PWA manifest and home-screen installation direction
 - Docker-ready runtime for later Raspberry Pi deployment
+- Mobile-resilient navigation and form validation over local-network testing
 
-### Slice 2 — Core MVP pages
+### Slice 2 — Make captured items actionable
 
-- Inbox expansion and classification
-- Project areas: Work, Education, Personal, and Uncategorised
-- Project statuses including Waiting and Incubating
-- Dedicated Thoughts space for non-actionable material
-- Weekly Review with open and completed context
-- Review History
-- Edit, complete, reopen, archive, and delete core items
-
-### Slice 3 — Make projects genuinely actionable
-
-- Desired outcome field
+- Clarify inbox items into tasks, projects, and notes
+- Areas and statuses
 - Project next actions
-- Task/project relationships
-- Due dates and waiting follow-up dates
-- Improve page hierarchy and phone interactions from real usage feedback
-- Add search once the amount of stored material justifies it
+- Decide where standalone tasks are shown
+- Edit, defer, incubate, archive, and delete items
+- Improve the Capture and Projects pages from real phone usage feedback
+- Persist configurable dock pins
 
-### Slice 4 — Durable personal deployment
+### Slice 3 — Durable personal deployment
 
 - Persistent database and photo storage
 - Authentication for secure remote access
-- Multi-device synchronisation
+- Review history and place history
 - Deploy locally or to a Raspberry Pi
 - Backups and data export
-- Installable PWA validation on Android
+- Installable PWA validation on Android over HTTPS
 
 ## After the first usable week
 
-- Configurable pinned spaces
 - Offline-friendly capture and synchronisation
 - Books and reading
 - Trips
@@ -59,8 +52,6 @@ This roadmap is intentionally compressed around a first usable version. Sequence
 ## Delivery rules
 
 - Phone use is the primary interface assumption; desktop is a progressive enhancement.
-- The persistent dock is reserved for frequent workflows, not every module.
-- New specialised modules enter through All Spaces before receiving a pin.
 - The app must become usable before specialised trackers are added.
 - AI should be anticipated in the data model but must not block the manual workflow.
 - The visual GitHub Project is optional until the issue list becomes difficult to scan.

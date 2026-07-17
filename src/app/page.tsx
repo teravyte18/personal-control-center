@@ -31,7 +31,6 @@ export default function CapturePage() {
             placeholder="A task, project, question, observation…"
             aria-label="Capture a thought"
             required
-            autoFocus
           />
           <button type="submit" className="mt-3 min-h-12 w-full rounded-2xl bg-slate-950 px-5 font-semibold text-white active:scale-[0.99]">
             Save to inbox

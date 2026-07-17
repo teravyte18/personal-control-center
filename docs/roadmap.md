@@ -31,10 +31,10 @@ Required outcomes:
 - Debounced browser writes and safe migration of existing local data
 - Focused automated tests for item transitions and weekly calculations
 - Dated project action points with preserved history
-- Compact project cards that show only the current action and date
-- Full-screen project details with a three-point timeline preview and expandable full history
+- Compact active-project cards that show only the current action and date
+- Full-screen project details with a three-point timeline preview and full detail available for any recorded history
 - Free-form completion notes followed by a next action, Waiting, or project completion
-- Active projects as the default view and Accomplishments as a secondary view
+- Completed projects available through an Accomplishments space
 - Consistent Waiting, Incubating, Archive, Restore, and permanent deletion behavior
 - Weekly review context for reached dates, opened actions, completed actions, completed projects, unresolved items, and recent thoughts
 - Full phone validation of the capture-to-project workflow

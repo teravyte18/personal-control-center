@@ -1,10 +1,10 @@
-# Product Specification
+# Personal System Specification
 
 ## Problem
 
-Important responsibilities, projects, interests, and future plans currently live across memory and disconnected tools. This makes it harder to focus, creates repeated mental review, and allows useful ideas to compete with urgent work.
+Important responsibilities, projects, interests, and future plans can live across memory and disconnected tools. This makes it harder to focus, creates repeated mental review, and allows useful ideas to compete with urgent work.
 
-## Product goal
+## System goal
 
 Create a single personal control centre that answers:
 
@@ -14,17 +14,19 @@ Create a single personal control centre that answers:
 4. What changed during the week?
 5. What information can eventually be captured automatically?
 
-## Initial user
+## Scope
 
-The first version is designed for one user. Multi-user collaboration is out of scope until the personal workflow is useful and stable.
+This system is designed for one owner and personal use. Multi-user collaboration, external customers, monetisation, and growth-oriented requirements are out of scope. The implementation should nevertheless follow product-grade engineering and privacy practices.
 
-## Product principles
+The repository is public, so code, documentation, fixtures, examples, issues, and commit messages must not contain identifying or private personal information.
+
+## System principles
 
 - Capture first; organise later.
-- The application must remain useful without AI or external integrations.
+- The system must remain useful without AI or external integrations.
 - AI should be anticipated in the data model but should not block the first release.
 - Reflection should be supported without turning every thought into a productivity task.
-- The weekly review should reconstruct the week from recorded activity so the user does not need to remember every detail.
+- The weekly review should reconstruct the week from recorded activity so the owner does not need to remember every detail.
 - Phone navigation and form controls should remain usable during local-network testing, even before full HTTPS/PWA deployment.
 
 ## MVP page map
@@ -45,6 +47,14 @@ Finite outcomes that require more than one action. Work, Education, Personal, an
 
 Observations, ideas, and notes that should be retained without being forced into a task or completion workflow.
 
+Thought cards should:
+
+- Be read-only by default
+- Show their creation date
+- Use an explicit edit action rather than editing on every interaction
+- Avoid area or category labels in the card presentation
+- Not expose deletion as a normal Thoughts-page action
+
 ### Review
 
 One top-level section with:
@@ -52,7 +62,7 @@ One top-level section with:
 - This week
 - History
 
-The current review combines a generated status recap with structured reflection, place information, and future focus.
+The current review combines a generated status recap with structured reflection, place information, and future focus. The recap includes thoughts added during the current week so they can be reconsidered without showing the complete thought archive.
 
 ### All Spaces
 
@@ -77,7 +87,7 @@ On larger screens, the same information architecture becomes a slim navigation r
 
 ### Area
 
-A long-lived responsibility or interest, such as Thesis, Work, Driving Licence, Reading, Fitness, Travel, or Personal Projects.
+A long-lived responsibility or interest, such as Work, Education, Home, Health, Travel, or Personal Projects.
 
 ### Item
 
@@ -99,6 +109,8 @@ Initial statuses:
 - Completed
 - Archived
 
+When an item is completed and then reopened, the system should restore its previous status where possible instead of always changing it to Active.
+
 ### Weekly review
 
 A recurring Saturday-morning ritual combining a factual status summary with guided reflection.
@@ -107,6 +119,7 @@ Before writing, the review should display:
 
 - Items still open
 - Items completed during the week
+- Thoughts created during the week
 - Items started or changed during the week
 - Unprocessed inbox items
 - Waiting items
@@ -128,7 +141,7 @@ The application should encourage variation in review locations without making a 
 
 ### Capture
 
-The user can quickly add an item with only a title. Classification and additional metadata are optional at capture time.
+The owner can quickly add an item with only a title. Classification and additional metadata are optional at capture time.
 
 ### Clarify
 
@@ -136,7 +149,7 @@ An inbox item can become a task, project, note, thought, or archived reference. 
 
 ### Plan
 
-The user can assign an area, status, priority, dates, and next action.
+The owner can assign an area, status, priority, dates, and next action.
 
 ### Focus
 
@@ -144,7 +157,7 @@ The eventual focused overview surfaces a limited set of relevant items instead o
 
 ### Review
 
-The user can open a weekly review, inspect a generated summary of the current situation and recent changes, record a guided reflection, attach a location and optional photo, and choose the next week's focus.
+The owner can open a weekly review, inspect a generated summary of the current situation and recent changes, record a guided reflection, attach a location and optional photo, and choose the next week's focus.
 
 ## First usable release
 
@@ -155,7 +168,7 @@ The first release should prioritise a complete, testable loop over breadth:
 3. Projects and Thoughts destinations
 4. Basic item statuses
 5. Mark items complete or reopen them
-6. Weekly review with automatically listed open and completed items
+6. Weekly review with automatically listed open items, completed items, and recent thoughts
 7. Review history
 8. Browser-local persistence
 9. Phone-first navigation with an All Spaces expansion path
@@ -167,7 +180,7 @@ Authentication, hosted persistence, specialised trackers, and external integrati
 
 - Native iOS or Android applications
 - Social features
-- Complex team permissions
+- Multi-user permissions
 - Full calendar replacement
 - Automatic travel booking
 - Autonomous AI changes
@@ -179,11 +192,11 @@ Authentication, hosted persistence, specialised trackers, and external integrati
 
 ### Reading
 
-Books, reading status, progress, dates, notes, ratings, and eventually recommendations grounded in the user's reading history.
+Books, reading status, progress, dates, notes, ratings, and eventually recommendations grounded in the owner's reading history.
 
 ### Fitness
 
-Strava-imported activities, weekly frequency, distance, and trend summaries without manual activity entry.
+Imported activities, weekly frequency, distance, and trend summaries without manual activity entry.
 
 ### Travel
 
@@ -199,13 +212,14 @@ Voice transcription and optional video journaling may be added after the written
 
 ## Success criteria
 
-The product is successful when:
+The system is useful when:
 
 - New thoughts can be captured in seconds from a phone.
 - The inbox count makes unfinished clarification visible without cluttering Capture.
 - Active projects can be filtered by the relevant area.
 - Non-actionable thoughts remain documented without demanding attention.
-- The weekly review presents enough recorded context that the user does not need to reconstruct the entire week from memory.
+- Thoughts can be reviewed and edited deliberately without accidental changes or routine deletion.
+- The weekly review presents enough recorded context that the owner does not need to reconstruct the entire week from memory.
 - A review can be started, saved as a draft, and resumed safely.
 - Navigation can grow to include specialised spaces without redesigning the shell.
 - The app remains useful when integrations and AI are unavailable.

@@ -46,17 +46,6 @@ function mapState(row: StateRow): StoredPersonalDataState {
   };
 }
 
-async function readLockedState(sql: ReturnType<typeof getDatabase>) {
-  const [row] = await sql<StateRow[]>`
-    select revision, snapshot, updated_at
-    from personal_data_state
-    where id = 'primary'
-    for update
-  `;
-  if (!row) throw new Error("Personal data state has not been initialized. Run database migrations.");
-  return row;
-}
-
 export async function loadPersonalDataState(): Promise<StoredPersonalDataState> {
   const sql = getDatabase();
   const [row] = await sql<StateRow[]>`
@@ -74,7 +63,14 @@ export async function applyStoredPersonalDataMutation(
   const sql = getDatabase();
 
   return sql.begin(async (transaction) => {
-    const currentRow = await readLockedState(transaction as ReturnType<typeof getDatabase>);
+    const [currentRow] = await transaction<StateRow[]>`
+      select revision, snapshot, updated_at
+      from personal_data_state
+      where id = 'primary'
+      for update
+    `;
+    if (!currentRow) throw new Error("Personal data state has not been initialized. Run database migrations.");
+
     const current = normalizePersonalDataSnapshot(currentRow.snapshot);
     const next = applyPersonalDataMutation(current, mutation);
 
@@ -115,7 +111,13 @@ export async function importPersonalData(
       where import_id = ${importId}
     `;
 
-    const currentRow = await readLockedState(transaction as ReturnType<typeof getDatabase>);
+    const [currentRow] = await transaction<StateRow[]>`
+      select revision, snapshot, updated_at
+      from personal_data_state
+      where id = 'primary'
+      for update
+    `;
+    if (!currentRow) throw new Error("Personal data state has not been initialized. Run database migrations.");
     if (previousImport) return { ...mapState(currentRow), alreadyImported: true };
 
     const current = normalizePersonalDataSnapshot(currentRow.snapshot);

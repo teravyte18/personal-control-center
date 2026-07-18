@@ -92,6 +92,7 @@ PostgreSQL is the source of truth for:
 - archive and accomplishment state
 - photo metadata
 - import records and export data
+- password hashes, sessions, and account invitations
 
 The database runs as its own container with a persistent volume. It is not exposed publicly.
 
@@ -114,15 +115,15 @@ users
 
 Requirements:
 
-- every read, mutation, import, and export is scoped by the resolved user ID
+- every read, mutation, import, and export is scoped by the authenticated user ID
 - two sessions for the same user see the same data
 - different users in the same database cannot see or modify each other's data
 - a new user starts with empty state
 - the existing singleton dataset is preserved as the initial owner's state
 - no public registration
-- no shared workspaces, invitations, teams, or collaboration permissions
+- no shared workspaces, teams, or collaboration permissions
 
-Until authentication exists, normal deployment resolves only `PCC_DEFAULT_USER_EMAIL`. A test-only identity header may be enabled in CI or local development, but it must remain disabled in real deployments.
+Normal deployment requires an authenticated database-backed session. The test-only identity header may be enabled in CI, but it must remain disabled in every real deployment.
 
 ### Browser data must migrate safely
 
@@ -158,21 +159,25 @@ A later storage adapter may target S3-compatible object storage without changing
 
 ## Authentication and secure access
 
-Production access must authenticate every user and resolve one internal user identity before any personal-data operation.
+The application implements first-party, invite-only email/password authentication.
 
-Required properties:
+Implemented properties:
 
-- a small allowlist controlled by the owner
-- one private personal dataset per identity
-- server-side authorization for every protected read and mutation
-- secure session handling
+- the configured owner claims the preserved legacy dataset
+- the first owner login replaces a temporary bootstrap password with a salted `scrypt` password hash
+- the owner controls a small account allowlist through one-time activation links
+- new accounts begin with empty isolated state
+- sessions use random tokens stored only as hashes in PostgreSQL
+- browsers receive HTTP-only `SameSite=Lax` cookies
+- revocation deletes active sessions while preserving the user's data
+- every protected API resolves and authorizes the session server-side
+- no public registration
 - no public unauthenticated API that exposes personal data
-- HTTPS for all production use
 - no direct public PostgreSQL port
-- secrets injected at runtime and never committed
-- no insecure identity header in production
+- secrets are injected at runtime and never committed
+- the insecure identity header is disabled in production
 
-Cloudflare Tunnel is the preferred ingress because it can run on both DigitalOcean and Raspberry Pi without exposing inbound host ports. The exact identity provider may be selected during implementation, but it must provide a verified email or stable subject that maps to the internal user record.
+HTTPS is still required before phone-network or public-domain use. Cloudflare Tunnel is the preferred ingress because it can run on both DigitalOcean and Raspberry Pi without exposing inbound host ports. Once HTTPS-only ingress is active, the session cookie must be configured as Secure.
 
 ## Container and release rules
 
@@ -229,15 +234,23 @@ Only the application or ingress layer may be reachable from outside the private 
 
 ### Stage 4 — User isolation and authentication
 
+Implemented:
+
 - Store one canonical personal-data state per user.
 - Preserve the existing dataset as the initial owner's state.
 - Scope reads, mutations, imports, and exports by user ID.
 - Prove same-user sharing and cross-user isolation in Compose CI.
-- Add authenticated user resolution.
-- Keep account creation owner-controlled.
+- Add authenticated user resolution and HTTP-only sessions.
+- Keep account creation owner-controlled through one-time activation links.
+- Revoke accounts and invalidate their existing sessions.
+- Test unauthorized access, owner bootstrap, invitation activation, and revocation.
+
+Remaining in this stage:
+
 - Configure secure HTTPS ingress.
+- Enable Secure session cookies.
 - Validate phone and desktop for each allowed account.
-- Test session expiry and unauthorized access.
+- Validate natural session expiry in the live environment.
 
 ### Stage 5 — Durable photos, export, and recovery
 
@@ -285,7 +298,7 @@ Slice 3 is complete when:
 - Permanent automated off-site backup infrastructure
 - NAS configuration and media services
 - Shared workspaces or collaboration
-- Public registration and account recovery flows
+- Public registration and automated account recovery flows
 - Granular roles and permissions
 - Horizontal scaling or Kubernetes
 - Managed PostgreSQL

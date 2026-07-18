@@ -88,18 +88,31 @@ services:
       retries: 5
       start_period: 60s
 
-  cloudflared:
-    image: cloudflare/cloudflared:2026.7.2
-    profiles: ["tunnel"]
+  tailscale:
+    image: tailscale/tailscale:stable
+    profiles: ["funnel"]
     restart: unless-stopped
+    network_mode: "service:app"
     environment:
-      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
-    command: tunnel --no-autoupdate run
+      TS_AUTHKEY: ${TAILSCALE_AUTH_KEY:-}
+      TS_AUTH_ONCE: "true"
+      TS_HOSTNAME: ${TAILSCALE_HOSTNAME:-personal-control-center}
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_USERSPACE: "true"
+    volumes:
+      - tailscale_state:/var/lib/tailscale
     depends_on:
       app:
         condition: service_healthy
     security_opt:
       - no-new-privileges:true
+    healthcheck:
+      test: ["CMD-SHELL", "tailscale status --json >/dev/null 2>&1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
 volumes:
   postgres_data:
+  tailscale_state:

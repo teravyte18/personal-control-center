@@ -49,21 +49,28 @@ jobs:
           POSTGRES_PASSWORD: ci-compose-password
           PCC_DEFAULT_USER_EMAIL: owner@example.test
           PCC_OWNER_BOOTSTRAP_PASSWORD: owner-bootstrap-password-123
+          PCC_PUBLIC_URL: http://localhost:3000
           PCC_COOKIE_SECURE: 0
+          PCC_BACKUP_INTERVAL_HOURS: 24
+          PCC_BACKUP_RETENTION_DAYS: 14
           PCC_ALLOW_INSECURE_USER_HEADER: 1
         run: docker compose config --quiet
 
-      - name: Validate production Compose persistence and authentication
+      - name: Validate production Compose persistence, authentication, PWA, and backups
         env:
           POSTGRES_PASSWORD: ci-compose-password
           PCC_DEFAULT_USER_EMAIL: owner@example.test
           PCC_OWNER_BOOTSTRAP_PASSWORD: owner-bootstrap-password-123
+          PCC_PUBLIC_URL: http://localhost:3000
           PCC_COOKIE_SECURE: 0
+          PCC_BACKUP_INTERVAL_HOURS: 24
+          PCC_BACKUP_RETENTION_DAYS: 14
           PCC_ALLOW_INSECURE_USER_HEADER: 1
         run: |
           set -o pipefail
+          rm -rf data/backups data/uploads
           touch compose-validation.log
-          trap 'docker compose ps -a >> compose-validation.log 2>&1; docker compose logs >> compose-validation.log 2>&1; docker compose down --volumes --remove-orphans >> compose-validation.log 2>&1' EXIT
+          trap 'docker compose ps -a >> compose-validation.log 2>&1; docker compose logs >> compose-validation.log 2>&1; docker compose down --volumes --remove-orphans >> compose-validation.log 2>&1; rm -rf data/backups data/uploads pwa-manifest.json pwa-icon-*' EXIT
           docker compose up -d --build 2>&1 | tee -a compose-validation.log
           for attempt in $(seq 1 60); do
             if curl --fail --silent http://127.0.0.1:3000/api/health >/dev/null; then
@@ -73,6 +80,43 @@ jobs:
           done
           curl --fail --silent http://127.0.0.1:3000/api/health | tee -a compose-validation.log
           node --test tests/server-persistence.test.mjs 2>&1 | tee -a compose-validation.log
+
+          curl --fail --silent http://127.0.0.1:3000/manifest.webmanifest > pwa-manifest.json
+          node <<'NODE'
+          const fs = require('node:fs');
+          const manifest = JSON.parse(fs.readFileSync('pwa-manifest.json', 'utf8'));
+          if (manifest.display !== 'standalone') throw new Error('PWA display mode is not standalone.');
+          const icons = Array.isArray(manifest.icons) ? manifest.icons : [];
+          if (!icons.some((icon) => icon.sizes === '192x192' && icon.type === 'image/png')) throw new Error('Missing 192px PNG icon.');
+          if (!icons.some((icon) => icon.sizes === '512x512' && icon.type === 'image/png')) throw new Error('Missing 512px PNG icon.');
+          if (!icons.some((icon) => icon.sizes === '512x512' && icon.purpose === 'maskable')) throw new Error('Missing maskable icon.');
+          NODE
+
+          for size in 192 512; do
+            curl --fail --silent --show-error --dump-header "pwa-icon-$size.headers" --output "pwa-icon-$size.png" "http://127.0.0.1:3000/api/pwa-icon/$size"
+            grep -qi '^content-type: image/png' "pwa-icon-$size.headers"
+            python3 - "$size" <<'PY'
+          import struct
+          import sys
+
+          size = int(sys.argv[1])
+          with open(f"pwa-icon-{size}.png", "rb") as icon_file:
+              header = icon_file.read(24)
+          if header[:8] != b"\x89PNG\r\n\x1a\n":
+              raise SystemExit("Generated icon is not a PNG.")
+          width, height = struct.unpack(">II", header[16:24])
+          if (width, height) != (size, size):
+              raise SystemExit(f"Generated icon is {width}x{height}, expected {size}x{size}.")
+          PY
+          done
+
+          for attempt in $(seq 1 30); do
+            if find data/backups -maxdepth 1 -type f -name 'personal-control-center-*.dump' -size +0c | grep -q .; then
+              break
+            fi
+            sleep 2
+          done
+          docker compose exec -T backup sh -c 'latest=$(find /backups -maxdepth 1 -type f -name "personal-control-center-*.dump" | sort | tail -n 1); test -n "$latest"; pg_restore --list "$latest" >/dev/null'
 
       - name: Upload Compose failure log
         if: failure()

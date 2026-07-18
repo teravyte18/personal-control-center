@@ -24,7 +24,9 @@ jobs:
         run: npm ci
 
       - name: Lint
-        run: npm run lint
+        run: |
+          set -o pipefail
+          npm run lint 2>&1 | tee source-validation.log
 
       - name: Test domain behavior
         run: npm test
@@ -32,14 +34,14 @@ jobs:
       - name: Build
         run: |
           set -o pipefail
-          npm run build 2>&1 | tee build.log
+          npm run build 2>&1 | tee -a source-validation.log
 
-      - name: Upload build failure log
+      - name: Upload source validation failure log
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: production-build-log
-          path: build.log
+          name: source-validation-log
+          path: source-validation.log
           if-no-files-found: ignore
 
       - name: Validate Compose configuration

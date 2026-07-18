@@ -51,13 +51,23 @@ jobs:
         env:
           POSTGRES_PASSWORD: ci-compose-password
         run: |
-          trap 'docker compose logs; docker compose down --volumes --remove-orphans' EXIT
-          docker compose up -d --build
+          set -o pipefail
+          touch compose-validation.log
+          trap 'docker compose ps -a >> compose-validation.log 2>&1; docker compose logs >> compose-validation.log 2>&1; docker compose down --volumes --remove-orphans >> compose-validation.log 2>&1' EXIT
+          docker compose up -d --build 2>&1 | tee -a compose-validation.log
           for attempt in $(seq 1 60); do
             if curl --fail --silent http://127.0.0.1:3000/api/health >/dev/null; then
               break
             fi
             sleep 2
           done
-          curl --fail --silent http://127.0.0.1:3000/api/health
-          node --test tests/server-persistence.test.mjs
+          curl --fail --silent http://127.0.0.1:3000/api/health | tee -a compose-validation.log
+          node --test tests/server-persistence.test.mjs 2>&1 | tee -a compose-validation.log
+
+      - name: Upload Compose failure log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: compose-validation-log
+          path: compose-validation.log
+          if-no-files-found: ignore

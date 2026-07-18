@@ -30,7 +30,7 @@ docker compose run --rm --no-deps \
   --list "/restore/$(basename "$DUMP_PATH")" >/dev/null
 
 docker compose stop app backup || true
-docker compose --profile tunnel stop cloudflared || true
+docker compose --profile funnel stop tailscale || true
 docker compose up -d postgres
 
 for attempt in $(seq 1 30); do
@@ -57,8 +57,8 @@ docker compose exec -T postgres \
 docker compose run --rm migrate
 
 profile_args=""
-if grep -Eq '^CLOUDFLARE_TUNNEL_TOKEN=.+$' .env; then
-  profile_args="--profile tunnel"
+if grep -Eq '^PCC_FUNNEL_ENABLED=1$' .env; then
+  profile_args="--profile funnel"
 fi
 
 docker compose $profile_args up -d --remove-orphans

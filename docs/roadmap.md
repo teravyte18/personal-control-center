@@ -48,7 +48,7 @@ Optional stretch work:
 
 ## Slice 3 — Durable personal deployment
 
-**Status: PostgreSQL persistence, browser migration, portable Compose deployment, user isolation, and invite-only authentication implemented; secure ingress and recovery work remain.**
+**Status: application-side phone deployment is implemented; Cloudflare account configuration and real-phone validation remain before the slice can be accepted.**
 
 Hosting direction:
 
@@ -63,21 +63,33 @@ Delivered in the active Slice 3 branch:
 - One application and database serving a very small number of users with completely isolated data.
 - Invite-only email/password authentication with owner-controlled activation links.
 - HTTP-only database-backed sessions, owner bootstrap, logout, and immediate account revocation.
-- Per-user reads, mutations, imports, and exports.
-- Exact Compose CI validation of login, activation, same-user synchronisation, cross-user isolation, and revoked-session rejection.
+- Per-user reads, mutations, imports, exports, and browser fallback storage.
+- Optional pinned Cloudflare Tunnel connector that reaches only the private app service.
+- HTTPS production URL and Secure-cookie runtime configuration.
+- Installable PWA manifest with Android, maskable, and Apple icon variants.
+- Automatic validated daily PostgreSQL custom-format dumps with retention.
+- Safe production deployment and explicit full-database restoration scripts.
+- Exact Compose CI validation of authentication, synchronisation, cross-user isolation, public PWA assets, PNG dimensions, and backup readability.
 
-Remaining required outcomes:
+Remaining before starting normal phone use:
 
-- Photos use persistent filesystem storage behind a replaceable, user-scoped storage boundary.
-- The application is reachable through authenticated HTTPS and can be installed as a PWA on Android.
-- Secure cookies are enabled and phone/desktop access is validated through the production URL.
-- The production runtime supports both `linux/amd64` and `linux/arm64`, uses immutable externally built images, and has a rollback path.
-- PostgreSQL dumps, per-user exports, full-instance recovery, and a complete restoration procedure are implemented and tested.
-- Raspberry Pi migration is rehearsed from standard PostgreSQL and filesystem backups.
+- Create the Cloudflare tunnel and published hostname in the owner's Cloudflare account.
+- Add the tunnel token and HTTPS hostname to the DigitalOcean `.env` file.
+- Enable Secure cookies and start the Compose `tunnel` profile.
+- Validate owner login and data synchronisation over mobile data and Wi-Fi.
+- Install and relaunch the PWA on Android.
 
-Cloudflare R2 and the permanent off-site backup leg are deliberately deferred until the application has moved to the Raspberry Pi. They are tracked as separate post-migration infrastructure work.
+Later Slice 3 hardening that does not block initial daily phone use:
 
-See `docs/slice-3-plan.md` and `docs/authentication.md` for architecture decisions, stages, and operational instructions.
+- Real photo files behind a persistent, replaceable, user-scoped storage boundary.
+- Build and publish externally generated immutable AMD64 and ARM64 images.
+- Rehearse application rollback and a clean-host restore.
+- Copy backups off the DigitalOcean host on a recurring basis.
+- Rehearse the eventual Raspberry Pi migration.
+
+Cloudflare R2 and the permanent off-site backup leg remain deferred until the application has moved to the Raspberry Pi.
+
+See `docs/slice-3-plan.md`, `docs/authentication.md`, and `docs/phone-deployment.md` for architecture and operational instructions.
 
 ## After the first live version
 

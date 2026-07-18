@@ -1,8 +1,8 @@
 # Personal Control Center
 
-A phone-first, single-user planning and reflection system designed to reduce cognitive load by bringing responsibilities, projects, thoughts, reviews, and later specialised modules into one coherent place.
+A phone-first personal planning and reflection system designed to reduce cognitive load by bringing responsibilities, projects, thoughts, reviews, and later specialised modules into one coherent place.
 
-This repository is for personal use rather than a commercial or multi-user product. The code should still follow production-quality engineering, privacy, testing, and maintainability practices.
+This repository is for a small private deployment rather than a commercial product. The code should still follow production-quality engineering, privacy, testing, and maintainability practices. Multiple accounts may use one PostgreSQL database, but each account has completely separate personal data.
 
 ## System principles
 
@@ -26,13 +26,14 @@ This repository is for personal use rather than a commercial or multi-user produ
 - A dedicated Thoughts space with dated, read-only cards and explicit editing
 - Weekly Review and Review History modes
 - Weekly Review context for reached dates, completed actions, completed projects, unresolved work, and recent thoughts
-- PostgreSQL-backed canonical state shared across browsers and devices
+- PostgreSQL-backed canonical state shared across a user's browsers and devices
+- Separate PostgreSQL state and imports for every user account
 - Explicit browser-data backup and one-time import for existing local data
 - A floating five-position phone dock with permanent central Capture
 - A desktop navigation rail using the same page structure
 - An initial PWA manifest and portable standalone Docker runtime
 
-Authentication and public HTTPS access are still pending. Until they are implemented, access the deployment only through the existing SSH tunnel.
+Authentication and public HTTPS access are still pending. The application currently resolves only the configured owner account in normal operation. Until authentication is implemented, access the deployment only through the existing SSH tunnel.
 
 ## Page map
 
@@ -71,7 +72,7 @@ git switch agent/slice-3-durable-deployment
 cp .env.example .env
 ```
 
-Replace the example database password with a long random value, then start the stack:
+Replace the example database password and owner email, then start the stack:
 
 ```bash
 docker compose up -d --build
@@ -106,22 +107,32 @@ npm run db:migrate
 npm run dev
 ```
 
+## User data isolation
+
+One application and one PostgreSQL instance can hold multiple users. Each user receives an independent state row containing their own items, projects, reviews, accomplishments, and archive history. Imports and exports are also scoped to that user.
+
+The current deployment uses `PCC_DEFAULT_USER_EMAIL` as the owner identity until authentication is implemented. The migration preserves the existing singleton dataset by attaching it to a legacy owner account; the first configured owner email claims that account without moving or replacing its data.
+
+`PCC_ALLOW_INSECURE_USER_HEADER` exists only for automated and local isolation testing. Keep it set to `0` on DigitalOcean and Raspberry Pi. Authentication will later provide the verified user identity through the same server boundary.
+
+There are deliberately no shared workspaces, teams, public registration, or collaboration permissions.
+
 ## Existing browser-data migration
 
-When the PostgreSQL database is empty and the current browser contains data from the earlier prototype, the application displays a migration banner.
+When the current user's PostgreSQL state is empty and the browser contains data from the earlier prototype, the application displays a migration banner.
 
 The migration flow:
 
 1. Creates a versioned JSON export of all local items, actions, thoughts, reviews, accomplishments, and archive state.
 2. Saves a copy in browser storage.
 3. Downloads the JSON file before uploading anything.
-4. Imports the data transactionally into an empty PostgreSQL database.
-5. Records the import identity so repeating the same import is harmless.
+4. Imports the data transactionally into that user's empty PostgreSQL state.
+5. Records the import identity per user so repeating the same import is harmless.
 6. Switches the browser to server-owned data only after the import succeeds.
 
-Keep the downloaded JSON file until the server copy has been checked from another browser. The import refuses to overwrite a non-empty server with unrelated browser data.
+Keep the downloaded JSON file until the server copy has been checked from another browser. The import refuses to overwrite non-empty state with unrelated browser data.
 
-A fresh second browser will load the PostgreSQL state directly. Open browsers refresh from the server periodically and whenever the tab regains focus.
+A fresh second browser using the same account will load the same PostgreSQL state directly. Open browsers refresh from the server periodically and whenever the tab regains focus.
 
 ## Deploy this branch to the DigitalOcean host
 
@@ -142,20 +153,26 @@ Stop and remove the earlier single application container if it still exists:
 docker rm -f personal-control-center 2>/dev/null || true
 ```
 
-Create the deployment environment:
+Create the deployment environment when it does not already exist:
 
 ```bash
 cp -n .env.example .env
 chmod 600 .env
 ```
 
-Edit `.env` and replace the sample password:
+Edit `.env`. Keep the existing database password and set `PCC_DEFAULT_USER_EMAIL` to the email that will later be used for the owner login:
 
 ```bash
 nano .env
 ```
 
-Then start PostgreSQL, apply migrations, and start the application:
+Keep this disabled:
+
+```text
+PCC_ALLOW_INSECURE_USER_HEADER=0
+```
+
+Then apply migrations, rebuild, and start the application:
 
 ```bash
 docker compose up -d --build
@@ -191,7 +208,7 @@ After importing the existing browser data:
 7. Return to the first browser and confirm the change appears after refocusing or within a few seconds.
 8. Remove the temporary item when validation is complete.
 
-This validates two independent browser stores against one PostgreSQL source of truth. Authentication and Cloudflare Tunnel must be implemented before repeating this test over a public domain or phone network.
+This validates two independent browser stores for the same user against one PostgreSQL source of truth. Authentication and Cloudflare Tunnel must be implemented before validating separate real user accounts over a public domain or phone network.
 
 ## Validate changes
 
@@ -202,7 +219,7 @@ npm run db:migrate
 npm run build
 ```
 
-CI starts a real PostgreSQL service, applies migrations, builds the application, starts the production server, imports a versioned browser export, and verifies that two independent API clients observe the same canonical state.
+CI builds the exact Compose stack, applies migrations, imports a versioned browser export for the owner, confirms two owner clients share state, creates a second user in the same PostgreSQL database, and proves that each user's reads, mutations, imports, and exports remain isolated.
 
 ## Durable deployment direction
 
@@ -224,9 +241,9 @@ See [`docs/slice-3-plan.md`](docs/slice-3-plan.md) for the complete architecture
 src/app/              Next.js routes and server API endpoints
 src/components/       Shared navigation and interface components
 src/domain/           Domain behavior, snapshots, exports, and mutations
-src/server/           PostgreSQL connection and transactional storage
+src/server/           PostgreSQL connection, user resolution, and transactional storage
 src/lib/              Navigation and legacy browser-storage migration
- db/migrations/       Explicit PostgreSQL schema migrations
+db/migrations/        Explicit PostgreSQL schema migrations
 scripts/              Operational migration commands
 tests/                Domain and server-persistence validation
 docs/                 Product plans, system design, and roadmap documentation

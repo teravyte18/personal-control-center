@@ -21,12 +21,16 @@
 ## Development
 
 - Read `docs/product-spec.md` and `docs/roadmap.md` before major changes.
-- For Slice 3 work, also read `docs/slice-3-plan.md` and the active Slice 3 issue before implementation.
+- For Slice 3 work, also read `docs/slice-3-plan.md`, `docs/authentication.md`, and the active Slice 3 issue before implementation.
 - Keep changes focused and reviewable; complete the Slice 3 stages in order unless there is a clear technical reason not to.
 - Preserve existing browser-local data through an explicit migration and import path when server persistence is introduced.
 - Keep item transitions in shared domain actions rather than page-specific handlers.
 - Keep persistence, user identity, authentication, file storage, and deployment concerns behind explicit boundaries.
-- Scope every personal-data read, mutation, import, export, photo reference, and recovery operation by the resolved user ID.
+- Scope every personal-data read, mutation, import, export, photo reference, and recovery operation by the authenticated user ID.
+- Require server-side session authorization even when routing or ingress already performs an access check.
+- Keep public registration disabled; new accounts must be created through owner-controlled, expiring, one-time activation links.
+- Store only derived password hashes and hashed session or invitation tokens. Never log credentials, raw tokens, cookies, activation URLs, or password values.
+- Revocation must invalidate active sessions without deleting the user's personal data.
 - Keep insecure identity overrides disabled outside CI and deliberate local testing.
 - Run `npm run lint`, `npm test`, and `npm run build` after relevant changes.
 - Do not add major dependencies without explaining why.
@@ -45,5 +49,6 @@
 - Store photo references as opaque identifiers and metadata rather than absolute machine-specific paths.
 - Never expose PostgreSQL directly to the public network.
 - Keep secrets outside Git and outside built images; production secrets must be injected at runtime.
+- Keep session cookies non-Secure only while the application is strictly localhost-bound behind the SSH tunnel. Enable Secure cookies before HTTPS ingress is used for normal access.
 - Implement provider-independent export and restoration before calling Slice 3 complete.
 - Cloudflare R2 and automated permanent off-site backups are deferred until the application is running on Raspberry Pi and are tracked separately.

@@ -1,18 +1,15 @@
-import { loadPersonalDataState } from "@/server/personal-data-store";
-import { resolveRequestUser } from "@/server/request-user";
+import { getDatabase } from "@/server/database";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const user = await resolveRequestUser(request);
-    const state = await loadPersonalDataState(user.id);
+    const sql = getDatabase();
+    await sql`select 1 as healthy`;
     return Response.json({
       status: "ok",
       database: "ok",
-      revision: state.revision,
-      updatedAt: state.updatedAt,
     }, {
       headers: { "Cache-Control": "no-store" },
     });

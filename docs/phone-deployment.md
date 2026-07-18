@@ -1,183 +1,209 @@
-# Phone production deployment
+# Phone production deployment with Tailscale Funnel
 
-This procedure exposes the existing authenticated application through a stable HTTPS hostname while keeping PostgreSQL private and preserving the localhost SSH-tunnel path for maintenance.
+This procedure exposes the authenticated application through a stable Tailscale HTTPS hostname without buying a domain, opening inbound firewall ports, or exposing PostgreSQL.
 
 ## Resulting topology
 
 ```text
 Phone or desktop browser
         │
-        │ HTTPS
+        │ public HTTPS
         ▼
-Cloudflare hostname
+personal-control-center.<tailnet>.ts.net
         │
-        │ outbound Cloudflare Tunnel connection
+        │ Tailscale Funnel
         ▼
-cloudflared container ──► app:3000
-                             │
-                             ▼
-                         PostgreSQL
+Tailscale container ──► app on 127.0.0.1:3000
+                              │
+                              ▼
+                          PostgreSQL
 ```
 
-No public host port is required. The application remains bound to `127.0.0.1:3000` for SSH-tunnel maintenance, and PostgreSQL remains available only inside the Compose network.
+The `tailscale` container shares the application's network namespace, so Funnel can proxy the supported `127.0.0.1` target while the host application port remains bound to `127.0.0.1:3000` for SSH-tunnel maintenance. PostgreSQL remains private inside Compose.
 
-## One-time Cloudflare dashboard setup
+## One-time Tailscale setup
 
-1. Add or select a domain managed by the Cloudflare account.
-2. Go to **Networking → Tunnels** and create a named tunnel, for example `personal-control-center`.
-3. Add a **Published application** route.
-4. Choose the desired hostname, for example `planner.example.com`.
-5. Set the service URL to:
+1. Create or sign in to a Tailscale account.
+2. In the admin console, create a one-off, non-ephemeral auth key.
+3. Do not post the key in chat or commit it. Enter it only in the production server's `.env` file.
+4. Funnel requires MagicDNS, HTTPS certificates, and Funnel permission. The first `tailscale funnel` command provides a browser approval link when any requirement is missing.
 
-   ```text
-   http://app:3000
-   ```
+The Compose service uses the official `tailscale/tailscale:stable` image, persists its device identity in the `tailscale_state` Docker volume, and starts only with the optional `funnel` profile.
 
-6. Save the route.
-7. Copy the Docker connector token. Treat it as a secret and enter it only in the production server's `.env` file.
+## First Funnel deployment
 
-The repository pins `cloudflare/cloudflared:2026.7.2`. The connector starts only when the Compose `tunnel` profile is enabled.
-
-## First HTTPS deployment
-
-Before pulling these changes, create a manual database dump using the currently running stack:
+Before pulling changes, create a manual database dump using the currently running stack:
 
 ```bash
 cd /opt/personal-control-center
 mkdir -p data/backups
 docker compose exec -T postgres \
   pg_dump -U pcc -d personal_control_center -Fc --no-owner --no-acl \
-  > data/backups/pre-phone-deployment-$(date -u +%Y%m%dT%H%M%SZ).dump
+  > data/backups/pre-funnel-$(date -u +%Y%m%dT%H%M%SZ).dump
 ```
 
-Pull the approved branch or `main` after the pull request is merged:
+Pull the branch:
 
 ```bash
 git fetch origin
 git switch agent/slice-3-durable-deployment
 git pull --ff-only
-```
-
-Create the persistent host directories before Compose starts them. This keeps the files owned by the `deploy` user instead of Docker root:
-
-```bash
 mkdir -p data/backups data/uploads
 ```
 
-Check the production user's numeric IDs:
+Record the production user's numeric IDs:
 
 ```bash
 id -u
 id -g
 ```
 
-They are normally `1000` and `1000` for the DigitalOcean `deploy` user.
-
-Edit `.env` and keep the existing database password and owner email:
+Edit `.env`, preserving the existing database password and owner email. For the first Tailscale registration, use:
 
 ```text
-PCC_PUBLIC_URL=https://planner.example.com
-PCC_COOKIE_SECURE=1
-CLOUDFLARE_TUNNEL_TOKEN=paste-the-secret-token-here
+PCC_FUNNEL_ENABLED=1
+TAILSCALE_HOSTNAME=personal-control-center
+TAILSCALE_AUTH_KEY=paste-the-one-off-non-ephemeral-key-here
 PCC_HOST_UID=1000
 PCC_HOST_GID=1000
-PCC_BACKUP_INTERVAL_HOURS=24
-PCC_BACKUP_RETENTION_DAYS=14
+PCC_COOKIE_SECURE=0
 PCC_ALLOW_INSECURE_USER_HEADER=0
 ```
 
-Use the values returned by `id -u` and `id -g` when they are not `1000`.
+Replace the UID and GID with the values returned by `id -u` and `id -g` when different.
 
-The owner bootstrap password should already be blank after the first successful login:
+Start the stack and register the Tailscale node:
+
+```bash
+docker compose --profile funnel up -d --build
+
+docker compose --profile funnel ps
+docker compose logs --tail=100 tailscale
+```
+
+Confirm the node is connected:
+
+```bash
+docker compose --profile funnel exec -T tailscale tailscale status
+```
+
+Enable Funnel for the app:
+
+```bash
+docker compose --profile funnel exec tailscale \
+  tailscale funnel --bg --https=443 http://127.0.0.1:3000
+```
+
+On first use, the command may print an approval URL. Open that URL in a browser, approve Funnel, and run the command again. Funnel supports public TLS only and automatically provisions the certificate.
+
+Display the final public URL:
+
+```bash
+docker compose --profile funnel exec -T tailscale tailscale funnel status
+```
+
+It should resemble:
 
 ```text
-PCC_OWNER_BOOTSTRAP_PASSWORD=
+https://personal-control-center.example-tailnet.ts.net
 ```
 
-Start the complete production stack:
+Update `.env` with that exact URL and secure cookies:
 
-```bash
-docker compose --profile tunnel up -d --build
+```text
+PCC_PUBLIC_URL=https://personal-control-center.example-tailnet.ts.net
+PCC_COOKIE_SECURE=1
 ```
 
-Validate locally:
+The Tailscale identity is now persisted, so remove the temporary auth key from `.env`:
+
+```text
+TAILSCALE_AUTH_KEY=
+```
+
+Apply the final environment safely:
 
 ```bash
-docker compose --profile tunnel ps
+docker compose --profile funnel up -d --force-recreate app tailscale
+
+docker compose --profile funnel exec -T tailscale \
+  tailscale funnel --bg --https=443 http://127.0.0.1:3000
+```
+
+Validate:
+
+```bash
+docker compose --profile funnel ps
 docker compose logs --tail=100 migrate
 docker compose logs --tail=100 app
 docker compose logs --tail=100 backup
-docker compose logs --tail=100 cloudflared
+docker compose logs --tail=100 tailscale
 curl --fail http://127.0.0.1:3000/api/health
-```
-
-Validate the public route:
-
-```bash
-curl --fail --head https://planner.example.com/login
+curl --fail --head https://personal-control-center.example-tailnet.ts.net/login
+ls -lh data/backups
 ```
 
 ## Phone validation
 
-1. Disable Wi-Fi and open the HTTPS hostname over mobile data.
+1. Disable Wi-Fi and open the HTTPS Funnel URL over mobile data.
 2. Sign in with the owner account.
-3. Create a neutral temporary capture.
-4. Open the same account on desktop and confirm the capture appears.
-5. Edit or complete it on one device and confirm the other device refreshes.
-6. In Chrome on Android, open the browser menu and select **Install app** or **Add to Home screen**.
-7. Launch the installed application from the home screen.
-8. Close and reopen it and confirm that the authenticated session remains active.
-9. Repeat once over Wi-Fi.
+3. Confirm the existing projects and cards are present.
+4. Create a neutral temporary capture.
+5. Open the same account on desktop and confirm the capture appears.
+6. Edit or complete it on one device and confirm the other device refreshes.
+7. In Chrome on Android, select **Install app** or **Add to Home screen**.
+8. Launch it from the home screen, close it, reopen it, and confirm the session remains active.
+9. Repeat a basic read/write test over Wi-Fi.
 10. Remove the temporary validation item.
 
-The manifest exposes 192×192, 512×512, and maskable PNG icons and uses standalone display mode. Offline synchronization is not part of this slice; the installed application still requires network access.
+Funnel is public internet ingress: visitors do not need Tailscale installed, and the application's own login protects personal data. Offline synchronization is not included; the installed PWA still requires network access.
 
 ## Automatic backups
 
-The `backup` service creates a validated custom-format PostgreSQL dump immediately after startup and every 24 hours by default. Backups are stored on the host under:
+The `backup` service creates a validated custom-format PostgreSQL dump immediately after startup and every 24 hours by default:
 
 ```text
 data/backups/personal-control-center-YYYYMMDDTHHMMSSZ.dump
 ```
 
-The files are owned by the configured `PCC_HOST_UID:PCC_HOST_GID`, use private permissions, and can be copied by the production user. Files older than `PCC_BACKUP_RETENTION_DAYS` are deleted automatically. These files are outside both the application container and PostgreSQL volume, but an occasional copy should also be moved off the DigitalOcean host.
-
-Create an additional dump at any time:
+Create an additional dump:
 
 ```bash
 docker compose exec -T backup /bin/sh /usr/local/bin/pcc-backup --once
 ```
 
-Inspect available dumps:
-
-```bash
-ls -lh data/backups
-```
+An occasional copy should be moved off the DigitalOcean host.
 
 ## Future production updates
 
-Develop and test changes on another machine and branch. After CI passes and the pull request is approved, merge it to `main`. On the production host run:
+After CI passes and an approved change is merged to `main`:
 
 ```bash
 cd /opt/personal-control-center
 sh scripts/deploy-production.sh main
 ```
 
-The deployment script:
-
-1. refuses tracked local production changes;
-2. records the currently deployed commit;
-3. creates and validates a pre-deployment PostgreSQL dump;
-4. fast-forwards to the requested remote ref;
-5. runs migrations and rebuilds containers without removing volumes;
-6. keeps the tunnel enabled when a token is configured;
-7. waits for the health endpoint before reporting success.
+When `PCC_FUNNEL_ENABLED=1`, the deployment script keeps the Funnel profile running. The Tailscale device identity and Funnel configuration persist in the `tailscale_state` volume.
 
 Never run `docker compose down --volumes` during a normal update.
 
+## Useful Funnel commands
+
+```bash
+# Show the public route
+docker compose --profile funnel exec -T tailscale tailscale funnel status
+
+# Reapply the public proxy
+docker compose --profile funnel exec -T tailscale \
+  tailscale funnel --bg --https=443 http://127.0.0.1:3000
+
+# Disable all Funnel configuration
+docker compose --profile funnel exec -T tailscale tailscale funnel reset
+```
+
 ## Restore procedure
 
-Restoration replaces the entire database and requires an explicit confirmation:
+Restoration replaces the entire database and requires explicit confirmation:
 
 ```bash
 sh scripts/restore-postgres.sh data/backups/personal-control-center-YYYYMMDDTHHMMSSZ.dump

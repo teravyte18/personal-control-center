@@ -57,8 +57,8 @@ git checkout "$DEPLOY_REF"
 git pull --ff-only origin "$DEPLOY_REF"
 
 profile_args=""
-if grep -Eq '^CLOUDFLARE_TUNNEL_TOKEN=.+$' .env; then
-  profile_args="--profile tunnel"
+if grep -Eq '^PCC_FUNNEL_ENABLED=1$' .env; then
+  profile_args="--profile funnel"
 fi
 
 docker compose $profile_args config --quiet

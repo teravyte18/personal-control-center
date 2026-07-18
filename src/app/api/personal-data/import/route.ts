@@ -2,6 +2,7 @@ import {
   importPersonalData,
   PersonalDataImportConflictError,
 } from "@/server/personal-data-store";
+import { InvalidUserIdentityError, resolveRequestUser } from "@/server/request-user";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,11 +16,15 @@ export async function POST(request: Request) {
   }
 
   try {
-    const state = await importPersonalData(body);
+    const user = await resolveRequestUser(request);
+    const state = await importPersonalData(user.id, body);
     return Response.json(state, {
       headers: { "Cache-Control": "no-store" },
     });
   } catch (error) {
+    if (error instanceof InvalidUserIdentityError) {
+      return Response.json({ error: error.message }, { status: 401 });
+    }
     if (error instanceof TypeError) {
       return Response.json({ error: error.message }, { status: 400 });
     }

@@ -57,7 +57,11 @@ jobs:
           PCC_BACKUP_INTERVAL_HOURS: 24
           PCC_BACKUP_RETENTION_DAYS: 14
           PCC_ALLOW_INSECURE_USER_HEADER: 1
-        run: docker compose config --quiet
+          TAILSCALE_AUTH_KEY: ci-placeholder
+          TAILSCALE_HOSTNAME: personal-control-center-ci
+        run: |
+          docker compose config --quiet
+          docker compose --profile funnel config --quiet
 
       - name: Validate production Compose persistence, authentication, PWA, and backups
         env:

@@ -10,22 +10,6 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    services:
-      postgres:
-        image: postgres:17-alpine
-        env:
-          POSTGRES_DB: personal_control_center
-          POSTGRES_USER: pcc
-          POSTGRES_PASSWORD: ci-password
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U pcc -d personal_control_center"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 12
-    env:
-      DATABASE_URL: postgres://pcc:ci-password@127.0.0.1:5432/personal_control_center
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -45,9 +29,6 @@ jobs:
       - name: Test domain behavior
         run: npm test
 
-      - name: Apply database migrations
-        run: npm run db:migrate
-
       - name: Build
         run: |
           set -o pipefail
@@ -61,16 +42,22 @@ jobs:
           path: build.log
           if-no-files-found: ignore
 
-      - name: Validate shared server persistence
+      - name: Validate Compose configuration
+        env:
+          POSTGRES_PASSWORD: ci-compose-password
+        run: docker compose config --quiet
+
+      - name: Validate production Compose persistence
+        env:
+          POSTGRES_PASSWORD: ci-compose-password
         run: |
-          npm start > /tmp/personal-control-center.log 2>&1 &
-          APP_PID=$!
-          trap 'kill $APP_PID || true; cat /tmp/personal-control-center.log' EXIT
-          for attempt in $(seq 1 30); do
+          trap 'docker compose logs; docker compose down --volumes --remove-orphans' EXIT
+          docker compose up -d --build
+          for attempt in $(seq 1 60); do
             if curl --fail --silent http://127.0.0.1:3000/api/health >/dev/null; then
               break
             fi
-            sleep 1
+            sleep 2
           done
           curl --fail --silent http://127.0.0.1:3000/api/health
           node --test tests/server-persistence.test.mjs

@@ -28,6 +28,9 @@ jobs:
           set -o pipefail
           npm run lint 2>&1 | tee source-validation.log
 
+      - name: Validate operational scripts
+        run: sh -n scripts/backup-postgres.sh scripts/deploy-production.sh scripts/restore-postgres.sh
+
       - name: Test domain behavior
         run: npm test
 

@@ -45,11 +45,15 @@ jobs:
       - name: Validate Compose configuration
         env:
           POSTGRES_PASSWORD: ci-compose-password
+          PCC_DEFAULT_USER_EMAIL: owner@example.test
+          PCC_ALLOW_INSECURE_USER_HEADER: 1
         run: docker compose config --quiet
 
       - name: Validate production Compose persistence
         env:
           POSTGRES_PASSWORD: ci-compose-password
+          PCC_DEFAULT_USER_EMAIL: owner@example.test
+          PCC_ALLOW_INSECURE_USER_HEADER: 1
         run: |
           set -o pipefail
           touch compose-validation.log

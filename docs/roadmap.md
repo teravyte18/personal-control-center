@@ -48,7 +48,7 @@ Optional stretch work:
 
 ## Slice 3 — Durable personal deployment
 
-**Status: architecture agreed; implementation starting.**
+**Status: PostgreSQL persistence, browser migration, portable Compose deployment, and per-user isolation implemented; authentication and recovery work remain.**
 
 Hosting direction:
 
@@ -60,12 +60,13 @@ Required outcomes:
 
 - PostgreSQL becomes the canonical store for items, project action history, thoughts, reviews, and place history.
 - Existing browser-local data has an explicit, safe, and repeatable import path.
-- Phone and desktop use the same authenticated server-owned data.
-- Photos use persistent filesystem storage behind a replaceable storage boundary.
+- One application and database support a very small number of independent users with completely isolated personal data.
+- Phone and desktop use the same authenticated server-owned data for the same account.
+- Photos use persistent filesystem storage behind a replaceable, user-scoped storage boundary.
 - The application is reachable through authenticated HTTPS and can be installed as a PWA on Android.
 - The production runtime is Docker Compose based, supports both `linux/amd64` and `linux/arm64`, and avoids unnecessary provider lock-in.
 - Production images are built outside the host, published with immutable versions, and can be rolled back.
-- PostgreSQL dumps, data export, host recovery, and a complete restoration procedure are implemented and tested.
+- PostgreSQL dumps, per-user exports, full-instance recovery, and a complete restoration procedure are implemented and tested.
 - Raspberry Pi migration is rehearsed from standard PostgreSQL and filesystem backups.
 
 Cloudflare R2 and the permanent off-site backup leg are deliberately deferred until the application has moved to the Raspberry Pi. They are tracked as separate post-migration infrastructure work.
@@ -94,4 +95,5 @@ See `docs/slice-3-plan.md` for architecture decisions, stages, and completion cr
 - AI should be anticipated in the data model but must not block the manual workflow.
 - Use only neutral fixtures and examples in the public repository.
 - Deployment must remain portable between an AMD64 cloud VM and an ARM64 Raspberry Pi.
+- Personal-data operations must always be scoped by the resolved user identity.
 - The visual GitHub Project remains optional until the issue list becomes difficult to scan.

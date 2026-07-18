@@ -28,12 +28,14 @@ This repository is for a small private deployment rather than a commercial produ
 - Weekly Review context for reached dates, completed actions, completed projects, unresolved work, and recent thoughts
 - PostgreSQL-backed canonical state shared across a user's browsers and devices
 - Separate PostgreSQL state and imports for every user account
+- Invite-only email/password authentication with owner-controlled access
+- HTTP-only database-backed sessions and immediate session revocation
 - Explicit browser-data backup and one-time import for existing local data
 - A floating five-position phone dock with permanent central Capture
 - A desktop navigation rail using the same page structure
 - An initial PWA manifest and portable standalone Docker runtime
 
-Authentication and public HTTPS access are still pending. The application currently resolves only the configured owner account in normal operation. Until authentication is implemented, access the deployment only through the existing SSH tunnel.
+Public HTTPS access is still pending. Until Cloudflare Tunnel is configured, access the deployment only through the existing SSH tunnel.
 
 ## Page map
 
@@ -52,6 +54,7 @@ Review (/review)
 All Spaces (/spaces)
   - Accomplishments
   - Archive
+  - Account & access
 ```
 
 The four dock destinations are driven by `src/lib/navigation.ts`. Future modules register in the same destination list and can later become pinnable without rebuilding the application shell.
@@ -72,13 +75,13 @@ git switch agent/slice-3-durable-deployment
 cp .env.example .env
 ```
 
-Replace the example database password and owner email, then start the stack:
+Replace the example database password, owner email, and temporary owner bootstrap password, then start the stack:
 
 ```bash
 docker compose up -d --build
 ```
 
-Open [http://localhost:3000](http://localhost:3000). PostgreSQL is only available on the private Compose network, and the application port is bound to localhost.
+Open [http://localhost:3000](http://localhost:3000) and sign in with the configured owner email and bootstrap password. After the first successful login, remove `PCC_OWNER_BOOTSTRAP_PASSWORD` from `.env` and run `docker compose up -d` again. PostgreSQL is only available on the private Compose network, and the application port is bound to localhost.
 
 Useful checks:
 
@@ -107,15 +110,17 @@ npm run db:migrate
 npm run dev
 ```
 
-## User data isolation
+## Authentication and user isolation
 
 One application and one PostgreSQL instance can hold multiple users. Each user receives an independent state row containing their own items, projects, reviews, accomplishments, and archive history. Imports and exports are also scoped to that user.
 
-The current deployment uses `PCC_DEFAULT_USER_EMAIL` as the owner identity until authentication is implemented. The migration preserves the existing singleton dataset by attaching it to a legacy owner account; the first configured owner email claims that account without moving or replacing its data.
+There is no public registration. The configured owner signs in first, then creates one-time activation links from **All Spaces → Account & access**. Invited users choose their own password and receive an empty private dataset. Revoking an account closes its existing sessions but preserves its data for a later re-invitation.
 
-`PCC_ALLOW_INSECURE_USER_HEADER` exists only for automated and local isolation testing. Keep it set to `0` on DigitalOcean and Raspberry Pi. Authentication will later provide the verified user identity through the same server boundary.
+Passwords are derived with `scrypt`. Raw session and invitation tokens are never stored in PostgreSQL. The browser receives an HTTP-only `SameSite=Lax` session cookie.
 
-There are deliberately no shared workspaces, teams, public registration, or collaboration permissions.
+`PCC_ALLOW_INSECURE_USER_HEADER` exists only for automated isolation testing. Keep it set to `0` on DigitalOcean and Raspberry Pi. There are deliberately no shared workspaces, teams, public registration, or collaboration permissions.
+
+See [`docs/authentication.md`](docs/authentication.md) for owner bootstrap, invitations, revocation, session duration, and HTTPS cookie configuration.
 
 ## Existing browser-data migration
 
@@ -132,7 +137,7 @@ The migration flow:
 
 Keep the downloaded JSON file until the server copy has been checked from another browser. The import refuses to overwrite non-empty state with unrelated browser data.
 
-A fresh second browser using the same account will load the same PostgreSQL state directly. Open browsers refresh from the server periodically and whenever the tab regains focus.
+A fresh second browser signed into the same account will load the same PostgreSQL state directly. Open browsers refresh from the server periodically and whenever the tab regains focus.
 
 ## Deploy this branch to the DigitalOcean host
 
@@ -147,32 +152,27 @@ git switch agent/slice-3-durable-deployment
 git pull --ff-only
 ```
 
-Stop and remove the earlier single application container if it still exists:
+Back up PostgreSQL before applying the authentication migration:
 
 ```bash
-docker rm -f personal-control-center 2>/dev/null || true
+mkdir -p ~/pcc-backups
+docker compose exec -T postgres \
+  pg_dump -U pcc -d personal_control_center -Fc \
+  > ~/pcc-backups/pre-auth-$(date +%F-%H%M).dump
 ```
 
-Create the deployment environment when it does not already exist:
-
-```bash
-cp -n .env.example .env
-chmod 600 .env
-```
-
-Edit `.env`. Keep the existing database password and set `PCC_DEFAULT_USER_EMAIL` to the email that will later be used for the owner login:
-
-```bash
-nano .env
-```
-
-Keep this disabled:
+Edit the existing `.env`. Keep the current database password and add or update:
 
 ```text
+PCC_DEFAULT_USER_EMAIL=YOUR_REAL_EMAIL
+PCC_OWNER_BOOTSTRAP_PASSWORD=A_TEMPORARY_PASSWORD_WITH_AT_LEAST_12_CHARACTERS
+PCC_COOKIE_SECURE=0
+PCC_SESSION_DAYS=30
+PCC_INVITE_DAYS=7
 PCC_ALLOW_INSECURE_USER_HEADER=0
 ```
 
-Then apply migrations, rebuild, and start the application:
+Keep `PCC_COOKIE_SECURE=0` while using the HTTP localhost SSH tunnel. Then apply migrations, rebuild, and start the application:
 
 ```bash
 docker compose up -d --build
@@ -193,22 +193,24 @@ From the computer, continue using:
 ssh -L 3000:127.0.0.1:3000 deploy@YOUR_DROPLET_IP
 ```
 
-Then open [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3000](http://localhost:3000), sign in with the owner email and temporary password, and confirm the existing cards are present. After the first successful login, remove or empty `PCC_OWNER_BOOTSTRAP_PASSWORD` in `.env` and run:
 
-### Shared-data verification
+```bash
+docker compose up -d
+```
 
-After importing the existing browser data:
+### Authentication verification
 
-1. Open the SSH tunnel and application in the normal browser.
-2. Confirm the downloaded migration backup exists.
-3. Add a neutral temporary capture.
-4. Open an incognito window or another browser through the same `http://localhost:3000` tunnel.
-5. Confirm the capture appears there after opening or focusing the page.
-6. Edit or complete it in the second browser.
-7. Return to the first browser and confirm the change appears after refocusing or within a few seconds.
-8. Remove the temporary item when validation is complete.
+1. Sign out and confirm protected pages return to the login screen.
+2. Sign in again and confirm the existing owner cards remain present.
+3. Open **All Spaces → Account & access**.
+4. Invite a neutral test email and copy the activation link.
+5. Open the link in an incognito browser, set a password, and confirm that account starts empty.
+6. Add a temporary card in the invited account and confirm it does not appear in the owner account.
+7. Revoke the invited account from the owner screen and confirm its incognito session is redirected to login.
+8. Re-invite it only if the test account should remain available.
 
-This validates two independent browser stores for the same user against one PostgreSQL source of truth. Authentication and Cloudflare Tunnel must be implemented before validating separate real user accounts over a public domain or phone network.
+Do not expose the app publicly yet. The session cookie becomes Secure only after Cloudflare Tunnel provides an HTTPS-only production URL.
 
 ## Validate changes
 
@@ -219,7 +221,7 @@ npm run db:migrate
 npm run build
 ```
 
-CI builds the exact Compose stack, applies migrations, imports a versioned browser export for the owner, confirms two owner clients share state, creates a second user in the same PostgreSQL database, and proves that each user's reads, mutations, imports, and exports remain isolated.
+CI builds the exact Compose stack, applies migrations, bootstraps the owner password, validates HTTP-only sessions, imports the owner's browser export, confirms two owner clients share state, activates an invited account, proves user data remains isolated, revokes the account, and confirms its existing session becomes unauthorized.
 
 ## Durable deployment direction
 
@@ -239,14 +241,14 @@ See [`docs/slice-3-plan.md`](docs/slice-3-plan.md) for the complete architecture
 
 ```text
 src/app/              Next.js routes and server API endpoints
-src/components/       Shared navigation and interface components
+src/components/       Shared navigation and authentication guards
 src/domain/           Domain behavior, snapshots, exports, and mutations
-src/server/           PostgreSQL connection, user resolution, and transactional storage
+src/server/           PostgreSQL, authentication, and transactional storage
 src/lib/              Navigation and legacy browser-storage migration
 db/migrations/        Explicit PostgreSQL schema migrations
 scripts/              Operational migration commands
-tests/                Domain and server-persistence validation
-docs/                 Product plans, system design, and roadmap documentation
+tests/                Domain, persistence, and authentication validation
+docs/                 Product plans, system design, and operational guides
 .github/               CI workflow and repository templates
 ```
 
@@ -258,4 +260,4 @@ docs/                 Product plans, system design, and roadmap documentation
 4. Review behaviour and system decisions.
 5. Merge into `main` after approval.
 
-See [`docs/product-spec.md`](docs/product-spec.md), [`docs/roadmap.md`](docs/roadmap.md), [`docs/slice-3-plan.md`](docs/slice-3-plan.md), and [`CONTRIBUTING.md`](CONTRIBUTING.md).
+See [`docs/product-spec.md`](docs/product-spec.md), [`docs/roadmap.md`](docs/roadmap.md), [`docs/slice-3-plan.md`](docs/slice-3-plan.md), [`docs/authentication.md`](docs/authentication.md), and [`CONTRIBUTING.md`](CONTRIBUTING.md).

@@ -72,6 +72,9 @@ jobs:
         run: |
           set -o pipefail
           rm -rf data/backups data/uploads
+          mkdir -p data/backups data/uploads
+          export PCC_HOST_UID="$(id -u)"
+          export PCC_HOST_GID="$(id -g)"
           touch compose-validation.log
           exec > >(tee -a compose-validation.log) 2>&1
           set -x
@@ -122,6 +125,7 @@ jobs:
             sleep 2
           done
           docker compose exec -T backup sh -c 'latest=$(find /backups -maxdepth 1 -type f -name "personal-control-center-*.dump" | sort | tail -n 1); test -n "$latest"; pg_restore --list "$latest" >/dev/null'
+          test -r "$(find data/backups -maxdepth 1 -type f -name 'personal-control-center-*.dump' | sort | tail -n 1)"
 
       - name: Upload Compose failure log
         if: failure()

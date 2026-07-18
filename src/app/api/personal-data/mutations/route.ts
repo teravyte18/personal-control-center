@@ -1,6 +1,6 @@
 import { normalizePersonalDataMutation } from "@/domain/personal-data-snapshot";
 import { applyStoredPersonalDataMutation } from "@/server/personal-data-store";
-import { InvalidUserIdentityError, resolveRequestUser } from "@/server/request-user";
+import { AuthenticationRequiredError, resolveRequestUser } from "@/server/request-user";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,7 +25,7 @@ export async function POST(request: Request) {
       headers: { "Cache-Control": "no-store" },
     });
   } catch (error) {
-    if (error instanceof InvalidUserIdentityError) {
+    if (error instanceof AuthenticationRequiredError) {
       return Response.json({ error: error.message }, { status: 401 });
     }
     console.error("Could not apply personal data mutation.", error);

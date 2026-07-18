@@ -49,6 +49,6 @@
 - Store photo references as opaque identifiers and metadata rather than absolute machine-specific paths.
 - Never expose PostgreSQL directly to the public network.
 - Keep secrets outside Git and outside built images; production secrets must be injected at runtime.
-- Keep session cookies non-Secure only while the application is strictly localhost-bound behind the SSH tunnel. Enable Secure cookies before HTTPS ingress is used for normal access.
+- Keep session cookies non-Secure only while the application is strictly localhost-bound behind the SSH tunnel. Set `PCC_COOKIE_SECURE=1` before HTTPS ingress is used for normal access.
 - Implement provider-independent export and restoration before calling Slice 3 complete.
 - Cloudflare R2 and automated permanent off-site backups are deferred until the application is running on Raspberry Pi and are tracked separately.

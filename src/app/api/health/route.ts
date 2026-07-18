@@ -1,11 +1,13 @@
 import { loadPersonalDataState } from "@/server/personal-data-store";
+import { resolveRequestUser } from "@/server/request-user";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const state = await loadPersonalDataState();
+    const user = await resolveRequestUser(request);
+    const state = await loadPersonalDataState(user.id);
     return Response.json({
       status: "ok",
       database: "ok",

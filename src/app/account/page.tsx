@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 
 type SessionUser = {
   id: string;
@@ -16,10 +16,40 @@ type ManagedUser = SessionUser & {
   revokedAt: string | null;
 };
 
+type AccountData = {
+  currentUser: SessionUser;
+  users: ManagedUser[];
+};
+
 function messageFrom(value: unknown, fallback: string) {
   return typeof value === "object" && value !== null && "error" in value && typeof value.error === "string"
     ? value.error
     : fallback;
+}
+
+async function fetchAccountData(): Promise<AccountData | null> {
+  const sessionResponse = await fetch("/api/auth/session", { cache: "no-store" });
+  if (sessionResponse.status === 401) {
+    window.location.assign("/login?next=/account");
+    return null;
+  }
+
+  const sessionBody = await sessionResponse.json() as { user?: SessionUser; error?: string };
+  if (!sessionResponse.ok || !sessionBody.user) {
+    throw new Error(sessionBody.error ?? "Could not load the current account.");
+  }
+
+  if (sessionBody.user.role !== "owner") {
+    return { currentUser: sessionBody.user, users: [] };
+  }
+
+  const usersResponse = await fetch("/api/admin/users", { cache: "no-store" });
+  const usersBody = await usersResponse.json() as { users?: ManagedUser[]; error?: string };
+  if (!usersResponse.ok || !usersBody.users) {
+    throw new Error(usersBody.error ?? "Could not load managed accounts.");
+  }
+
+  return { currentUser: sessionBody.user, users: usersBody.users };
 }
 
 export default function AccountPage() {
@@ -32,34 +62,35 @@ export default function AccountPage() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
-  const load = useCallback(async () => {
-    setError("");
-    const sessionResponse = await fetch("/api/auth/session", { cache: "no-store" });
-    if (sessionResponse.status === 401) {
-      window.location.assign("/login?next=/account");
-      return;
-    }
-    const sessionBody = await sessionResponse.json() as { user?: SessionUser; error?: string };
-    if (!sessionResponse.ok || !sessionBody.user) {
-      throw new Error(sessionBody.error ?? "Could not load the current account.");
-    }
-    setCurrentUser(sessionBody.user);
+  useEffect(() => {
+    let cancelled = false;
 
-    if (sessionBody.user.role === "owner") {
-      const usersResponse = await fetch("/api/admin/users", { cache: "no-store" });
-      const usersBody = await usersResponse.json() as { users?: ManagedUser[]; error?: string };
-      if (!usersResponse.ok || !usersBody.users) {
-        throw new Error(usersBody.error ?? "Could not load managed accounts.");
-      }
-      setUsers(usersBody.users);
-    }
+    void fetchAccountData()
+      .then((data) => {
+        if (!cancelled && data) {
+          setCurrentUser(data.currentUser);
+          setUsers(data.users);
+        }
+      })
+      .catch((loadError) => {
+        if (!cancelled) setError(loadError instanceof Error ? loadError.message : "Could not load account settings.");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  useEffect(() => {
-    void load()
-      .catch((loadError) => setError(loadError instanceof Error ? loadError.message : "Could not load account settings."))
-      .finally(() => setLoading(false));
-  }, [load]);
+  async function refreshAccounts() {
+    const data = await fetchAccountData();
+    if (data) {
+      setCurrentUser(data.currentUser);
+      setUsers(data.users);
+    }
+  }
 
   async function invite(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -79,7 +110,7 @@ export default function AccountPage() {
       setActivationUrl(body.activationUrl);
       setEmail("");
       setNotice("Invitation created. Send the activation link directly to that person.");
-      await load();
+      await refreshAccounts();
     } catch (inviteError) {
       setError(inviteError instanceof Error ? inviteError.message : "Could not create the invitation.");
     } finally {
@@ -101,7 +132,7 @@ export default function AccountPage() {
       const body = await response.json() as { error?: string };
       if (!response.ok) throw new Error(messageFrom(body, "Could not revoke the account."));
       setNotice(`${user.email} can no longer sign in. Their existing sessions were closed.`);
-      await load();
+      await refreshAccounts();
     } catch (revokeError) {
       setError(revokeError instanceof Error ? revokeError.message : "Could not revoke the account.");
     }

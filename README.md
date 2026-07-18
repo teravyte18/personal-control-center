@@ -27,11 +27,11 @@ This repository is for a small private deployment rather than a commercial produ
 - Explicit browser-data backup and one-time migration from the earlier prototype
 - Installable phone PWA manifest with 192×192, 512×512, Apple, and maskable PNG icons
 - Portable standalone Docker runtime for AMD64 now and ARM64 later
-- Optional pinned Cloudflare Tunnel connector for stable public HTTPS
+- Optional Tailscale Funnel connector for stable public HTTPS without a purchased domain
 - Automatic validated daily PostgreSQL dumps with retention
 - Safe production deployment and explicit restoration scripts
 
-The application and database remain bound to private/local interfaces. Public phone access starts only after the production operator creates a Cloudflare tunnel, enters its token in `.env`, and enables Secure cookies.
+The application and database remain bound to private/local interfaces. Public phone access starts only after the production operator registers the persistent Tailscale container, enables Funnel, configures the resulting `*.ts.net` URL, and enables Secure cookies.
 
 ## Page map
 
@@ -122,19 +122,20 @@ When the authenticated user's PostgreSQL state is empty and their browser contai
 
 ## Phone production deployment
 
-The repository includes a pinned `cloudflared` service under the optional `tunnel` Compose profile. The Cloudflare dashboard route must point the public hostname to:
+The repository includes an official Tailscale container under the optional `funnel` Compose profile. It shares the application's network namespace and proxies Funnel HTTPS to:
 
 ```text
-http://app:3000
+http://127.0.0.1:3000
 ```
 
-After the tunnel token and public hostname are configured in `.env`, start the full stack with:
+After registering the persistent Tailscale node, enable Funnel with:
 
 ```bash
-docker compose --profile tunnel up -d --build
+docker compose --profile funnel exec tailscale \
+  tailscale funnel --bg --https=443 http://127.0.0.1:3000
 ```
 
-The detailed first deployment, phone validation, PWA installation, backup, update, and restoration steps are in [`docs/phone-deployment.md`](docs/phone-deployment.md).
+The result is a stable public URL under the tailnet's `*.ts.net` domain. No custom domain, router port forwarding, or Tailscale installation on the phone is required. The detailed first deployment, approval, secure-cookie transition, phone validation, PWA installation, backup, update, and restoration steps are in [`docs/phone-deployment.md`](docs/phone-deployment.md).
 
 ## Backups and recovery
 
@@ -166,7 +167,7 @@ Develop on another machine and feature branch. After CI passes and the pull requ
 sh scripts/deploy-production.sh main
 ```
 
-The script records the previous commit, creates and validates a pre-deployment dump, fast-forwards the requested ref, applies migrations, preserves volumes, restarts the configured tunnel, and waits for the application health check.
+The script records the previous commit, creates and validates a pre-deployment dump, fast-forwards the requested ref, applies migrations, preserves volumes, restarts the configured Funnel profile, and waits for the application health check.
 
 ## Validate changes
 
@@ -175,9 +176,10 @@ npm run lint
 npm test
 npm run build
 docker compose config --quiet
+docker compose --profile funnel config --quiet
 ```
 
-CI additionally builds the exact Compose stack and validates migrations, authentication, cross-user isolation, public manifest/icon delivery, PNG dimensions, and a readable PostgreSQL backup.
+CI additionally builds the exact core Compose stack and validates migrations, authentication, cross-user isolation, public manifest/icon delivery, PNG dimensions, a readable PostgreSQL backup, and the optional Funnel profile configuration.
 
 ## Durable deployment direction
 

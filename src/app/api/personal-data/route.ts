@@ -1,15 +1,20 @@
 import { loadPersonalDataState } from "@/server/personal-data-store";
+import { InvalidUserIdentityError, resolveRequestUser } from "@/server/request-user";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const state = await loadPersonalDataState();
+    const user = await resolveRequestUser(request);
+    const state = await loadPersonalDataState(user.id);
     return Response.json(state, {
       headers: { "Cache-Control": "no-store" },
     });
   } catch (error) {
+    if (error instanceof InvalidUserIdentityError) {
+      return Response.json({ error: error.message }, { status: 401 });
+    }
     console.error("Could not load personal data.", error);
     return Response.json(
       { error: "Personal data storage is unavailable." },

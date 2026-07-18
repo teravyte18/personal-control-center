@@ -73,16 +73,18 @@ jobs:
           set -o pipefail
           rm -rf data/backups data/uploads
           touch compose-validation.log
-          trap 'docker compose ps -a >> compose-validation.log 2>&1; docker compose logs >> compose-validation.log 2>&1; docker compose down --volumes --remove-orphans >> compose-validation.log 2>&1; rm -rf data/backups data/uploads pwa-manifest.json pwa-icon-*' EXIT
-          docker compose up -d --build 2>&1 | tee -a compose-validation.log
+          exec > >(tee -a compose-validation.log) 2>&1
+          set -x
+          trap 'docker compose ps -a; docker compose logs; docker compose down --volumes --remove-orphans; rm -rf data/backups data/uploads pwa-manifest.json pwa-icon-*' EXIT
+          docker compose up -d --build
           for attempt in $(seq 1 60); do
             if curl --fail --silent http://127.0.0.1:3000/api/health >/dev/null; then
               break
             fi
             sleep 2
           done
-          curl --fail --silent http://127.0.0.1:3000/api/health | tee -a compose-validation.log
-          node --test tests/server-persistence.test.mjs 2>&1 | tee -a compose-validation.log
+          curl --fail --silent http://127.0.0.1:3000/api/health
+          node --test tests/server-persistence.test.mjs
 
           curl --fail --silent http://127.0.0.1:3000/manifest.webmanifest > pwa-manifest.json
           node <<'NODE'

@@ -7,6 +7,15 @@ export const metadata: Metadata = {
   description: "Capture, organise, and reflect on what deserves attention.",
   applicationName: "Personal Control Center",
   manifest: "/manifest.webmanifest",
+  icons: {
+    icon: [
+      { url: "/api/pwa-icon/192", sizes: "192x192", type: "image/png" },
+      { url: "/api/pwa-icon/512", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [
+      { url: "/api/pwa-icon/180", sizes: "180x180", type: "image/png" },
+    ],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",

@@ -20,7 +20,7 @@ services:
   migrate:
     build:
       context: .
-    command: ["node", "scripts/migrate.mjs"]
+      target: migration
     environment:
       DATABASE_URL: postgres://pcc:${POSTGRES_PASSWORD}@postgres:5432/personal_control_center
     depends_on:
@@ -31,6 +31,7 @@ services:
   app:
     build:
       context: .
+      target: runner
     restart: unless-stopped
     init: true
     environment:

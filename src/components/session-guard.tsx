@@ -1,12 +1,19 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { activeBrowserUserStorageKey } from "@/lib/personal-storage";
 
 const SESSION_REFRESH_INTERVAL_MS = 60_000;
 
 type GuardState = "checking" | "ready" | "error";
 
+type SessionUser = {
+  id: string;
+  role: "owner" | "member";
+};
+
 function redirectToLogin() {
+  window.localStorage.removeItem(activeBrowserUserStorageKey);
   const next = `${window.location.pathname}${window.location.search}`;
   window.location.assign(`/login?next=${encodeURIComponent(next)}`);
 }
@@ -18,6 +25,16 @@ async function checkSession() {
     return false;
   }
   if (!response.ok) throw new Error("Authentication service is unavailable.");
+
+  const body = await response.json() as { user?: SessionUser };
+  if (!body.user || typeof body.user.id !== "string" || !["owner", "member"].includes(body.user.role)) {
+    throw new Error("Authentication service returned an invalid session.");
+  }
+
+  window.localStorage.setItem(activeBrowserUserStorageKey, JSON.stringify({
+    id: body.user.id,
+    role: body.user.role,
+  }));
   return true;
 }
 

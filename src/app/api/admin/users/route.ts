@@ -53,7 +53,8 @@ export async function POST(request: Request) {
   try {
     const owner = requireOwner(await requireAuthenticatedUser(request));
     const invitation = await createUserInvite(owner, record.email);
-    const activationUrl = new URL("/activate", request.url);
+    const publicBaseUrl = process.env.PCC_PUBLIC_URL?.trim() || request.url;
+    const activationUrl = new URL("/activate", publicBaseUrl);
     activationUrl.searchParams.set("token", invitation.token);
 
     return Response.json({

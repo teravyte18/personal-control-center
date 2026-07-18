@@ -15,9 +15,7 @@ This repository is for personal use rather than a commercial or multi-user produ
 - Remain useful before any external integrations are configured.
 - Keep all repository examples neutral because the repository is public.
 
-## Current prototype
-
-The current prototype includes:
+## Current functionality
 
 - A quiet Capture landing page
 - Inbox clarification into projects, tasks, thoughts, and notes
@@ -28,15 +26,15 @@ The current prototype includes:
 - A dedicated Thoughts space with dated, read-only cards and explicit editing
 - Weekly Review and Review History modes
 - Weekly Review context for reached dates, completed actions, completed projects, unresolved work, and recent thoughts
-- Browser-local persistence with safe migration from earlier prototypes
+- PostgreSQL-backed canonical state shared across browsers and devices
+- Explicit browser-data backup and one-time import for existing local data
 - A floating five-position phone dock with permanent central Capture
 - A desktop navigation rail using the same page structure
-- An All Spaces route that already reserves room for Library, Trips, Fitness, Habits, and Settings
 - An initial PWA manifest and portable standalone Docker runtime
 
-Data currently stays in the browser where it was entered. Clearing browser storage will remove it, and it is not yet synchronised between devices. Slice 3 replaces this with authenticated server-owned PostgreSQL persistence and a portable deployment that starts on DigitalOcean and later moves to Raspberry Pi.
+Authentication and public HTTPS access are still pending. Until they are implemented, access the deployment only through the existing SSH tunnel.
 
-## MVP page map
+## Page map
 
 ```text
 Capture (/)
@@ -57,12 +55,11 @@ All Spaces (/spaces)
 
 The four dock destinations are driven by `src/lib/navigation.ts`. Future modules register in the same destination list and can later become pinnable without rebuilding the application shell.
 
-## Run locally
+## Run locally with PostgreSQL
 
 ### Requirements
 
-- Node.js 22 or newer
-- npm
+- Docker Engine with Docker Compose
 - Git
 
 ### First-time setup
@@ -70,104 +67,170 @@ The four dock destinations are driven by `src/lib/navigation.ts`. Future modules
 ```bash
 git clone https://github.com/teravyte18/personal-control-center.git
 cd personal-control-center
+git switch agent/slice-3-durable-deployment
+cp .env.example .env
+```
+
+Replace the example database password with a long random value, then start the stack:
+
+```bash
+docker compose up -d --build
+```
+
+Open [http://localhost:3000](http://localhost:3000). PostgreSQL is only available on the private Compose network, and the application port is bound to localhost.
+
+Useful checks:
+
+```bash
+docker compose ps
+docker compose logs --tail=100 app
+docker compose exec postgres pg_isready -U pcc -d personal_control_center
+curl http://127.0.0.1:3000/api/health
+```
+
+Stop the application without deleting its database:
+
+```bash
+docker compose down
+```
+
+Do not add `--volumes` unless the PostgreSQL data is intentionally being destroyed.
+
+### Source-based development
+
+A local PostgreSQL instance and `DATABASE_URL` are required:
+
+```bash
 npm install
+npm run db:migrate
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in a browser.
+## Existing browser-data migration
 
-### Update an existing checkout
+When the PostgreSQL database is empty and the current browser contains data from the earlier prototype, the application displays a migration banner.
 
-```bash
-git switch main
-git pull
-npm install
-npm run dev
-```
+The migration flow:
 
-### Test from a phone on the same network
+1. Creates a versioned JSON export of all local items, actions, thoughts, reviews, accomplishments, and archive state.
+2. Saves a copy in browser storage.
+3. Downloads the JSON file before uploading anything.
+4. Imports the data transactionally into an empty PostgreSQL database.
+5. Records the import identity so repeating the same import is harmless.
+6. Switches the browser to server-owned data only after the import succeeds.
 
-For quick development testing:
+Keep the downloaded JSON file until the server copy has been checked from another browser. The import refuses to overwrite a non-empty server with unrelated browser data.
 
-```bash
-npm run dev:network
-```
+A fresh second browser will load the PostgreSQL state directly. Open browsers refresh from the server periodically and whenever the tab regains focus.
 
-Find the computer's local network IP address and open the following address on the phone:
+## Deploy this branch to the DigitalOcean host
 
-```text
-http://YOUR_COMPUTER_IP:3000
-```
+The current deployment remains private and uses the SSH tunnel established during Droplet setup.
 
-For example: `http://192.168.1.50:3000`.
-
-Development mode compiles routes on demand and can feel noticeably slow over Wi-Fi. For a more realistic phone performance test, use a production build:
+On the Droplet:
 
 ```bash
-npm run build
-npm run start:network
+cd /opt/personal-control-center
+git fetch origin
+git switch agent/slice-3-durable-deployment
+git pull --ff-only
 ```
 
-Then open the same local-network address on the phone. The phone and computer must be on the same network, and the operating-system firewall may ask for permission to allow Node.js on private networks.
-
-A LAN address using plain HTTP is not a secure browser context. The application uses an HTTP-compatible ID fallback, but full PWA installation and some future device capabilities require HTTPS.
-
-If the phone still displays stale interface state after pulling new code, refresh the page completely or close and reopen the tab so it does not reuse old development assets.
-
-## Validate a production build
+Stop and remove the earlier single application container if it still exists:
 
 ```bash
-npm run lint
-npm test
-npm run build
-npm start
+docker rm -f personal-control-center 2>/dev/null || true
 ```
 
-The production server is available at [http://localhost:3000](http://localhost:3000).
-
-Pull requests run lint, automated tests, and the production build through GitHub Actions.
-
-## Run with Docker
+Create the deployment environment:
 
 ```bash
-docker build -t personal-control-center .
-docker run --rm -p 3000:3000 personal-control-center
+cp -n .env.example .env
+chmod 600 .env
+```
+
+Edit `.env` and replace the sample password:
+
+```bash
+nano .env
+```
+
+Then start PostgreSQL, apply migrations, and start the application:
+
+```bash
+docker compose up -d --build
+```
+
+Validate:
+
+```bash
+docker compose ps
+docker compose logs --tail=100 migrate
+docker compose logs --tail=100 app
+curl --fail http://127.0.0.1:3000/api/health
+```
+
+From the computer, continue using:
+
+```bash
+ssh -L 3000:127.0.0.1:3000 deploy@YOUR_DROPLET_IP
 ```
 
 Then open [http://localhost:3000](http://localhost:3000).
 
-The image uses Next.js standalone output, runs as a non-root user, exposes a health check, and is intended to build for both AMD64 cloud hosts and ARM64 Raspberry Pi hosts. PostgreSQL, persistent photo storage, authentication, secure ingress, and production Compose configuration are added during Slice 3.
+### Shared-data verification
+
+After importing the existing browser data:
+
+1. Open the SSH tunnel and application in the normal browser.
+2. Confirm the downloaded migration backup exists.
+3. Add a neutral temporary capture.
+4. Open an incognito window or another browser through the same `http://localhost:3000` tunnel.
+5. Confirm the capture appears there after opening or focusing the page.
+6. Edit or complete it in the second browser.
+7. Return to the first browser and confirm the change appears after refocusing or within a few seconds.
+8. Remove the temporary item when validation is complete.
+
+This validates two independent browser stores against one PostgreSQL source of truth. Authentication and Cloudflare Tunnel must be implemented before repeating this test over a public domain or phone network.
+
+## Validate changes
+
+```bash
+npm run lint
+npm test
+npm run db:migrate
+npm run build
+```
+
+CI starts a real PostgreSQL service, applies migrations, builds the application, starts the production server, imports a versioned browser export, and verifies that two independent API clients observe the same canonical state.
 
 ## Durable deployment direction
 
-Slice 3 uses a small DigitalOcean Linux VM obtained through the GitHub Student Developer Pack as the first live host while Raspberry Pi hardware is not yet available.
-
-The deployment must remain portable:
+The first live host is a small DigitalOcean Linux VM obtained through the GitHub Student Developer Pack. The intended later host is a Raspberry Pi.
 
 ```text
 DigitalOcean AMD64 host
-        ↓ standard PostgreSQL dump + filesystem export
+        ↓ pg_dump + application export
 Raspberry Pi ARM64 host
 ```
 
-Provider-specific managed services are deliberately avoided. PostgreSQL, persistent files, authentication, deployment, export, and tested restoration are part of Slice 3. Cloudflare R2 automated off-site backups are deferred until the system has moved to Raspberry Pi.
+Provider-specific managed services are deliberately avoided. PostgreSQL runs inside the portable Compose stack and is never exposed publicly. Cloudflare R2 automated off-site backups remain deferred until the application has moved to Raspberry Pi.
 
-See [`docs/slice-3-plan.md`](docs/slice-3-plan.md) for the agreed architecture and implementation stages.
-
-## Mobile installation direction
-
-The intended first mobile distribution is an installable Progressive Web App (PWA): the web app can be added to the Android home screen and opened in an app-like window without maintaining a separate Android codebase. Native Android development remains an option only if later requirements cannot be met well through the PWA.
-
-The current application includes the initial web-app manifest and mobile metadata. Slice 3 validates installation against the authenticated HTTPS deployment. Offline support, background synchronisation, and push notifications remain later work.
+See [`docs/slice-3-plan.md`](docs/slice-3-plan.md) for the complete architecture and remaining implementation stages.
 
 ## Repository structure
 
 ```text
-src/app/              Next.js routes
-src/components/       Shared navigation and UI components
-src/lib/              Navigation, domain models, and current browser persistence
+src/app/              Next.js routes and server API endpoints
+src/components/       Shared navigation and interface components
+src/domain/           Domain behavior, snapshots, exports, and mutations
+src/server/           PostgreSQL connection and transactional storage
+src/lib/              Navigation and legacy browser-storage migration
+ db/migrations/       Explicit PostgreSQL schema migrations
+scripts/              Operational migration commands
+tests/                Domain and server-persistence validation
 docs/                 Product plans, system design, and roadmap documentation
-.github/               Issue templates, PR template, and CI workflow
+.github/               CI workflow and repository templates
 ```
 
 ## Development workflow

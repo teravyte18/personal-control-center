@@ -37,6 +37,8 @@ services:
     environment:
       DATABASE_URL: postgres://pcc:${POSTGRES_PASSWORD}@postgres:5432/personal_control_center
       UPLOAD_ROOT: /data/uploads
+      PCC_DEFAULT_USER_EMAIL: ${PCC_DEFAULT_USER_EMAIL:-owner@local.invalid}
+      PCC_ALLOW_INSECURE_USER_HEADER: ${PCC_ALLOW_INSECURE_USER_HEADER:-0}
     ports:
       - "127.0.0.1:3000:3000"
     volumes:

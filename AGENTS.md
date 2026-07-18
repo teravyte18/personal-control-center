@@ -2,8 +2,9 @@
 
 ## System
 
-- This is a single-user, phone-first personal planning system, not a commercial product or multi-user service.
-- Apply product-grade engineering practices without inventing customer, growth, collaboration, or monetisation requirements.
+- This is a phone-first private personal planning system for one or a very small number of independent users, not a commercial service.
+- Users may share one application and PostgreSQL instance, but their personal data must remain completely isolated.
+- Do not invent workspaces, sharing, collaboration, customer, growth, or monetisation requirements.
 - Prioritise fast capture and the weekly-review ritual.
 - Desktop layouts are secondary.
 - The application must remain useful without AI.
@@ -24,7 +25,9 @@
 - Keep changes focused and reviewable; complete the Slice 3 stages in order unless there is a clear technical reason not to.
 - Preserve existing browser-local data through an explicit migration and import path when server persistence is introduced.
 - Keep item transitions in shared domain actions rather than page-specific handlers.
-- Keep persistence, authentication, file storage, and deployment concerns behind explicit boundaries.
+- Keep persistence, user identity, authentication, file storage, and deployment concerns behind explicit boundaries.
+- Scope every personal-data read, mutation, import, export, photo reference, and recovery operation by the resolved user ID.
+- Keep insecure identity overrides disabled outside CI and deliberate local testing.
 - Run `npm run lint`, `npm test`, and `npm run build` after relevant changes.
 - Do not add major dependencies without explaining why.
 - Use feature branches rather than committing directly to `main`.

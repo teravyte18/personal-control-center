@@ -48,7 +48,7 @@ Optional stretch work:
 
 ## Slice 3 — Durable personal deployment
 
-**Status: PostgreSQL persistence, browser migration, portable Compose deployment, and per-user isolation implemented; authentication and recovery work remain.**
+**Status: PostgreSQL persistence, browser migration, portable Compose deployment, user isolation, and invite-only authentication implemented; secure ingress and recovery work remain.**
 
 Hosting direction:
 
@@ -56,22 +56,28 @@ Hosting direction:
 - Treat DigitalOcean as a temporary host for a portable deployment rather than as a permanent provider-specific architecture.
 - Move the same containerised application and its data to a Raspberry Pi later without application-code changes.
 
-Required outcomes:
+Delivered in the active Slice 3 branch:
 
-- PostgreSQL becomes the canonical store for items, project action history, thoughts, reviews, and place history.
-- Existing browser-local data has an explicit, safe, and repeatable import path.
-- One application and database support a very small number of independent users with completely isolated personal data.
-- Phone and desktop use the same authenticated server-owned data for the same account.
+- PostgreSQL as the canonical store for personal state.
+- Safe, versioned browser-to-server backup and import.
+- One application and database serving a very small number of users with completely isolated data.
+- Invite-only email/password authentication with owner-controlled activation links.
+- HTTP-only database-backed sessions, owner bootstrap, logout, and immediate account revocation.
+- Per-user reads, mutations, imports, and exports.
+- Exact Compose CI validation of login, activation, same-user synchronisation, cross-user isolation, and revoked-session rejection.
+
+Remaining required outcomes:
+
 - Photos use persistent filesystem storage behind a replaceable, user-scoped storage boundary.
 - The application is reachable through authenticated HTTPS and can be installed as a PWA on Android.
-- The production runtime is Docker Compose based, supports both `linux/amd64` and `linux/arm64`, and avoids unnecessary provider lock-in.
-- Production images are built outside the host, published with immutable versions, and can be rolled back.
+- Secure cookies are enabled and phone/desktop access is validated through the production URL.
+- The production runtime supports both `linux/amd64` and `linux/arm64`, uses immutable externally built images, and has a rollback path.
 - PostgreSQL dumps, per-user exports, full-instance recovery, and a complete restoration procedure are implemented and tested.
 - Raspberry Pi migration is rehearsed from standard PostgreSQL and filesystem backups.
 
 Cloudflare R2 and the permanent off-site backup leg are deliberately deferred until the application has moved to the Raspberry Pi. They are tracked as separate post-migration infrastructure work.
 
-See `docs/slice-3-plan.md` for architecture decisions, stages, and completion criteria.
+See `docs/slice-3-plan.md` and `docs/authentication.md` for architecture decisions, stages, and operational instructions.
 
 ## After the first live version
 
@@ -95,5 +101,5 @@ See `docs/slice-3-plan.md` for architecture decisions, stages, and completion cr
 - AI should be anticipated in the data model but must not block the manual workflow.
 - Use only neutral fixtures and examples in the public repository.
 - Deployment must remain portable between an AMD64 cloud VM and an ARM64 Raspberry Pi.
-- Personal-data operations must always be scoped by the resolved user identity.
+- Personal-data operations must always be scoped by the authenticated user identity.
 - The visual GitHub Project remains optional until the issue list becomes difficult to scan.

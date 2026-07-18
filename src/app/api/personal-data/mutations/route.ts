@@ -1,5 +1,6 @@
 import { normalizePersonalDataMutation } from "@/domain/personal-data-snapshot";
 import { applyStoredPersonalDataMutation } from "@/server/personal-data-store";
+import { InvalidUserIdentityError, resolveRequestUser } from "@/server/request-user";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,11 +19,15 @@ export async function POST(request: Request) {
   }
 
   try {
-    const state = await applyStoredPersonalDataMutation(mutation);
+    const user = await resolveRequestUser(request);
+    const state = await applyStoredPersonalDataMutation(user.id, mutation);
     return Response.json(state, {
       headers: { "Cache-Control": "no-store" },
     });
   } catch (error) {
+    if (error instanceof InvalidUserIdentityError) {
+      return Response.json({ error: error.message }, { status: 401 });
+    }
     console.error("Could not apply personal data mutation.", error);
     return Response.json(
       { error: "Personal data could not be saved." },

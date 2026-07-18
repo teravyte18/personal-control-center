@@ -12,7 +12,7 @@ import {
 } from "@/domain/personal-data-snapshot";
 import { getDatabase } from "@/server/database";
 
-type StateRow = {
+ type StateRow = {
   revision: number | string;
   snapshot: unknown;
   updated_at: Date | string;
@@ -27,7 +27,7 @@ export type StoredPersonalDataState = {
 
 export class PersonalDataImportConflictError extends Error {
   constructor() {
-    super("The server already contains personal data. Import was not applied.");
+    super("This user already contains personal data. Import was not applied.");
     this.name = "PersonalDataImportConflictError";
   }
 }
@@ -46,18 +46,19 @@ function mapState(row: StateRow): StoredPersonalDataState {
   };
 }
 
-export async function loadPersonalDataState(): Promise<StoredPersonalDataState> {
+export async function loadPersonalDataState(userId: string): Promise<StoredPersonalDataState> {
   const sql = getDatabase();
   const [row] = await sql<StateRow[]>`
     select revision, snapshot, updated_at
     from personal_data_state
-    where id = 'primary'
+    where user_id = ${userId}
   `;
-  if (!row) throw new Error("Personal data state has not been initialized. Run database migrations.");
+  if (!row) throw new Error("Personal data state has not been initialized for this user.");
   return mapState(row);
 }
 
 export async function applyStoredPersonalDataMutation(
+  userId: string,
   mutation: PersonalDataMutation,
 ): Promise<StoredPersonalDataState> {
   const sql = getDatabase();
@@ -66,10 +67,10 @@ export async function applyStoredPersonalDataMutation(
     const [currentRow] = await transaction<StateRow[]>`
       select revision, snapshot, updated_at
       from personal_data_state
-      where id = 'primary'
+      where user_id = ${userId}
       for update
     `;
-    if (!currentRow) throw new Error("Personal data state has not been initialized. Run database migrations.");
+    if (!currentRow) throw new Error("Personal data state has not been initialized for this user.");
 
     const current = normalizePersonalDataSnapshot(currentRow.snapshot);
     const next = applyPersonalDataMutation(current, mutation);
@@ -79,7 +80,7 @@ export async function applyStoredPersonalDataMutation(
       set snapshot = ${transaction.json(next)},
           revision = revision + 1,
           updated_at = now()
-      where id = 'primary'
+      where user_id = ${userId}
       returning revision, snapshot, updated_at
     `;
 
@@ -96,6 +97,7 @@ function importIdentity(dataExport: PersonalDataExport) {
 }
 
 export async function importPersonalData(
+  userId: string,
   value: unknown,
 ): Promise<StoredPersonalDataState & { alreadyImported: boolean }> {
   const dataExport = normalizePersonalDataExport(value);
@@ -108,16 +110,17 @@ export async function importPersonalData(
     const [previousImport] = await transaction<{ import_id: string }[]>`
       select import_id
       from personal_data_imports
-      where import_id = ${importId}
+      where user_id = ${userId}
+        and import_id = ${importId}
     `;
 
     const [currentRow] = await transaction<StateRow[]>`
       select revision, snapshot, updated_at
       from personal_data_state
-      where id = 'primary'
+      where user_id = ${userId}
       for update
     `;
-    if (!currentRow) throw new Error("Personal data state has not been initialized. Run database migrations.");
+    if (!currentRow) throw new Error("Personal data state has not been initialized for this user.");
     if (previousImport) return { ...mapState(currentRow), alreadyImported: true };
 
     const current = normalizePersonalDataSnapshot(currentRow.snapshot);
@@ -128,13 +131,13 @@ export async function importPersonalData(
       set snapshot = ${transaction.json(dataExport.data)},
           revision = revision + 1,
           updated_at = now()
-      where id = 'primary'
+      where user_id = ${userId}
       returning revision, snapshot, updated_at
     `;
 
     await transaction`
-      insert into personal_data_imports (import_id, source_exported_at)
-      values (${importId}, ${dataExport.exportedAt})
+      insert into personal_data_imports (user_id, import_id, source_exported_at)
+      values (${userId}, ${importId}, ${dataExport.exportedAt})
     `;
 
     if (!updated) throw new Error("Imported personal data could not be stored.");
@@ -142,25 +145,36 @@ export async function importPersonalData(
   });
 }
 
-export async function exportStoredPersonalData() {
-  const state = await loadPersonalDataState();
+export async function exportStoredPersonalData(userId: string) {
+  const state = await loadPersonalDataState(userId);
   return createPersonalDataExport(state.snapshot);
 }
 
-export async function resetPersonalDataForTests() {
+export async function resetPersonalDataForTests(userId?: string) {
   if (process.env.ALLOW_TEST_DB_RESET !== "1") {
     throw new Error("Test database reset is disabled.");
   }
 
   const sql = getDatabase();
   await sql.begin(async (transaction) => {
+    if (userId) {
+      await transaction`delete from personal_data_imports where user_id = ${userId}`;
+      await transaction`
+        update personal_data_state
+        set snapshot = ${transaction.json(emptyPersonalDataSnapshot)},
+            revision = 0,
+            updated_at = now()
+        where user_id = ${userId}
+      `;
+      return;
+    }
+
     await transaction`delete from personal_data_imports`;
     await transaction`
       update personal_data_state
       set snapshot = ${transaction.json(emptyPersonalDataSnapshot)},
           revision = 0,
           updated_at = now()
-      where id = 'primary'
     `;
   });
 }

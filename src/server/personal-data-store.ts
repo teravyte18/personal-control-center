@@ -12,7 +12,7 @@ import {
 } from "@/domain/personal-data-snapshot";
 import { getDatabase } from "@/server/database";
 
- type StateRow = {
+type StateRow = {
   revision: number | string;
   snapshot: unknown;
   updated_at: Date | string;

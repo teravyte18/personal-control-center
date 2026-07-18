@@ -22,7 +22,7 @@ Delivered:
 
 ## Slice 2 — Make projects actionable
 
-**Status: complete and phone-validated in PR #10; pending merge.**
+**Status: complete and merged in PR #10.**
 
 Delivered:
 
@@ -48,16 +48,33 @@ Optional stretch work:
 
 ## Slice 3 — Durable personal deployment
 
-- Persistent database and photo storage
-- Authentication for secure remote access
-- Shared phone and desktop data
-- Deploy locally or to a Raspberry Pi
-- Backups, data export, and tested restoration
-- Installable PWA validation on Android over HTTPS
-- Durable review and place history
+**Status: architecture agreed; implementation starting.**
+
+Hosting direction:
+
+- Use the GitHub Student Developer Pack and a small DigitalOcean Linux VM as the first live host while Raspberry Pi hardware is not yet available.
+- Treat DigitalOcean as a temporary host for a portable deployment rather than as a permanent provider-specific architecture.
+- Move the same containerised application and its data to a Raspberry Pi later without application-code changes.
+
+Required outcomes:
+
+- PostgreSQL becomes the canonical store for items, project action history, thoughts, reviews, and place history.
+- Existing browser-local data has an explicit, safe, and repeatable import path.
+- Phone and desktop use the same authenticated server-owned data.
+- Photos use persistent filesystem storage behind a replaceable storage boundary.
+- The application is reachable through authenticated HTTPS and can be installed as a PWA on Android.
+- The production runtime is Docker Compose based, supports both `linux/amd64` and `linux/arm64`, and avoids unnecessary provider lock-in.
+- Production images are built outside the host, published with immutable versions, and can be rolled back.
+- PostgreSQL dumps, data export, host recovery, and a complete restoration procedure are implemented and tested.
+- Raspberry Pi migration is rehearsed from standard PostgreSQL and filesystem backups.
+
+Cloudflare R2 and the permanent off-site backup leg are deliberately deferred until the application has moved to the Raspberry Pi. They are tracked as separate post-migration infrastructure work.
+
+See `docs/slice-3-plan.md` for architecture decisions, stages, and completion criteria.
 
 ## After the first live version
 
+- Raspberry Pi off-site backups to Cloudflare R2
 - Standalone tasks and errands
 - Offline-friendly capture and synchronisation
 - Books and reading
@@ -76,4 +93,5 @@ Optional stretch work:
 - Slice 2 establishes the workflow; Slice 3 makes it safe to trust with real data.
 - AI should be anticipated in the data model but must not block the manual workflow.
 - Use only neutral fixtures and examples in the public repository.
+- Deployment must remain portable between an AMD64 cloud VM and an ARM64 Raspberry Pi.
 - The visual GitHub Project remains optional until the issue list becomes difficult to scan.

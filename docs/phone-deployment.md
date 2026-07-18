@@ -58,16 +58,35 @@ git switch agent/slice-3-durable-deployment
 git pull --ff-only
 ```
 
+Create the persistent host directories before Compose starts them. This keeps the files owned by the `deploy` user instead of Docker root:
+
+```bash
+mkdir -p data/backups data/uploads
+```
+
+Check the production user's numeric IDs:
+
+```bash
+id -u
+id -g
+```
+
+They are normally `1000` and `1000` for the DigitalOcean `deploy` user.
+
 Edit `.env` and keep the existing database password and owner email:
 
 ```text
 PCC_PUBLIC_URL=https://planner.example.com
 PCC_COOKIE_SECURE=1
 CLOUDFLARE_TUNNEL_TOKEN=paste-the-secret-token-here
+PCC_HOST_UID=1000
+PCC_HOST_GID=1000
 PCC_BACKUP_INTERVAL_HOURS=24
 PCC_BACKUP_RETENTION_DAYS=14
 PCC_ALLOW_INSECURE_USER_HEADER=0
 ```
+
+Use the values returned by `id -u` and `id -g` when they are not `1000`.
 
 The owner bootstrap password should already be blank after the first successful login:
 
@@ -121,7 +140,7 @@ The `backup` service creates a validated custom-format PostgreSQL dump immediate
 data/backups/personal-control-center-YYYYMMDDTHHMMSSZ.dump
 ```
 
-Files older than `PCC_BACKUP_RETENTION_DAYS` are deleted automatically. These files are outside both the application container and PostgreSQL volume, but an occasional copy should also be moved off the DigitalOcean host.
+The files are owned by the configured `PCC_HOST_UID:PCC_HOST_GID`, use private permissions, and can be copied by the production user. Files older than `PCC_BACKUP_RETENTION_DAYS` are deleted automatically. These files are outside both the application container and PostgreSQL volume, but an occasional copy should also be moved off the DigitalOcean host.
 
 Create an additional dump at any time:
 

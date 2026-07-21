@@ -20,7 +20,7 @@ if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
   exit 1
 fi
 
-mkdir -p "$BACKUP_DIR" data/deployments
+mkdir -p "$BACKUP_DIR" data/deployments data/uploads
 previous_commit="$(git rev-parse HEAD)"
 printf '%s\n' "$previous_commit" > data/deployments/previous-commit
 
@@ -38,18 +38,21 @@ for attempt in $(seq 1 30); do
 done
 
 backup_path="$BACKUP_DIR/pre-deploy-$(date -u +%Y%m%dT%H%M%SZ).dump"
-echo "Creating pre-deployment backup: $backup_path"
+uploads_backup_path="${backup_path%.dump}.uploads.tar.gz"
+echo "Creating pre-deployment backups: $backup_path and $uploads_backup_path"
 docker compose exec -T postgres \
   pg_dump -U pcc -d personal_control_center -Fc --no-owner --no-acl \
   > "$backup_path"
+tar -czf "$uploads_backup_path" -C data/uploads .
 
-if [ ! -s "$backup_path" ]; then
-  echo "The pre-deployment backup is empty; deployment stopped." >&2
+if [ ! -s "$backup_path" ] || [ ! -s "$uploads_backup_path" ]; then
+  echo "A pre-deployment backup is empty; deployment stopped." >&2
   exit 1
 fi
 
-# Validate the custom-format dump before changing application code.
+# Validate both backups before changing application code.
 docker compose exec -T postgres pg_restore --list < "$backup_path" >/dev/null
+tar -tzf "$uploads_backup_path" >/dev/null
 
 echo "Deploying origin/$DEPLOY_REF (previous commit: $previous_commit)"
 git fetch origin "$DEPLOY_REF"
@@ -79,6 +82,7 @@ for attempt in $(seq 1 60); do
     echo "Deployment failed its application health check." >&2
     echo "The previous commit is recorded in data/deployments/previous-commit." >&2
     echo "The database backup is $backup_path." >&2
+    echo "The upload backup is $uploads_backup_path." >&2
     exit 1
   fi
   sleep 2

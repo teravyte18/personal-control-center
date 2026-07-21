@@ -63,4 +63,10 @@ fi
 
 docker compose $profile_args up -d --remove-orphans
 
+# Tailscale shares the app network namespace, so a fresh Tailscale container
+# must attach after the application is restarted or recreated.
+if [ -n "$profile_args" ]; then
+  docker compose --profile funnel up -d --force-recreate tailscale
+fi
+
 echo "Restore completed. Validate the health endpoint and sign in before resuming normal use."

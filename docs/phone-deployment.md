@@ -21,6 +21,14 @@ Tailscale container ──► app on 127.0.0.1:3000
 
 The `tailscale` container shares the application's network namespace, so Funnel can proxy the supported `127.0.0.1` target while the host application port remains bound to `127.0.0.1:3000` for SSH-tunnel maintenance. PostgreSQL remains private inside Compose.
 
+Because that network namespace belongs to a specific app container, never force-recreate only `app` while Funnel is enabled. Recreate `app` and `tailscale` together:
+
+```bash
+docker compose --profile funnel up -d --force-recreate app tailscale
+```
+
+The production deployment and restore scripts perform this reattachment automatically.
+
 ## One-time Tailscale setup
 
 1. Create or sign in to a Tailscale account.
@@ -130,6 +138,8 @@ docker compose --profile funnel exec -T tailscale \
   tailscale funnel --bg --https=443 http://127.0.0.1:3000
 ```
 
+After the owner has successfully logged in once, `PCC_OWNER_BOOTSTRAP_PASSWORD` may be emptied. Apply that environment change with the same paired recreation command above, not with an app-only recreation.
+
 Validate:
 
 ```bash
@@ -172,7 +182,7 @@ Create an additional dump:
 docker compose exec -T backup /bin/sh /usr/local/bin/pcc-backup --once
 ```
 
-An occasional copy should be moved off the DigitalOcean host.
+An occasional copy should be moved off the production host.
 
 ## Future production updates
 
@@ -183,7 +193,7 @@ cd /opt/personal-control-center
 sh scripts/deploy-production.sh main
 ```
 
-When `PCC_FUNNEL_ENABLED=1`, the deployment script keeps the Funnel profile running. The Tailscale device identity and Funnel configuration persist in the `tailscale_state` volume.
+When `PCC_FUNNEL_ENABLED=1`, the deployment script recreates Tailscale after any app replacement, waits for both application health and a running Tailscale backend, and preserves the device identity and Funnel configuration in the `tailscale_state` volume.
 
 Never run `docker compose down --volumes` during a normal update.
 
@@ -192,6 +202,9 @@ Never run `docker compose down --volumes` during a normal update.
 ```bash
 # Show the public route
 docker compose --profile funnel exec -T tailscale tailscale funnel status
+
+# Reattach Tailscale after manually recreating the application
+docker compose --profile funnel up -d --force-recreate tailscale
 
 # Reapply the public proxy
 docker compose --profile funnel exec -T tailscale \

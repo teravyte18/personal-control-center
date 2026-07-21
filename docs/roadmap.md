@@ -48,15 +48,9 @@ Optional stretch work:
 
 ## Slice 3 — Durable personal deployment
 
-**Status: application-side phone deployment is implemented; Cloudflare account configuration and real-phone validation remain before the slice can be accepted.**
+**Status: complete in PR #13. Production runs on Raspberry Pi.**
 
-Hosting direction:
-
-- Use the GitHub Student Developer Pack and a small DigitalOcean Linux VM as the first live host while Raspberry Pi hardware is not yet available.
-- Treat DigitalOcean as a temporary host for a portable deployment rather than as a permanent provider-specific architecture.
-- Move the same containerised application and its data to a Raspberry Pi later without application-code changes.
-
-Delivered in the active Slice 3 branch:
+Delivered:
 
 - PostgreSQL as the canonical store for personal state.
 - Safe, versioned browser-to-server backup and import.
@@ -64,30 +58,23 @@ Delivered in the active Slice 3 branch:
 - Invite-only email/password authentication with owner-controlled activation links.
 - HTTP-only database-backed sessions, owner bootstrap, logout, and immediate account revocation.
 - Per-user reads, mutations, imports, exports, and browser fallback storage.
-- Optional pinned Cloudflare Tunnel connector that reaches only the private app service.
-- HTTPS production URL and Secure-cookie runtime configuration.
+- Tailscale Funnel HTTPS ingress with no purchased domain or exposed router ports.
+- Secure-cookie production configuration and a stable `*.ts.net` address.
 - Installable PWA manifest with Android, maskable, and Apple icon variants.
 - Automatic validated daily PostgreSQL custom-format dumps with retention.
 - Safe production deployment and explicit full-database restoration scripts.
 - Exact Compose CI validation of authentication, synchronisation, cross-user isolation, public PWA assets, PNG dimensions, and backup readability.
+- Successful ARM64 deployment on Raspberry Pi.
+- Phone and desktop login and shared-state validation.
+- Successful Raspberry Pi reboot and automatic service recovery.
+- Retirement and destruction of the temporary DigitalOcean host.
 
-Remaining before starting normal phone use:
-
-- Create the Cloudflare tunnel and published hostname in the owner's Cloudflare account.
-- Add the tunnel token and HTTPS hostname to the DigitalOcean `.env` file.
-- Enable Secure cookies and start the Compose `tunnel` profile.
-- Validate owner login and data synchronisation over mobile data and Wi-Fi.
-- Install and relaunch the PWA on Android.
-
-Later Slice 3 hardening that does not block initial daily phone use:
+Accepted follow-up work, not part of Slice 3 completion:
 
 - Real photo files behind a persistent, replaceable, user-scoped storage boundary.
-- Build and publish externally generated immutable AMD64 and ARM64 images.
-- Rehearse application rollback and a clean-host restore.
-- Copy backups off the DigitalOcean host on a recurring basis.
-- Rehearse the eventual Raspberry Pi migration.
-
-Cloudflare R2 and the permanent off-site backup leg remain deferred until the application has moved to the Raspberry Pi.
+- Externally built immutable AMD64 and ARM64 images.
+- Clean-host restoration rehearsal and stronger rollback automation.
+- Recurring encrypted off-site backups, tracked in issue #12.
 
 See `docs/slice-3-plan.md`, `docs/authentication.md`, and `docs/phone-deployment.md` for architecture and operational instructions.
 
@@ -112,6 +99,6 @@ See `docs/slice-3-plan.md`, `docs/authentication.md`, and `docs/phone-deployment
 - Slice 2 establishes the workflow; Slice 3 makes it safe to trust with real data.
 - AI should be anticipated in the data model but must not block the manual workflow.
 - Use only neutral fixtures and examples in the public repository.
-- Deployment must remain portable between an AMD64 cloud VM and an ARM64 Raspberry Pi.
+- Deployment must remain portable between AMD64 and ARM64 hosts.
 - Personal-data operations must always be scoped by the authenticated user identity.
 - The visual GitHub Project remains optional until the issue list becomes difficult to scan.

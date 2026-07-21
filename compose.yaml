@@ -107,7 +107,7 @@ services:
     security_opt:
       - no-new-privileges:true
     healthcheck:
-      test: ["CMD-SHELL", "tailscale status --json >/dev/null 2>&1"]
+      test: ["CMD-SHELL", "tailscale status --json 2>/dev/null | grep -Eq '\"BackendState\"[[:space:]]*:[[:space:]]*\"Running\"'"]
       interval: 30s
       timeout: 5s
       retries: 5

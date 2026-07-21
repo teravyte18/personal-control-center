@@ -75,14 +75,15 @@ jobs:
           PCC_ALLOW_INSECURE_USER_HEADER: 1
         run: |
           set -o pipefail
-          rm -rf data/backups data/uploads
-          mkdir -p data/backups data/uploads
+          sudo rm -rf data/backups data/uploads
+          mkdir -p data/backups
+          sudo install -d -o 1000 -g 1000 -m 0750 data/uploads
           export PCC_HOST_UID="$(id -u)"
           export PCC_HOST_GID="$(id -g)"
           touch compose-validation.log
           exec > >(tee -a compose-validation.log) 2>&1
           set -x
-          trap 'docker compose ps -a; docker compose logs; docker compose down --volumes --remove-orphans; rm -rf data/backups data/uploads pwa-manifest.json pwa-icon-* upload-archive.list' EXIT
+          trap 'docker compose ps -a; docker compose logs; docker compose down --volumes --remove-orphans; sudo rm -rf data/backups data/uploads; rm -f pwa-manifest.json pwa-icon-* upload-archive.list' EXIT
           docker compose up -d --build
           for attempt in $(seq 1 60); do
             if curl --fail --silent http://127.0.0.1:3000/api/health >/dev/null; then

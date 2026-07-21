@@ -49,7 +49,7 @@ async function uploadPhoto(cookie, name) {
   form.set("photo", tinyPngFile(name));
   return request("/api/review-photos", {
     method: "POST",
-    headers: { Cookie: cookie },
+    headers: cookie ? { Cookie: cookie } : {},
     body: form,
   });
 }
@@ -113,6 +113,21 @@ test("authentication, same-user sharing, cross-user isolation, and review photos
   assert.equal(ownerSession.response.status, 200);
   assert.equal(ownerSession.body.user.email, ownerEmail);
 
+  const imported = await request("/api/personal-data/import", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: ownerCookie },
+    body: JSON.stringify(browserExport),
+  });
+  assert.equal(imported.response.status, 200);
+  assert.equal(imported.body.alreadyImported, false);
+  assert.equal(imported.body.snapshot.items[0].id, importedItem.id);
+
+  const ownerClientA = await request("/api/personal-data", { headers: { Cookie: ownerCookie } });
+  const ownerClientB = await request("/api/personal-data", {}, ownerEmail);
+  const secondAfterOwnerImport = await request("/api/personal-data", {}, secondUserEmail);
+  assert.deepEqual(ownerClientA.body.snapshot, ownerClientB.body.snapshot);
+  assert.deepEqual(secondAfterOwnerImport.body.snapshot.items, []);
+
   const unauthenticatedPhoto = await uploadPhoto("", "unauthenticated.png");
   assert.equal(unauthenticatedPhoto.response.status, 401);
 
@@ -151,20 +166,6 @@ test("authentication, same-user sharing, cross-user isolation, and review photos
     headers: { Cookie: ownerCookie },
   });
   assert.equal(deletedPhotoRead.response.status, 404);
-
-  const imported = await request("/api/personal-data/import", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Cookie: ownerCookie },
-    body: JSON.stringify(browserExport),
-  });
-  assert.equal(imported.response.status, 409);
-
-  const ownerClientA = await request("/api/personal-data", { headers: { Cookie: ownerCookie } });
-  const ownerClientB = await request("/api/personal-data", {}, ownerEmail);
-  const secondAfterOwnerPhoto = await request("/api/personal-data", {}, secondUserEmail);
-  assert.deepEqual(ownerClientA.body.snapshot, ownerClientB.body.snapshot);
-  assert.equal(ownerClientA.body.snapshot.draft.photoName, ownerPhotoId);
-  assert.equal(secondAfterOwnerPhoto.body.snapshot.draft.photoName, "");
 
   const ownerSecondItem = {
     id: "owner-item-2",
@@ -205,8 +206,16 @@ test("authentication, same-user sharing, cross-user isolation, and review photos
 
   const refreshedOwnerClientB = await request("/api/personal-data", { headers: { Cookie: ownerCookie } });
   const refreshedSecondUser = await request("/api/personal-data", {}, secondUserEmail);
-  assert.deepEqual(refreshedOwnerClientB.body.snapshot.items.map((item) => item.id), [ownerSecondItem.id]);
-  assert.deepEqual(refreshedSecondUser.body.snapshot.items.map((item) => item.id), [secondPrivateItem.id]);
+  assert.deepEqual(
+    refreshedOwnerClientB.body.snapshot.items.map((item) => item.id),
+    [ownerSecondItem.id, importedItem.id],
+  );
+  assert.equal(refreshedOwnerClientB.body.snapshot.draft.photoName, ownerPhotoId);
+  assert.deepEqual(
+    refreshedSecondUser.body.snapshot.items.map((item) => item.id),
+    [secondPrivateItem.id],
+  );
+  assert.equal(refreshedSecondUser.body.snapshot.draft.photoName, "");
 
   const invitation = await request("/api/admin/users", {
     method: "POST",
@@ -230,7 +239,11 @@ test("authentication, same-user sharing, cross-user isolation, and review photos
   assert.equal(invitedInitial.response.status, 200);
   assert.deepEqual(invitedInitial.body.snapshot.items, []);
 
-  const invitedItem = { ...secondPrivateItem, id: "invited-user-item-1", title: "Invited user's private item" };
+  const invitedItem = {
+    ...secondPrivateItem,
+    id: "invited-user-item-1",
+    title: "Invited user's private item",
+  };
   const invitedChanged = await request("/api/personal-data/mutations", {
     method: "POST",
     headers: { "Content-Type": "application/json", Cookie: invitedCookie },
@@ -257,11 +270,20 @@ test("authentication, same-user sharing, cross-user isolation, and review photos
   const revokedSession = await request("/api/personal-data", { headers: { Cookie: invitedCookie } });
   assert.equal(revokedSession.response.status, 401);
 
+  const repeatedOwnerImport = await request("/api/personal-data/import", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: ownerCookie },
+    body: JSON.stringify(browserExport),
+  });
+  assert.equal(repeatedOwnerImport.response.status, 200);
+  assert.equal(repeatedOwnerImport.body.alreadyImported, true);
+  assert.equal(repeatedOwnerImport.body.snapshot.items.length, 2);
+
   const ownerExport = await request("/api/personal-data/export", { headers: { Cookie: ownerCookie } });
   const secondExport = await request("/api/personal-data/export", {}, secondUserEmail);
   assert.equal(ownerExport.response.status, 200);
   assert.equal(secondExport.response.status, 200);
-  assert.equal(ownerExport.body.data.items.length, 1);
+  assert.equal(ownerExport.body.data.items.length, 2);
   assert.equal(ownerExport.body.data.draft.photoName, ownerPhotoId);
   assert.equal(secondExport.body.data.items.length, 1);
   assert.equal(secondExport.body.data.items[0].id, secondPrivateItem.id);

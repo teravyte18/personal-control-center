@@ -15,6 +15,13 @@ export default function SpacesPage() {
       </div>
 
       <div className="mt-7 grid gap-3 sm:grid-cols-2">
+        <Link href="/account" className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-slate-400">
+          <div className="flex items-center gap-3">
+            <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-950 font-semibold text-white">A</span>
+            <div><p className="font-semibold">Account & access</p><p className="mt-1 text-sm leading-5 text-slate-500">Sign out, export your data, and manage invited accounts.</p></div>
+          </div>
+        </Link>
+
         {available.map((destination) => (
           <Link key={destination.id} href={destination.href} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-slate-400">
             <div className="flex items-center gap-3">

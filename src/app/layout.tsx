@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { AppShell } from "@/components/app-shell";
-import { PersonalDataProvider } from "@/providers/personal-data-provider";
+import { AppFrame } from "@/components/app-frame";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -8,6 +7,15 @@ export const metadata: Metadata = {
   description: "Capture, organise, and reflect on what deserves attention.",
   applicationName: "Personal Control Center",
   manifest: "/manifest.webmanifest",
+  icons: {
+    icon: [
+      { url: "/api/pwa-icon/192", sizes: "192x192", type: "image/png" },
+      { url: "/api/pwa-icon/512", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [
+      { url: "/api/pwa-icon/180", sizes: "180x180", type: "image/png" },
+    ],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -29,9 +37,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en">
       <body>
-        <PersonalDataProvider>
-          <AppShell>{children}</AppShell>
-        </PersonalDataProvider>
+        <AppFrame>{children}</AppFrame>
       </body>
     </html>
   );

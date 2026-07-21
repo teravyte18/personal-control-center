@@ -1,8 +1,8 @@
 # Personal Control Center
 
-A phone-first, single-user planning and reflection system designed to reduce cognitive load by bringing responsibilities, projects, thoughts, reviews, and later specialised modules into one coherent place.
+A phone-first personal planning and reflection system designed to reduce cognitive load by bringing responsibilities, projects, thoughts, reviews, and later specialised modules into one coherent place.
 
-This repository is for personal use rather than a commercial or multi-user product. The code should still follow production-quality engineering, privacy, testing, and maintainability practices.
+This repository is for a small private deployment rather than a commercial product. Multiple accounts may use one application and PostgreSQL database, but each account has completely separate personal data.
 
 ## System principles
 
@@ -13,27 +13,27 @@ This repository is for personal use rather than a commercial or multi-user produ
 - Let future modules grow without crowding primary navigation.
 - Let AI suggest structure without silently changing user data.
 - Remain useful before any external integrations are configured.
-- Keep all repository examples neutral because the repository is public.
+- Keep all public repository examples neutral.
 
-## Current prototype
+## Current functionality
 
-The current prototype includes:
+- Quiet Capture, Inbox clarification, Projects, Thoughts, Weekly Review, and history
+- Dated project action points with preserved completion history
+- Work, Education, Personal, Incubating, Waiting, Accomplishments, and Archive views
+- Overdue attention states and recoverable archive transitions
+- PostgreSQL-backed canonical state shared across a user's browsers and devices
+- Separate state, imports, exports, sessions, and browser fallback storage for every account
+- Invite-only email/password authentication with owner-controlled access and revocation
+- Explicit browser-data backup and one-time migration from the earlier prototype
+- Installable phone PWA manifest with 192×192, 512×512, Apple, and maskable PNG icons
+- Portable standalone Docker runtime for AMD64 now and ARM64 later
+- Optional Tailscale Funnel connector for stable public HTTPS without a purchased domain
+- Automatic validated daily PostgreSQL dumps with retention
+- Safe production deployment and explicit restoration scripts
 
-- A quiet Capture landing page
-- Inbox clarification into projects, tasks, thoughts, and notes
-- Project filtering across Work, Education, Personal, and Incubating
-- A dedicated Thoughts space with dated, read-only cards and explicit editing
-- Weekly Review and Review History modes
-- Weekly Review context for open items, completed items, and thoughts added during the week
-- Browser-local persistence with migration from the first prototype
-- A floating five-position phone dock with permanent central Capture
-- A desktop navigation rail using the same page structure
-- An All Spaces route that already reserves room for Library, Trips, Fitness, Habits, and Settings
-- An initial PWA manifest and Docker-ready runtime
+The application and database remain bound to private/local interfaces. Public phone access starts only after the production operator registers the persistent Tailscale container, enables Funnel, configures the resulting `*.ts.net` URL, and enables Secure cookies.
 
-Data currently stays in the browser where it was entered. Clearing browser storage will remove it, and it is not yet synchronised between devices.
-
-## MVP page map
+## Page map
 
 ```text
 Capture (/)
@@ -48,16 +48,16 @@ Review (/review)
   - This week
   - History
 All Spaces (/spaces)
+  - Accomplishments
+  - Archive
+  - Account & access
 ```
 
-The four dock destinations are driven by `src/lib/navigation.ts`. Future modules register in the same destination list and can later become pinnable without rebuilding the application shell.
-
-## Run locally
+## Run locally with PostgreSQL
 
 ### Requirements
 
-- Node.js 22 or newer
-- npm
+- Docker Engine with Docker Compose
 - Git
 
 ### First-time setup
@@ -65,98 +65,143 @@ The four dock destinations are driven by `src/lib/navigation.ts`. Future modules
 ```bash
 git clone https://github.com/teravyte18/personal-control-center.git
 cd personal-control-center
-git switch feat/first-usable-prototype
+git switch agent/slice-3-durable-deployment
+cp .env.example .env
+```
+
+Replace the example database password, owner email, and temporary owner bootstrap password, then start the stack:
+
+```bash
+docker compose up -d --build
+```
+
+Open `http://localhost:3000` and sign in with the configured owner email and bootstrap password. After the first successful login, empty `PCC_OWNER_BOOTSTRAP_PASSWORD` in `.env` and recreate the app container.
+
+Useful checks:
+
+```bash
+docker compose ps
+docker compose logs --tail=100 app
+docker compose logs --tail=100 backup
+docker compose exec postgres pg_isready -U pcc -d personal_control_center
+curl http://127.0.0.1:3000/api/health
+ls -lh data/backups
+```
+
+Stop the application without deleting its database:
+
+```bash
+docker compose down
+```
+
+Never add `--volumes` during a normal stop, rebuild, or deployment.
+
+### Source-based development
+
+A local PostgreSQL instance and `DATABASE_URL` are required:
+
+```bash
 npm install
+npm run db:migrate
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in a browser.
+## Authentication and user isolation
 
-### Update an existing checkout
+There is no public registration. The configured owner signs in first, then may create one-time activation links from **All Spaces → Account & access**. Invited users choose their own password and receive an empty private dataset. Revoking an account closes its sessions but preserves its data.
 
-```bash
-git switch feat/first-usable-prototype
-git pull
-npm install
-npm run dev
-```
+Passwords are derived with `scrypt`. Raw session and invitation tokens are not stored in PostgreSQL. The browser receives an HTTP-only `SameSite=Lax` session cookie; production HTTPS additionally sets the cookie's `Secure` flag.
 
-After this pull request is merged, the branch-switch step will no longer be necessary when starting from `main`.
+`PCC_ALLOW_INSECURE_USER_HEADER` is only for CI. It must remain `0` on DigitalOcean and Raspberry Pi. There are no shared workspaces, teams, public registration, or collaboration permissions.
 
-### Test from a phone on the same network
+See [`docs/authentication.md`](docs/authentication.md).
 
-For quick development testing:
+## Existing browser-data migration
 
-```bash
-npm run dev:network
-```
+When the authenticated user's PostgreSQL state is empty and their browser contains data from the earlier prototype, the application presents an explicit migration flow. It downloads and retains a versioned backup before importing anything, preserves identifiers and history, rejects unrelated overwrites, and switches to server-owned data only after the transaction succeeds.
 
-Find the computer's local network IP address and open the following address on the phone:
+## Phone production deployment
+
+The repository includes an official Tailscale container under the optional `funnel` Compose profile. It shares the application's network namespace and proxies Funnel HTTPS to:
 
 ```text
-http://YOUR_COMPUTER_IP:3000
+http://127.0.0.1:3000
 ```
 
-For example: `http://192.168.1.50:3000`.
-
-Development mode compiles routes on demand and can feel noticeably slow over Wi-Fi. For a more realistic phone performance test, use a production build:
+After registering the persistent Tailscale node, enable Funnel with:
 
 ```bash
-npm run build
-npm run start:network
+docker compose --profile funnel exec tailscale \
+  tailscale funnel --bg --https=443 http://127.0.0.1:3000
 ```
 
-Then open the same local-network address on the phone. The phone and computer must be on the same network, and the operating-system firewall may ask for permission to allow Node.js on private networks.
+The result is a stable public URL under the tailnet's `*.ts.net` domain. No custom domain, router port forwarding, or Tailscale installation on the phone is required. The detailed first deployment, approval, secure-cookie transition, phone validation, PWA installation, backup, update, and restoration steps are in [`docs/phone-deployment.md`](docs/phone-deployment.md).
 
-A LAN address using plain HTTP is not a secure browser context. The application uses an HTTP-compatible ID fallback, but full PWA installation and some future device capabilities will require HTTPS.
+## Backups and recovery
 
-If the phone still displays stale interface state after pulling new code, refresh the page completely or close and reopen the tab so it does not reuse old development assets.
+The `backup` service creates a validated PostgreSQL custom-format dump on startup and every 24 hours by default:
 
-## Validate a production build
+```text
+data/backups/personal-control-center-YYYYMMDDTHHMMSSZ.dump
+```
+
+Create another dump manually:
+
+```bash
+docker compose exec -T backup /bin/sh /usr/local/bin/pcc-backup --once
+```
+
+Restore a selected dump only after reviewing its destructive confirmation:
+
+```bash
+sh scripts/restore-postgres.sh data/backups/personal-control-center-YYYYMMDDTHHMMSSZ.dump
+```
+
+An occasional backup should also be copied off the production host.
+
+## Production update workflow
+
+Develop on another machine and feature branch. After CI passes and the pull request is approved, merge to `main`. On the production host run:
+
+```bash
+sh scripts/deploy-production.sh main
+```
+
+The script records the previous commit, creates and validates a pre-deployment dump, fast-forwards the requested ref, applies migrations, preserves volumes, restarts the configured Funnel profile, and waits for the application health check.
+
+## Validate changes
 
 ```bash
 npm run lint
+npm test
 npm run build
-npm start
+docker compose config --quiet
+docker compose --profile funnel config --quiet
 ```
 
-The production server is available at [http://localhost:3000](http://localhost:3000).
+CI additionally builds the exact core Compose stack and validates migrations, authentication, cross-user isolation, public manifest/icon delivery, PNG dimensions, a readable PostgreSQL backup, and the optional Funnel profile configuration.
 
-Pull requests also run the same lint and production-build checks through GitHub Actions.
+## Durable deployment direction
 
-## Run with Docker
-
-```bash
-docker build -t personal-control-center .
-docker run --rm -p 3000:3000 personal-control-center
-```
-
-Then open [http://localhost:3000](http://localhost:3000).
-
-The Docker image is intended to remain compatible with an ARM64 Raspberry Pi deployment, but Raspberry Pi deployment and durable data storage are not implemented yet.
-
-## Mobile installation direction
-
-The intended first mobile distribution is an installable Progressive Web App (PWA): the web app can be added to the Android home screen and opened in an app-like window without maintaining a separate Android codebase. Native Android development remains an option only if later requirements cannot be met well through the PWA.
-
-The current branch includes the initial web-app manifest and mobile metadata. Offline support, durable storage, background synchronisation, and push notifications will be added separately.
-
-## Repository structure
+The first live host is a small DigitalOcean Linux VM. The intended later host is a Raspberry Pi.
 
 ```text
-src/app/              Next.js routes
-src/components/       Shared navigation and UI components
-src/lib/              Navigation, data models, and browser persistence
-docs/                 System design and roadmap documentation
-.github/               Issue templates, PR template, and CI workflow
+DigitalOcean AMD64 host
+        ↓ pg_dump + filesystem copy
+Raspberry Pi ARM64 host
 ```
+
+Provider-specific managed services are deliberately avoided. PostgreSQL remains private. Cloudflare R2 automated off-site backups remain deferred until the application has moved to Raspberry Pi.
+
+See [`docs/slice-3-plan.md`](docs/slice-3-plan.md) for the architecture and remaining completion criteria.
 
 ## Development workflow
 
 1. Start with a GitHub issue describing the outcome.
-2. Work on a feature branch.
+2. Work on a feature branch and separate development environment.
 3. Open a draft pull request.
-4. Review behaviour and system decisions.
+4. Run source and production-stack validation.
 5. Merge into `main` after approval.
+6. Deploy `main` through the production deployment script.
 
-See [`docs/product-spec.md`](docs/product-spec.md), [`docs/roadmap.md`](docs/roadmap.md), and [`CONTRIBUTING.md`](CONTRIBUTING.md).
+See [`docs/product-spec.md`](docs/product-spec.md), [`docs/roadmap.md`](docs/roadmap.md), [`docs/slice-3-plan.md`](docs/slice-3-plan.md), [`docs/authentication.md`](docs/authentication.md), [`docs/phone-deployment.md`](docs/phone-deployment.md), and [`CONTRIBUTING.md`](CONTRIBUTING.md).

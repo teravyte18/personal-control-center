@@ -22,7 +22,7 @@ Delivered:
 
 ## Slice 2 — Make projects actionable
 
-**Status: complete and phone-validated in PR #10; pending merge.**
+**Status: complete and merged in PR #10.**
 
 Delivered:
 
@@ -48,16 +48,39 @@ Optional stretch work:
 
 ## Slice 3 — Durable personal deployment
 
-- Persistent database and photo storage
-- Authentication for secure remote access
-- Shared phone and desktop data
-- Deploy locally or to a Raspberry Pi
-- Backups, data export, and tested restoration
-- Installable PWA validation on Android over HTTPS
-- Durable review and place history
+**Status: complete in PR #13. Production runs on Raspberry Pi.**
+
+Delivered:
+
+- PostgreSQL as the canonical store for personal state.
+- Safe, versioned browser-to-server backup and import.
+- One application and database serving a very small number of users with completely isolated data.
+- Invite-only email/password authentication with owner-controlled activation links.
+- HTTP-only database-backed sessions, owner bootstrap, logout, and immediate account revocation.
+- Per-user reads, mutations, imports, exports, and browser fallback storage.
+- Tailscale Funnel HTTPS ingress with no purchased domain or exposed router ports.
+- Secure-cookie production configuration and a stable `*.ts.net` address.
+- Installable PWA manifest with Android, maskable, and Apple icon variants.
+- Automatic validated daily PostgreSQL custom-format dumps with retention.
+- Safe production deployment and explicit full-database restoration scripts.
+- Exact Compose CI validation of authentication, synchronisation, cross-user isolation, public PWA assets, PNG dimensions, and backup readability.
+- Successful ARM64 deployment on Raspberry Pi.
+- Phone and desktop login and shared-state validation.
+- Successful Raspberry Pi reboot and automatic service recovery.
+- Retirement and destruction of the temporary DigitalOcean host.
+
+Accepted follow-up work, not part of Slice 3 completion:
+
+- Real photo files behind a persistent, replaceable, user-scoped storage boundary.
+- Externally built immutable AMD64 and ARM64 images.
+- Clean-host restoration rehearsal and stronger rollback automation.
+- Recurring encrypted off-site backups, tracked in issue #12.
+
+See `docs/slice-3-plan.md`, `docs/authentication.md`, and `docs/phone-deployment.md` for architecture and operational instructions.
 
 ## After the first live version
 
+- Raspberry Pi off-site backups to Cloudflare R2
 - Standalone tasks and errands
 - Offline-friendly capture and synchronisation
 - Books and reading
@@ -76,4 +99,6 @@ Optional stretch work:
 - Slice 2 establishes the workflow; Slice 3 makes it safe to trust with real data.
 - AI should be anticipated in the data model but must not block the manual workflow.
 - Use only neutral fixtures and examples in the public repository.
+- Deployment must remain portable between AMD64 and ARM64 hosts.
+- Personal-data operations must always be scoped by the authenticated user identity.
 - The visual GitHub Project remains optional until the issue list becomes difficult to scan.

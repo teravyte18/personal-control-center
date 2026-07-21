@@ -13,9 +13,15 @@ const LEGACY_ITEMS_KEY = "pcc-items-v1";
 const REVIEW_DRAFT_KEY = "pcc-review-draft-v2";
 const LEGACY_REVIEW_KEY = "pcc-review-v1";
 const REVIEW_HISTORY_KEY = "pcc-review-history-v1";
+export const activeBrowserUserStorageKey = "pcc-active-browser-user-v1";
+
+type BrowserUserIdentity = {
+  id: string;
+  role: "owner" | "member";
+};
 
 type StorageReader = Pick<Storage, "getItem">;
-type StorageWriter = Pick<Storage, "setItem">;
+type StorageWriter = Pick<Storage, "getItem" | "setItem">;
 
 export type StoredPersonalData = {
   items: Item[];
@@ -23,11 +29,49 @@ export type StoredPersonalData = {
   history: ReviewEntry[];
 };
 
+function activeBrowserUser(storage: StorageReader): BrowserUserIdentity | null {
+  try {
+    const value = storage.getItem(activeBrowserUserStorageKey);
+    if (!value) return null;
+    const parsed = JSON.parse(value) as unknown;
+    if (typeof parsed !== "object" || parsed === null) return null;
+    const record = parsed as Record<string, unknown>;
+    if (typeof record.id !== "string" || !["owner", "member"].includes(String(record.role))) return null;
+    return { id: record.id, role: record.role as BrowserUserIdentity["role"] };
+  } catch {
+    return null;
+  }
+}
+
+function scopedKey(userId: string, key: string) {
+  return `pcc-user:${userId}:${key}`;
+}
+
+function readForActiveUser(storage: StorageReader, key: string, legacyKey?: string) {
+  const identity = activeBrowserUser(storage);
+  if (!identity) return storage.getItem(key) ?? (legacyKey ? storage.getItem(legacyKey) : null);
+
+  const scoped = storage.getItem(scopedKey(identity.id, key));
+  if (scoped !== null) return scoped;
+
+  // Only the owner may claim data from the pre-authentication browser prototype.
+  if (identity.role === "owner") {
+    return storage.getItem(key) ?? (legacyKey ? storage.getItem(legacyKey) : null);
+  }
+
+  return null;
+}
+
+function writeForActiveUser(storage: StorageWriter, key: string, value: string) {
+  const identity = activeBrowserUser(storage);
+  storage.setItem(identity ? scopedKey(identity.id, key) : key, value);
+}
+
 export function loadPersonalData(storage: StorageReader): StoredPersonalData {
   try {
-    const storedItems = storage.getItem(ITEMS_KEY) ?? storage.getItem(LEGACY_ITEMS_KEY);
-    const storedDraft = storage.getItem(REVIEW_DRAFT_KEY) ?? storage.getItem(LEGACY_REVIEW_KEY);
-    const storedHistory = storage.getItem(REVIEW_HISTORY_KEY);
+    const storedItems = readForActiveUser(storage, ITEMS_KEY, LEGACY_ITEMS_KEY);
+    const storedDraft = readForActiveUser(storage, REVIEW_DRAFT_KEY, LEGACY_REVIEW_KEY);
+    const storedHistory = readForActiveUser(storage, REVIEW_HISTORY_KEY);
 
     return {
       items: storedItems ? normalizeItems(JSON.parse(storedItems)) : [],
@@ -46,7 +90,7 @@ export function loadPersonalData(storage: StorageReader): StoredPersonalData {
 
 export function saveItems(storage: StorageWriter, items: Item[]) {
   try {
-    storage.setItem(ITEMS_KEY, JSON.stringify(items));
+    writeForActiveUser(storage, ITEMS_KEY, JSON.stringify(items));
   } catch (error) {
     console.warn("Could not save items locally.", error);
   }
@@ -54,8 +98,8 @@ export function saveItems(storage: StorageWriter, items: Item[]) {
 
 export function saveReviews(storage: StorageWriter, draft: ReviewDraft, history: ReviewEntry[]) {
   try {
-    storage.setItem(REVIEW_DRAFT_KEY, JSON.stringify(draft));
-    storage.setItem(REVIEW_HISTORY_KEY, JSON.stringify(history));
+    writeForActiveUser(storage, REVIEW_DRAFT_KEY, JSON.stringify(draft));
+    writeForActiveUser(storage, REVIEW_HISTORY_KEY, JSON.stringify(history));
   } catch (error) {
     console.warn("Could not save reviews locally.", error);
   }
@@ -67,4 +111,5 @@ export const personalStorageKeys = {
   reviewDraft: REVIEW_DRAFT_KEY,
   legacyReviewDraft: LEGACY_REVIEW_KEY,
   reviewHistory: REVIEW_HISTORY_KEY,
+  activeBrowserUser: activeBrowserUserStorageKey,
 } as const;

@@ -1,0 +1,118 @@
+name: personal-control-center
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: personal_control_center
+      POSTGRES_USER: pcc
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pcc -d personal_control_center"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  migrate:
+    build:
+      context: .
+      target: migration
+    environment:
+      DATABASE_URL: postgres://pcc:${POSTGRES_PASSWORD}@postgres:5432/personal_control_center
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  app:
+    build:
+      context: .
+      target: runner
+    restart: unless-stopped
+    init: true
+    environment:
+      DATABASE_URL: postgres://pcc:${POSTGRES_PASSWORD}@postgres:5432/personal_control_center
+      UPLOAD_ROOT: /data/uploads
+      PCC_DEFAULT_USER_EMAIL: ${PCC_DEFAULT_USER_EMAIL:-owner@local.invalid}
+      PCC_OWNER_BOOTSTRAP_PASSWORD: ${PCC_OWNER_BOOTSTRAP_PASSWORD:-}
+      PCC_PUBLIC_URL: ${PCC_PUBLIC_URL:-http://localhost:3000}
+      PCC_COOKIE_SECURE: ${PCC_COOKIE_SECURE:-0}
+      PCC_SESSION_DAYS: ${PCC_SESSION_DAYS:-30}
+      PCC_INVITE_DAYS: ${PCC_INVITE_DAYS:-7}
+      PCC_ALLOW_INSECURE_USER_HEADER: ${PCC_ALLOW_INSECURE_USER_HEADER:-0}
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - ./data/uploads:/data/uploads
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  backup:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    init: true
+    user: "${PCC_HOST_UID:-1000}:${PCC_HOST_GID:-1000}"
+    environment:
+      PGHOST: postgres
+      PGPORT: 5432
+      PGDATABASE: personal_control_center
+      PGUSER: pcc
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      PCC_BACKUP_DIR: /backups
+      PCC_BACKUP_INTERVAL_HOURS: ${PCC_BACKUP_INTERVAL_HOURS:-24}
+      PCC_BACKUP_RETENTION_DAYS: ${PCC_BACKUP_RETENTION_DAYS:-14}
+    volumes:
+      - ./scripts/backup-postgres.sh:/usr/local/bin/pcc-backup:ro
+      - ./data/backups:/backups
+    entrypoint: ["/bin/sh", "/usr/local/bin/pcc-backup"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD-SHELL", "find /backups -maxdepth 1 -type f -name 'personal-control-center-*.dump' -size +0c | grep -q ."]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  tailscale:
+    image: tailscale/tailscale:stable
+    profiles: ["funnel"]
+    restart: unless-stopped
+    network_mode: "service:app"
+    environment:
+      TS_AUTHKEY: ${TAILSCALE_AUTH_KEY:-}
+      TS_AUTH_ONCE: "true"
+      TS_HOSTNAME: ${TAILSCALE_HOSTNAME:-personal-control-center}
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_USERSPACE: "true"
+    volumes:
+      - tailscale_state:/var/lib/tailscale
+    depends_on:
+      app:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD-SHELL", "tailscale status --json 2>/dev/null | grep -Eq '\"BackendState\"[[:space:]]*:[[:space:]]*\"Running\"'"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  postgres_data:
+  tailscale_state:

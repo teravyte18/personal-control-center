@@ -48,9 +48,7 @@ export type Item = {
 
 export type ReviewDraft = {
   location: string;
-  photoId: string;
   photoName: string;
-  photoMimeType: string;
   happened: string;
   wentWell: string;
   difficult: string;
@@ -65,9 +63,7 @@ export type ReviewEntry = ReviewDraft & {
 
 export const emptyReview: ReviewDraft = {
   location: "",
-  photoId: "",
   photoName: "",
-  photoMimeType: "",
   happened: "",
   wentWell: "",
   difficult: "",
@@ -214,9 +210,7 @@ export function normalizeReviewDraft(value: unknown): ReviewDraft {
   if (!isRecord(value)) return { ...emptyReview };
   return {
     location: stringOrEmpty(value.location),
-    photoId: stringOrEmpty(value.photoId),
     photoName: stringOrEmpty(value.photoName),
-    photoMimeType: stringOrEmpty(value.photoMimeType),
     happened: stringOrEmpty(value.happened),
     wentWell: stringOrEmpty(value.wentWell),
     difficult: stringOrEmpty(value.difficult),
@@ -225,22 +219,31 @@ export function normalizeReviewDraft(value: unknown): ReviewDraft {
   };
 }
 
-export function normalizeReviewHistory(value: unknown): ReviewEntry[] {
+export function normalizeReviewHistory(value: unknown) {
   if (!Array.isArray(value)) return [];
   return value.flatMap((candidate): ReviewEntry[] => {
-    if (!isRecord(candidate) || typeof candidate.id !== "string") return [];
-    const completedAt = validDateOrFallback(candidate.completedAt, "");
-    if (!completedAt) return [];
+    if (!isRecord(candidate) || typeof candidate.id !== "string" || typeof candidate.completedAt !== "string") return [];
+    if (Number.isNaN(Date.parse(candidate.completedAt))) return [];
     return [{
       ...normalizeReviewDraft(candidate),
       id: candidate.id,
-      completedAt,
+      completedAt: candidate.completedAt,
     }];
   });
 }
 
 export function createId() {
-  return crypto.randomUUID();
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") return crypto.randomUUID();
+
+  if (typeof crypto !== "undefined" && typeof crypto.getRandomValues === "function") {
+    const bytes = crypto.getRandomValues(new Uint8Array(16));
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+  }
+
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
 }
 
 export function createItem(
@@ -250,11 +253,12 @@ export function createItem(
 ): Item | null {
   const trimmedTitle = title.trim();
   if (!trimmedTitle) return null;
+
   const timestamp = now.toISOString();
   return {
     id: createId(),
     title: trimmedTitle,
-    description: options.description?.trim() ?? "",
+    description: options.description ?? "",
     actions: [],
     kind: options.kind ?? "unclassified",
     status: options.status ?? "inbox",
@@ -262,4 +266,242 @@ export function createItem(
     createdAt: timestamp,
     updatedAt: timestamp,
   };
+}
+
+export function updateItemFields(
+  item: Item,
+  updates: Partial<Omit<Item, "id" | "createdAt">>,
+  now = new Date(),
+): Item {
+  return {
+    ...item,
+    ...updates,
+    id: item.id,
+    createdAt: item.createdAt,
+    updatedAt: now.toISOString(),
+  };
+}
+
+export function archiveItem(item: Item, now = new Date()): Item {
+  if (item.status === "archived") return item;
+  const timestamp = now.toISOString();
+  return {
+    ...item,
+    status: "archived",
+    statusBeforeArchive: item.status,
+    archivedAt: timestamp,
+    updatedAt: timestamp,
+  };
+}
+
+export function restoreArchivedItem(item: Item, now = new Date()): Item {
+  if (item.status !== "archived") return item;
+  const timestamp = now.toISOString();
+  const restoredStatus = item.statusBeforeArchive ?? "active";
+  const {
+    archivedAt: _archivedAt,
+    statusBeforeArchive: _statusBeforeArchive,
+    ...withoutArchiveMetadata
+  } = item;
+
+  if (restoredStatus === "completed") {
+    return {
+      ...withoutArchiveMetadata,
+      status: "completed",
+      updatedAt: timestamp,
+    };
+  }
+
+  const {
+    completedAt: _completedAt,
+    statusBeforeCompletion: _statusBeforeCompletion,
+    ...restored
+  } = withoutArchiveMetadata;
+  return {
+    ...restored,
+    status: restoredStatus,
+    updatedAt: timestamp,
+  };
+}
+
+export function transitionItemStatus(item: Item, nextStatus: ItemStatus, now = new Date()): Item {
+  if (item.status === nextStatus) return item;
+  if (nextStatus === "archived") return archiveItem(item, now);
+  const timestamp = now.toISOString();
+
+  if (nextStatus === "completed") {
+    const previousStatus: RestorableItemStatus = item.status === "completed"
+      ? item.statusBeforeCompletion ?? "active"
+      : item.status === "archived"
+        ? "active"
+        : item.status;
+    const {
+      archivedAt: _archivedAt,
+      statusBeforeArchive: _statusBeforeArchive,
+      ...rest
+    } = item;
+    return {
+      ...rest,
+      status: "completed",
+      statusBeforeCompletion: previousStatus,
+      completedAt: timestamp,
+      updatedAt: timestamp,
+    };
+  }
+
+  const {
+    statusBeforeCompletion: _previousStatus,
+    completedAt: _completedAt,
+    archivedAt: _archivedAt,
+    statusBeforeArchive: _statusBeforeArchive,
+    ...rest
+  } = item;
+  return {
+    ...rest,
+    status: nextStatus,
+    updatedAt: timestamp,
+  };
+}
+
+export function toggleItemCompleted(item: Item, now = new Date()): Item {
+  const nextStatus = item.status === "completed"
+    ? item.statusBeforeCompletion ?? "active"
+    : "completed";
+  return transitionItemStatus(item, nextStatus, now);
+}
+
+export function createProjectAction(title: string, targetDate: string, now = new Date()): ProjectAction | null {
+  const trimmedTitle = title.trim();
+  const normalizedDate = validDateOnlyOrEmpty(targetDate);
+  if (!trimmedTitle || !normalizedDate) return null;
+  const timestamp = now.toISOString();
+  return {
+    id: createId(),
+    title: trimmedTitle,
+    targetDate: normalizedDate,
+    openedAt: timestamp,
+    updatedAt: timestamp,
+  };
+}
+
+export function getCurrentProjectAction(item: Item) {
+  return [...item.actions]
+    .filter((action) => !action.completedAt)
+    .sort((a, b) => Date.parse(b.openedAt) - Date.parse(a.openedAt))[0];
+}
+
+export function getCompletedProjectActions(item: Item) {
+  return [...item.actions]
+    .filter((action) => Boolean(action.completedAt))
+    .sort((a, b) => Date.parse(b.completedAt ?? b.updatedAt) - Date.parse(a.completedAt ?? a.updatedAt));
+}
+
+export function addProjectAction(item: Item, title: string, targetDate: string, now = new Date()): Item {
+  if (item.kind !== "project" || getCurrentProjectAction(item)) return item;
+  const action = createProjectAction(title, targetDate, now);
+  if (!action) return item;
+  return {
+    ...item,
+    actions: [action, ...item.actions],
+    updatedAt: now.toISOString(),
+  };
+}
+
+export function updateProjectAction(
+  item: Item,
+  actionId: string,
+  updates: Pick<ProjectAction, "title" | "targetDate">,
+  now = new Date(),
+): Item {
+  const title = updates.title.trim();
+  const targetDate = validDateOnlyOrEmpty(updates.targetDate);
+  if (!title || !targetDate) return item;
+  let changed = false;
+  const actions = item.actions.map((action) => {
+    if (action.id !== actionId) return action;
+    changed = true;
+    return { ...action, title, targetDate, updatedAt: now.toISOString() };
+  });
+  return changed ? { ...item, actions, updatedAt: now.toISOString() } : item;
+}
+
+export function completeProjectAction(
+  item: Item,
+  actionId: string,
+  completionNote: string,
+  resolution: ActionCompletionResolution,
+  nextActionTitle = "",
+  nextTargetDate = "",
+  now = new Date(),
+): Item {
+  if (resolution === "next-action" && !createProjectAction(nextActionTitle, nextTargetDate, now)) return item;
+  const timestamp = now.toISOString();
+  let found = false;
+  const actions = item.actions.map((action) => {
+    if (action.id !== actionId || action.completedAt) return action;
+    found = true;
+    return {
+      ...action,
+      completionNote: completionNote.trim(),
+      completedAt: timestamp,
+      updatedAt: timestamp,
+    };
+  });
+  if (!found) return item;
+
+  let updatedItem: Item = { ...item, actions, updatedAt: timestamp };
+  if (resolution === "next-action") {
+    const nextAction = createProjectAction(nextActionTitle, nextTargetDate, now);
+    if (nextAction) updatedItem = { ...updatedItem, actions: [nextAction, ...actions] };
+  } else if (resolution === "waiting") {
+    updatedItem = transitionItemStatus(updatedItem, "waiting", now);
+  } else {
+    updatedItem = transitionItemStatus(updatedItem, "completed", now);
+  }
+  return updatedItem;
+}
+
+export function projectRequiresNextAction(item: Item) {
+  return item.kind === "project" && ["active", "in-progress"].includes(item.status);
+}
+
+export function projectHasNextAction(item: Item) {
+  return !projectRequiresNextAction(item) || Boolean(getCurrentProjectAction(item));
+}
+
+export function projectActionNeedsDate(item: Item) {
+  const action = getCurrentProjectAction(item);
+  return Boolean(action && !action.targetDate);
+}
+
+export function startOfWeek(reference = new Date()) {
+  const start = new Date(reference);
+  const day = (start.getDay() + 6) % 7;
+  start.setDate(start.getDate() - day);
+  start.setHours(0, 0, 0, 0);
+  return start;
+}
+
+export function isCompletedThisWeek(item: Item, reference = new Date()) {
+  return Boolean(item.completedAt && new Date(item.completedAt) >= startOfWeek(reference));
+}
+
+export function isCreatedThisWeek(item: Item, reference = new Date()) {
+  return new Date(item.createdAt) >= startOfWeek(reference);
+}
+
+export function isProjectActionOpenedThisWeek(action: ProjectAction, reference = new Date()) {
+  return new Date(action.openedAt) >= startOfWeek(reference);
+}
+
+export function isProjectActionCompletedThisWeek(action: ProjectAction, reference = new Date()) {
+  return Boolean(action.completedAt && new Date(action.completedAt) >= startOfWeek(reference));
+}
+
+export function isProjectActionTargetReached(action: ProjectAction, reference = new Date()) {
+  if (action.completedAt || !action.targetDate) return false;
+  const today = new Date(reference);
+  today.setHours(0, 0, 0, 0);
+  const target = new Date(`${action.targetDate}T00:00:00`);
+  return target <= today;
 }

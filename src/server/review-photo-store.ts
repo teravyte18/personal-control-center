@@ -1,7 +1,7 @@
 import "server-only";
 
 import { randomUUID } from "node:crypto";
-import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
+import { chmod, mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 export const MAX_REVIEW_PHOTO_BYTES = 15 * 1024 * 1024;
@@ -68,8 +68,9 @@ export async function storeReviewPhoto(userId: string, file: File) {
 
   const id = randomUUID();
   const directory = userPhotoDirectory(userId);
-  await mkdir(directory, { recursive: true, mode: 0o700 });
-  await writeFile(photoPath(userId, id), bytes, { flag: "wx", mode: 0o600 });
+  await mkdir(directory, { recursive: true, mode: 0o750 });
+  await chmod(directory, 0o750);
+  await writeFile(photoPath(userId, id), bytes, { flag: "wx", mode: 0o640 });
 
   return { id, mimeType, size: bytes.byteLength };
 }

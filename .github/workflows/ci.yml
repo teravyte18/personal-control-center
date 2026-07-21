@@ -29,9 +29,9 @@ jobs:
           npm run lint 2>&1 | tee source-validation.log
 
       - name: Validate operational scripts
-        run: sh -n scripts/backup-postgres.sh scripts/deploy-production.sh scripts/restore-postgres.sh
+        run: sh -n scripts/backup-postgres.sh scripts/check-production-security.sh scripts/deploy-production.sh scripts/restore-postgres.sh
 
-      - name: Test domain behavior
+      - name: Test domain and security behavior
         run: npm test
 
       - name: Build
@@ -63,7 +63,7 @@ jobs:
           docker compose config --quiet
           docker compose --profile funnel config --quiet
 
-      - name: Validate production Compose persistence, authentication, PWA, and backups
+      - name: Validate production persistence, authentication, photos, PWA, and backups
         env:
           POSTGRES_PASSWORD: ci-compose-password
           PCC_DEFAULT_USER_EMAIL: owner@example.test
@@ -75,14 +75,15 @@ jobs:
           PCC_ALLOW_INSECURE_USER_HEADER: 1
         run: |
           set -o pipefail
-          rm -rf data/backups data/uploads
-          mkdir -p data/backups data/uploads
+          sudo rm -rf data/backups data/uploads
+          mkdir -p data/backups
+          sudo install -d -o 1000 -g 1000 -m 0755 data/uploads
           export PCC_HOST_UID="$(id -u)"
           export PCC_HOST_GID="$(id -g)"
           touch compose-validation.log
           exec > >(tee -a compose-validation.log) 2>&1
           set -x
-          trap 'docker compose ps -a; docker compose logs; docker compose down --volumes --remove-orphans; rm -rf data/backups data/uploads pwa-manifest.json pwa-icon-*' EXIT
+          trap 'docker compose ps -a; docker compose logs; docker compose down --volumes --remove-orphans; sudo rm -rf data/backups data/uploads; rm -f pwa-manifest.json pwa-icon-* upload-archive.list' EXIT
           docker compose up -d --build
           for attempt in $(seq 1 60); do
             if curl --fail --silent http://127.0.0.1:3000/api/health >/dev/null; then
@@ -122,14 +123,14 @@ jobs:
           PY
           done
 
-          for attempt in $(seq 1 30); do
-            if find data/backups -maxdepth 1 -type f -name 'personal-control-center-*.dump' -size +0c | grep -q .; then
-              break
-            fi
-            sleep 2
-          done
-          docker compose exec -T backup sh -c 'latest=$(find /backups -maxdepth 1 -type f -name "personal-control-center-*.dump" | sort | tail -n 1); test -n "$latest"; pg_restore --list "$latest" >/dev/null'
-          test -r "$(find data/backups -maxdepth 1 -type f -name 'personal-control-center-*.dump' | sort | tail -n 1)"
+          docker compose run --rm backup --once
+          latest_dump="$(find data/backups -maxdepth 1 -type f -name 'personal-control-center-*.dump' -size +0c | sort | tail -n 1)"
+          latest_uploads="$(find data/backups -maxdepth 1 -type f -name 'personal-control-center-*.uploads.tar.gz' -size +0c | sort | tail -n 1)"
+          test -n "$latest_dump"
+          test -n "$latest_uploads"
+          docker compose exec -T backup pg_restore --list "/backups/$(basename "$latest_dump")" >/dev/null
+          tar -tzf "$latest_uploads" > upload-archive.list
+          grep -Eq '^\./[^/]+/review-photos/[0-9a-f-]{36}$' upload-archive.list
 
       - name: Upload Compose failure log
         if: failure()

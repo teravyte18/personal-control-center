@@ -15,7 +15,24 @@ if [ ! -f compose.yaml ] || [ ! -f .env ]; then
   exit 1
 fi
 
-printf 'This replaces the entire PostgreSQL database with %s. Type RESTORE to continue: ' "$DUMP_PATH"
+case "$DUMP_PATH" in
+  *.dump) UPLOAD_ARCHIVE="${DUMP_PATH%.dump}.uploads.tar.gz" ;;
+  *) UPLOAD_ARCHIVE="" ;;
+esac
+
+if [ -n "$UPLOAD_ARCHIVE" ] && [ -f "$UPLOAD_ARCHIVE" ]; then
+  tar -tzf "$UPLOAD_ARCHIVE" >/dev/null
+  if tar -tzf "$UPLOAD_ARCHIVE" | grep -Eq '(^/|(^|/)\.\.(/|$))'; then
+    echo "The upload archive contains an unsafe path." >&2
+    exit 1
+  fi
+  restore_description="the database and uploads from $DUMP_PATH"
+else
+  UPLOAD_ARCHIVE=""
+  restore_description="the database from $DUMP_PATH (no paired upload archive was found)"
+fi
+
+printf 'This replaces %s. Type RESTORE to continue: ' "$restore_description"
 read -r confirmation
 if [ "$confirmation" != "RESTORE" ]; then
   echo "Restore cancelled."
@@ -53,6 +70,12 @@ docker compose exec -T postgres \
   pg_restore -U "$DATABASE_USER" -d "$DATABASE_NAME" --no-owner --no-acl \
   < "$DUMP_PATH"
 
+if [ -n "$UPLOAD_ARCHIVE" ]; then
+  mkdir -p data/uploads
+  find data/uploads -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+  tar -xzf "$UPLOAD_ARCHIVE" -C data/uploads
+fi
+
 # Apply any migrations newer than the restored backup, then restart services.
 docker compose run --rm migrate
 
@@ -69,4 +92,4 @@ if [ -n "$profile_args" ]; then
   docker compose --profile funnel up -d --force-recreate tailscale
 fi
 
-echo "Restore completed. Validate the health endpoint and sign in before resuming normal use."
+echo "Restore completed. Validate the health endpoint, photo access, and sign-in before resuming normal use."

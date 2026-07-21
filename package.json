@@ -8,7 +8,7 @@
     "build": "next build",
     "start": "next start",
     "start:network": "next start --hostname 0.0.0.0",
-    "lint": "eslint",
+    "lint": "eslint --max-warnings=0",
     "test": "node --experimental-strip-types --experimental-default-type=module --test tests/*.test.ts",
     "db:migrate": "node scripts/migrate.mjs"
   },

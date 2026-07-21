@@ -2,6 +2,7 @@
 set -eu
 
 BACKUP_DIR="${PCC_BACKUP_DIR:-/backups}"
+UPLOAD_DIR="${PCC_UPLOAD_DIR:-/uploads}"
 INTERVAL_HOURS="${PCC_BACKUP_INTERVAL_HOURS:-24}"
 RETENTION_DAYS="${PCC_BACKUP_RETENTION_DAYS:-14}"
 DATABASE_NAME="${PGDATABASE:-personal_control_center}"
@@ -22,31 +23,43 @@ validate_non_negative_integer "$RETENTION_DAYS" "PCC_BACKUP_RETENTION_DAYS"
 
 create_backup() {
   mkdir -p "$BACKUP_DIR"
+  if [ ! -d "$UPLOAD_DIR" ]; then
+    echo "Upload directory does not exist: $UPLOAD_DIR" >&2
+    exit 1
+  fi
   umask 077
 
   timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
-  final_path="$BACKUP_DIR/personal-control-center-$timestamp.dump"
-  temporary_path="$final_path.tmp"
+  database_path="$BACKUP_DIR/personal-control-center-$timestamp.dump"
+  database_temporary="$database_path.tmp"
+  uploads_path="$BACKUP_DIR/personal-control-center-$timestamp.uploads.tar.gz"
+  uploads_temporary="$uploads_path.tmp"
 
-  echo "Creating PostgreSQL backup at $final_path"
-  rm -f "$temporary_path"
+  echo "Creating PostgreSQL backup at $database_path"
+  rm -f "$database_temporary" "$uploads_temporary"
   pg_dump \
     --format=custom \
     --no-owner \
     --no-acl \
-    --file="$temporary_path" \
+    --file="$database_temporary" \
     "$DATABASE_NAME"
 
-  pg_restore --list "$temporary_path" >/dev/null
-  mv "$temporary_path" "$final_path"
+  pg_restore --list "$database_temporary" >/dev/null
+
+  echo "Creating upload backup at $uploads_path"
+  tar -czf "$uploads_temporary" -C "$UPLOAD_DIR" .
+  tar -tzf "$uploads_temporary" >/dev/null
+
+  mv "$database_temporary" "$database_path"
+  mv "$uploads_temporary" "$uploads_path"
 
   find "$BACKUP_DIR" \
     -type f \
-    -name 'personal-control-center-*.dump' \
+    \( -name 'personal-control-center-*.dump' -o -name 'personal-control-center-*.uploads.tar.gz' \) \
     -mtime "+$RETENTION_DAYS" \
     -delete
 
-  echo "Backup completed: $final_path"
+  echo "Backup completed: $database_path and $uploads_path"
 }
 
 if [ "${1:-}" = "--once" ]; then

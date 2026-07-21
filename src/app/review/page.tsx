@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { type ChangeEvent, useMemo, useState } from "react";
 import {
   getCurrentProjectAction,
@@ -12,6 +13,8 @@ import {
   usePersonalData,
   useReviewData,
 } from "@/lib/personal-data";
+
+const DURABLE_PHOTO_REFERENCE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 type Tab = "current" | "history";
 
@@ -26,6 +29,8 @@ export default function ReviewPage() {
   const { draft, history, updateDraft, completeReview } = useReviewData();
   const [tab, setTab] = useState<Tab>("current");
   const [saved, setSaved] = useState(false);
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoError, setPhotoError] = useState("");
 
   const thoughtsThisWeek = useMemo(() => items.filter((item) =>
     ["thought", "note"].includes(item.kind)
@@ -60,12 +65,70 @@ export default function ReviewPage() {
     return { opened, completed, attention };
   }, [items]);
 
+  async function choosePhoto(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    setPhotoUploading(true);
+    setPhotoError("");
+    const previousPhoto = isDurablePhotoReference(draft.photoName) ? draft.photoName : "";
+
+    try {
+      const form = new FormData();
+      form.set("photo", file);
+      const response = await fetch("/api/review-photos", { method: "POST", body: form });
+      const body = await response.json() as unknown;
+      const photoId = readUploadedPhotoId(body);
+      if (!response.ok || !photoId) {
+        throw new Error(readApiError(body, "The photo could not be uploaded."));
+      }
+
+      updateDraft("photoName", photoId);
+      if (previousPhoto && previousPhoto !== photoId) {
+        void fetch(`/api/review-photos/${previousPhoto}`, { method: "DELETE" })
+          .then((deleteResponse) => {
+            if (!deleteResponse.ok) console.warn("The replaced review photo could not be deleted.");
+          })
+          .catch(() => console.warn("The replaced review photo could not be deleted."));
+      }
+    } catch (error) {
+      setPhotoError(error instanceof Error ? error.message : "The photo could not be uploaded.");
+    } finally {
+      setPhotoUploading(false);
+    }
+  }
+
+  async function removePhoto() {
+    const photoId = isDurablePhotoReference(draft.photoName) ? draft.photoName : "";
+    if (!photoId) {
+      updateDraft("photoName", "");
+      setPhotoError("");
+      return;
+    }
+
+    setPhotoUploading(true);
+    setPhotoError("");
+    try {
+      const response = await fetch(`/api/review-photos/${photoId}`, { method: "DELETE" });
+      if (!response.ok) throw new Error("The photo could not be removed.");
+      updateDraft("photoName", "");
+    } catch (error) {
+      setPhotoError(error instanceof Error ? error.message : "The photo could not be removed.");
+    } finally {
+      setPhotoUploading(false);
+    }
+  }
+
   function saveReview() {
+    if (photoUploading) return;
     completeReview();
     setSaved(true);
     window.setTimeout(() => setSaved(false), 2200);
     setTab("history");
   }
+
+  const durableDraftPhoto = isDurablePhotoReference(draft.photoName);
 
   return (
     <section>
@@ -96,10 +159,35 @@ export default function ReviewPage() {
                 <input className="input" value={draft.location} onChange={(event) => updateDraft("location", event.target.value)} placeholder="Café, park, library, home…" />
               </Field>
               <Field label="Photo of the place">
-                <label className="flex min-h-12 cursor-pointer items-center justify-between rounded-xl border border-dashed border-slate-300 px-4 text-sm text-slate-600">
-                  <span className="truncate">{draft.photoName || "Choose a photo"}</span>
-                  <input type="file" accept="image/*" capture="environment" className="sr-only" onChange={(event: ChangeEvent<HTMLInputElement>) => updateDraft("photoName", event.target.files?.[0]?.name ?? "")} />
-                </label>
+                {durableDraftPhoto ? (
+                  <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+                    <Image
+                      src={`/api/review-photos/${draft.photoName}`}
+                      alt="Current weekly review location"
+                      width={960}
+                      height={640}
+                      unoptimized
+                      className="max-h-72 w-full object-cover"
+                    />
+                    <div className="flex items-center justify-between gap-3 p-3">
+                      <label className={`cursor-pointer text-sm font-semibold text-slate-700 ${photoUploading ? "pointer-events-none opacity-50" : ""}`}>
+                        {photoUploading ? "Uploading…" : "Replace"}
+                        <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" capture="environment" className="sr-only" disabled={photoUploading} onChange={choosePhoto} />
+                      </label>
+                      <button type="button" onClick={() => void removePhoto()} disabled={photoUploading} className="text-sm font-semibold text-rose-700 disabled:opacity-50">Remove</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <label className={`flex min-h-12 cursor-pointer items-center justify-between rounded-xl border border-dashed border-slate-300 px-4 text-sm text-slate-600 ${photoUploading ? "pointer-events-none opacity-60" : ""}`}>
+                      <span className="truncate">{photoUploading ? "Uploading photo…" : "Choose a photo"}</span>
+                      <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" capture="environment" className="sr-only" disabled={photoUploading} onChange={choosePhoto} />
+                    </label>
+                    {draft.photoName ? <p className="mt-2 text-xs text-amber-700">An older filename was recorded without an image. Choose a photo to replace it.</p> : null}
+                  </div>
+                )}
+                {photoError ? <p className="mt-2 text-sm text-rose-700">{photoError}</p> : null}
+                <p className="mt-2 text-xs text-slate-500">JPEG, PNG, WebP, or GIF. Maximum 15 MB.</p>
               </Field>
             </div>
 
@@ -114,8 +202,8 @@ export default function ReviewPage() {
             </div>
 
             <div className="mt-6 flex flex-col gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-xs text-slate-500">Your unfinished review is saved automatically in this browser.</p>
-              <button type="button" onClick={saveReview} className="min-h-12 rounded-xl bg-slate-950 px-5 text-sm font-semibold text-white active:scale-[0.99]">Complete review</button>
+              <p className="text-xs text-slate-500">Your unfinished review is saved automatically and the photo is stored on the server.</p>
+              <button type="button" onClick={saveReview} disabled={photoUploading} className="min-h-12 rounded-xl bg-slate-950 px-5 text-sm font-semibold text-white active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50">Complete review</button>
             </div>
           </div>
         </div>
@@ -129,22 +217,54 @@ export default function ReviewPage() {
             </div>
           ) : (
             <div className="grid gap-4 lg:grid-cols-2">
-              {history.map((entry) => (
-                <article key={entry.id} className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm">
-                  <div className="flex items-start justify-between gap-4">
-                    <div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">{new Date(entry.completedAt).toLocaleDateString(undefined, { dateStyle: "long" })}</p><h3 className="mt-2 text-lg font-semibold">{entry.location || "Location not recorded"}</h3></div>
-                    {entry.photoName ? <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-500">Photo</span> : null}
-                  </div>
-                  <ReviewExcerpt label="What happened" value={entry.happened} />
-                  <ReviewExcerpt label="Next focus" value={entry.nextWeek} />
-                </article>
-              ))}
+              {history.map((entry) => {
+                const durablePhoto = isDurablePhotoReference(entry.photoName);
+                return (
+                  <article key={entry.id} className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm">
+                    {durablePhoto ? (
+                      <Image
+                        src={`/api/review-photos/${entry.photoName}`}
+                        alt={entry.location ? `Weekly review at ${entry.location}` : "Weekly review location"}
+                        width={960}
+                        height={640}
+                        unoptimized
+                        className="max-h-72 w-full object-cover"
+                      />
+                    ) : null}
+                    <div className="p-5">
+                      <div className="flex items-start justify-between gap-4">
+                        <div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">{new Date(entry.completedAt).toLocaleDateString(undefined, { dateStyle: "long" })}</p><h3 className="mt-2 text-lg font-semibold">{entry.location || "Location not recorded"}</h3></div>
+                        {!durablePhoto && entry.photoName ? <span className="rounded-full bg-amber-50 px-3 py-1 text-xs text-amber-700">Legacy photo name</span> : null}
+                      </div>
+                      <ReviewExcerpt label="What happened" value={entry.happened} />
+                      <ReviewExcerpt label="Next focus" value={entry.nextWeek} />
+                    </div>
+                  </article>
+                );
+              })}
             </div>
           )}
         </div>
       )}
     </section>
   );
+}
+
+function isDurablePhotoReference(value: string) {
+  return DURABLE_PHOTO_REFERENCE.test(value);
+}
+
+function readUploadedPhotoId(value: unknown) {
+  if (typeof value !== "object" || value === null || !("photo" in value)) return null;
+  const photo = value.photo;
+  if (typeof photo !== "object" || photo === null || !("id" in photo) || typeof photo.id !== "string") return null;
+  return isDurablePhotoReference(photo.id) ? photo.id : null;
+}
+
+function readApiError(value: unknown, fallback: string) {
+  return typeof value === "object" && value !== null && "error" in value && typeof value.error === "string"
+    ? value.error
+    : fallback;
 }
 
 function StatusPanel({ title, items }: { title: string; items: Item[] }) {
@@ -175,7 +295,7 @@ function TextPanel({ title, entries }: { title: string; entries: ReviewLine[] })
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <label className="block"><span className="mb-2 block text-sm font-medium text-slate-800">{label}</span>{children}</label>;
+  return <div><span className="mb-2 block text-sm font-medium text-slate-800">{label}</span>{children}</div>;
 }
 
 function Prompt({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {

@@ -77,7 +77,7 @@ jobs:
           set -o pipefail
           sudo rm -rf data/backups data/uploads
           mkdir -p data/backups
-          sudo install -d -o 1000 -g 1000 -m 0750 data/uploads
+          sudo install -d -o 1000 -g 1000 -m 0755 data/uploads
           export PCC_HOST_UID="$(id -u)"
           export PCC_HOST_GID="$(id -g)"
           touch compose-validation.log

@@ -29,9 +29,9 @@ jobs:
           npm run lint 2>&1 | tee source-validation.log
 
       - name: Validate operational scripts
-        run: sh -n scripts/backup-postgres.sh scripts/deploy-production.sh scripts/restore-postgres.sh
+        run: sh -n scripts/backup-postgres.sh scripts/check-production-security.sh scripts/deploy-production.sh scripts/restore-postgres.sh
 
-      - name: Test domain behavior
+      - name: Test domain and security behavior
         run: npm test
 
       - name: Build

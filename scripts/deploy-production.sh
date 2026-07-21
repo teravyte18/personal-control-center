@@ -64,16 +64,40 @@ fi
 docker compose $profile_args config --quiet
 docker compose $profile_args up -d --build --remove-orphans
 
+# Tailscale shares the app container's network namespace. Recreate it after any
+# app replacement so it attaches to the current app container while retaining
+# its identity and Funnel configuration in the persistent state volume.
+if [ -n "$profile_args" ]; then
+  docker compose --profile funnel up -d --force-recreate tailscale
+fi
+
 for attempt in $(seq 1 60); do
   if curl --fail --silent "$HEALTH_URL" >/dev/null; then
-    echo "Deployment health check passed."
-    docker compose $profile_args ps
-    exit 0
+    break
+  fi
+  if [ "$attempt" -eq 60 ]; then
+    echo "Deployment failed its application health check." >&2
+    echo "The previous commit is recorded in data/deployments/previous-commit." >&2
+    echo "The database backup is $backup_path." >&2
+    exit 1
   fi
   sleep 2
 done
 
-echo "Deployment failed its health check." >&2
-echo "The previous commit is recorded in data/deployments/previous-commit." >&2
-echo "The database backup is $backup_path." >&2
-exit 1
+if [ -n "$profile_args" ]; then
+  for attempt in $(seq 1 30); do
+    if docker compose --profile funnel exec -T tailscale tailscale status --json 2>/dev/null \
+      | grep -Eq '"BackendState"[[:space:]]*:[[:space:]]*"Running"'; then
+      break
+    fi
+    if [ "$attempt" -eq 30 ]; then
+      echo "The application is healthy, but Tailscale did not reconnect." >&2
+      docker compose --profile funnel logs --tail=100 tailscale >&2 || true
+      exit 1
+    fi
+    sleep 2
+  done
+fi
+
+echo "Deployment health checks passed."
+docker compose $profile_args ps

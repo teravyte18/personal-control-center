@@ -19,7 +19,12 @@ export async function GET(request: Request, context: RouteContext) {
       return Response.json({ error: "Photo not found." }, { status: 404 });
     }
 
-    return new Response(photo.bytes, {
+    const body = photo.bytes.buffer.slice(
+      photo.bytes.byteOffset,
+      photo.bytes.byteOffset + photo.bytes.byteLength,
+    ) as ArrayBuffer;
+
+    return new Response(body, {
       headers: {
         "Content-Type": photo.mimeType,
         "Content-Length": String(photo.bytes.byteLength),

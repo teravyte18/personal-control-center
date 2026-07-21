@@ -70,11 +70,13 @@ services:
       PGUSER: pcc
       PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       PCC_BACKUP_DIR: /backups
+      PCC_UPLOAD_DIR: /uploads
       PCC_BACKUP_INTERVAL_HOURS: ${PCC_BACKUP_INTERVAL_HOURS:-24}
       PCC_BACKUP_RETENTION_DAYS: ${PCC_BACKUP_RETENTION_DAYS:-14}
     volumes:
       - ./scripts/backup-postgres.sh:/usr/local/bin/pcc-backup:ro
       - ./data/backups:/backups
+      - ./data/uploads:/uploads:ro
     entrypoint: ["/bin/sh", "/usr/local/bin/pcc-backup"]
     depends_on:
       postgres:
@@ -82,7 +84,7 @@ services:
     security_opt:
       - no-new-privileges:true
     healthcheck:
-      test: ["CMD-SHELL", "find /backups -maxdepth 1 -type f -name 'personal-control-center-*.dump' -size +0c | grep -q ."]
+      test: ["CMD-SHELL", "find /backups -maxdepth 1 -type f -name 'personal-control-center-*.dump' -size +0c | grep -q . && find /backups -maxdepth 1 -type f -name 'personal-control-center-*.uploads.tar.gz' -size +0c | grep -q ."]
       interval: 30s
       timeout: 5s
       retries: 5

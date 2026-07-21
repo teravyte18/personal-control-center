@@ -63,6 +63,8 @@ services:
     restart: unless-stopped
     init: true
     user: "${PCC_HOST_UID:-1000}:${PCC_HOST_GID:-1000}"
+    group_add:
+      - "1000"
     environment:
       PGHOST: postgres
       PGPORT: 5432

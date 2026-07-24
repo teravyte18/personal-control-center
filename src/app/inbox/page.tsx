@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
+import { useDebouncedField } from "@/hooks/use-debounced-field";
 import {
   areaLabels,
   getCurrentProjectAction,
@@ -52,10 +53,21 @@ function InboxItem({ item }: { item: Item }) {
   const [actionTitle, setActionTitle] = useState(existingAction?.title ?? "");
   const [targetDate, setTargetDate] = useState(existingAction?.targetDate ?? "");
   const [taskDate, setTaskDate] = useState(item.checkInDate ?? "");
+  const title = useDebouncedField(
+    item.title,
+    (value) => updateItem(item.id, { title: value }),
+    { canCommit: (value) => Boolean(value.trim()) },
+  );
+  const description = useDebouncedField(
+    item.description,
+    (value) => updateItem(item.id, { description: value }),
+  );
 
   function organiseItem(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (item.kind === "unclassified") return;
+    if (!title.value.trim() || item.kind === "unclassified") return;
+    title.flush();
+    description.flush();
 
     if (item.kind === "project") {
       if (existingAction) {
@@ -73,7 +85,7 @@ function InboxItem({ item }: { item: Item }) {
     <details className="group rounded-2xl border border-slate-200 bg-white shadow-sm">
       <summary className="flex min-h-16 cursor-pointer list-none items-center justify-between gap-4 px-4 py-3 sm:px-5">
         <div className="min-w-0">
-          <p className="truncate font-medium text-slate-900">{item.title}</p>
+          <p className="truncate font-medium text-slate-900">{title.value || "Untitled item"}</p>
           <p className="mt-1 text-xs text-slate-400">Captured {new Date(item.createdAt).toLocaleDateString()}</p>
         </div>
         <span className="text-xl text-slate-400 transition group-open:rotate-45">＋</span>
@@ -82,12 +94,24 @@ function InboxItem({ item }: { item: Item }) {
       <form onSubmit={organiseItem} className="border-t border-slate-100 px-4 pb-5 pt-4 sm:px-5">
         <label className="block text-sm font-medium text-slate-700">
           Title
-          <input className="input mt-2" value={item.title} onChange={(event) => updateItem(item.id, { title: event.target.value })} required />
+          <input
+            className="input mt-2"
+            value={title.value}
+            onChange={(event) => title.setValue(event.target.value)}
+            onBlur={title.flush}
+            required
+          />
         </label>
 
         <label className="mt-4 block text-sm font-medium text-slate-700">
           Extra context
-          <textarea className="input mt-2 min-h-24 resize-y" value={item.description} onChange={(event) => updateItem(item.id, { description: event.target.value })} placeholder="Optional details, links, or why this matters…" />
+          <textarea
+            className="input mt-2 min-h-24 resize-y"
+            value={description.value}
+            onChange={(event) => description.setValue(event.target.value)}
+            onBlur={description.flush}
+            placeholder="Optional details, links, or why this matters…"
+          />
         </label>
 
         <div className="mt-4 grid gap-4 sm:grid-cols-2">

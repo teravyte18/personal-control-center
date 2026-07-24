@@ -12,6 +12,7 @@ import {
 import { emptyReview, useReviewData } from "@/lib/personal-data";
 
 const REMINDER_STORAGE_PREFIX = "pcc-review-reminder-shown-v1:";
+const LOCAL_DEVELOPMENT = process.env.NODE_ENV !== "production" && process.env.NEXT_PUBLIC_PCC_LOCAL_DEV_MODE === "1";
 const DURABLE_PHOTO_REFERENCE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const reviewContentFields = [
   "location",
@@ -49,7 +50,10 @@ export function ReviewReminderController() {
   }, []);
 
   useEffect(() => {
-    setPermission("Notification" in window ? Notification.permission : "unsupported");
+    const timeout = window.setTimeout(() => {
+      setPermission("Notification" in window ? Notification.permission : "unsupported");
+    }, 0);
+    return () => window.clearTimeout(timeout);
   }, []);
 
   useEffect(() => {
@@ -64,7 +68,7 @@ export function ReviewReminderController() {
       return;
     }
 
-    if (DURABLE_PHOTO_REFERENCE.test(draft.photoName) && process.env.NEXT_PUBLIC_PCC_LOCAL_DEV_MODE !== "1") {
+    if (DURABLE_PHOTO_REFERENCE.test(draft.photoName) && !LOCAL_DEVELOPMENT) {
       void fetch(`/api/review-photos/${draft.photoName}`, { method: "DELETE" }).catch(() => undefined);
     }
     for (const field of reviewContentFields) updateDraft(field, emptyReview[field]);
@@ -108,8 +112,11 @@ export function ReviewNotificationControl() {
   const [secure, setSecure] = useState(false);
 
   useEffect(() => {
-    setSecure(window.isSecureContext);
-    setPermission("Notification" in window ? Notification.permission : "unsupported");
+    const timeout = window.setTimeout(() => {
+      setSecure(window.isSecureContext);
+      setPermission("Notification" in window ? Notification.permission : "unsupported");
+    }, 0);
+    return () => window.clearTimeout(timeout);
   }, []);
 
   async function enable() {

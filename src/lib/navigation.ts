@@ -2,6 +2,7 @@ export type IconName =
   | "capture"
   | "inbox"
   | "projects"
+  | "tasks"
   | "thoughts"
   | "review"
   | "spaces"
@@ -42,6 +43,15 @@ export const destinations: Destination[] = [
     pinnable: true,
   },
   {
+    id: "tasks",
+    label: "Tasks",
+    href: "/tasks",
+    icon: "tasks",
+    description: "Complete one-off actions that do not need a project timeline.",
+    available: true,
+    pinnable: true,
+  },
+  {
     id: "accomplishments",
     label: "Accomplishments",
     href: "/spaces/accomplishments",
@@ -73,7 +83,7 @@ export const destinations: Destination[] = [
     label: "Review",
     href: "/review",
     icon: "review",
-    description: "Reflect on the week and browse previous reviews.",
+    description: "Reflect on the previous Saturday-to-Friday period and browse completed reviews.",
     available: true,
     pinnable: true,
   },
@@ -124,7 +134,7 @@ export const destinations: Destination[] = [
   },
 ];
 
-export const defaultPinnedDestinationIds = ["inbox", "projects", "thoughts", "review"] as const;
+export const defaultPinnedDestinationIds = ["inbox", "projects", "tasks", "review"] as const;
 
 export const defaultPinnedDestinations = defaultPinnedDestinationIds.map((id) => {
   const destination = destinations.find((item) => item.id === id);

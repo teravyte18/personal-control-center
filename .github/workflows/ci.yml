@@ -133,7 +133,7 @@ jobs:
           docker compose exec -T backup pg_restore --list "/backups/$(basename "$latest_dump")" >/dev/null
           tar -tzf "$latest_uploads" > upload-archive.list
           grep -Eq '^\./[^/]+/review-photos/[0-9a-f-]{36}$' upload-archive.list
-          docker compose run --rm --no-deps --entrypoint /usr/local/bin/pcc-offsite backup status | grep -q 'R2 off-site backups are disabled'
+          docker compose run --rm --no-deps --entrypoint /bin/sh backup /usr/local/bin/pcc-offsite status | grep -q 'R2 off-site backups are disabled'
 
       - name: Upload Compose failure log
         if: failure()

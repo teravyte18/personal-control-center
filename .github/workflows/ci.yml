@@ -5,23 +5,32 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  validate:
+  quality:
+    name: Quality
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --no-audit --no-fund
 
       - name: Lint
         run: |
@@ -49,11 +58,6 @@ jobs:
       - name: Test domain and security behavior
         run: npm test
 
-      - name: Build
-        run: |
-          set -o pipefail
-          npm run build 2>&1 | tee -a source-validation.log
-
       - name: Upload source validation failure log
         if: failure()
         uses: actions/upload-artifact@v4
@@ -62,34 +66,39 @@ jobs:
           path: source-validation.log
           if-no-files-found: ignore
 
+  production_stack:
+    name: Production stack
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      POSTGRES_PASSWORD: ci-compose-password
+      PCC_DEFAULT_USER_EMAIL: owner@example.test
+      PCC_OWNER_BOOTSTRAP_PASSWORD: owner-bootstrap-password-123
+      PCC_PUBLIC_URL: http://localhost:3000
+      PCC_COOKIE_SECURE: 0
+      PCC_BACKUP_INTERVAL_HOURS: 24
+      PCC_BACKUP_RETENTION_DAYS: 14
+      PCC_R2_ENABLED: 0
+      PCC_ALLOW_INSECURE_USER_HEADER: 1
+      TAILSCALE_AUTH_KEY: ci-placeholder
+      TAILSCALE_HOSTNAME: personal-control-center-ci
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          package-manager-cache: false
+
       - name: Validate Compose configuration
-        env:
-          POSTGRES_PASSWORD: ci-compose-password
-          PCC_DEFAULT_USER_EMAIL: owner@example.test
-          PCC_OWNER_BOOTSTRAP_PASSWORD: owner-bootstrap-password-123
-          PCC_PUBLIC_URL: http://localhost:3000
-          PCC_COOKIE_SECURE: 0
-          PCC_BACKUP_INTERVAL_HOURS: 24
-          PCC_BACKUP_RETENTION_DAYS: 14
-          PCC_R2_ENABLED: 0
-          PCC_ALLOW_INSECURE_USER_HEADER: 1
-          TAILSCALE_AUTH_KEY: ci-placeholder
-          TAILSCALE_HOSTNAME: personal-control-center-ci
         run: |
           docker compose config --quiet
           docker compose --profile funnel config --quiet
 
       - name: Validate production persistence, authentication, photos, PWA, and backups
-        env:
-          POSTGRES_PASSWORD: ci-compose-password
-          PCC_DEFAULT_USER_EMAIL: owner@example.test
-          PCC_OWNER_BOOTSTRAP_PASSWORD: owner-bootstrap-password-123
-          PCC_PUBLIC_URL: http://localhost:3000
-          PCC_COOKIE_SECURE: 0
-          PCC_BACKUP_INTERVAL_HOURS: 24
-          PCC_BACKUP_RETENTION_DAYS: 14
-          PCC_R2_ENABLED: 0
-          PCC_ALLOW_INSECURE_USER_HEADER: 1
         run: |
           set -o pipefail
           sudo rm -rf data/backups data/uploads data/offsite-restore .secrets
@@ -157,3 +166,33 @@ jobs:
           name: compose-validation-log
           path: compose-validation.log
           if-no-files-found: ignore
+
+  validate:
+    name: Validate
+    if: always()
+    needs:
+      - quality
+      - production_stack
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Confirm required jobs succeeded
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          QUALITY_RESULT: ${{ needs.quality.result }}
+          PRODUCTION_STACK_RESULT: ${{ needs.production_stack.result }}
+        run: |
+          set -eu
+          test "$QUALITY_RESULT" = "success"
+          case "$EVENT_NAME" in
+            pull_request|workflow_dispatch)
+              test "$PRODUCTION_STACK_RESULT" = "success"
+              ;;
+            push)
+              test "$PRODUCTION_STACK_RESULT" = "skipped"
+              ;;
+            *)
+              echo "Unexpected event: $EVENT_NAME" >&2
+              exit 1
+              ;;
+          esac

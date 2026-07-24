@@ -69,27 +69,75 @@ Delivered:
 - Successful Raspberry Pi reboot and automatic service recovery.
 - Retirement and destruction of the temporary DigitalOcean host.
 
-Accepted follow-up work, not part of Slice 3 completion:
+Completed post-Slice-3 hardening in PR #14:
 
-- Real photo files behind a persistent, replaceable, user-scoped storage boundary.
+- Bounded login throttling and account cooldowns for the public Funnel endpoint.
+- Fixed dummy password work to reduce account-enumeration timing differences.
+- Private, user-scoped review-photo persistence outside the application container.
+- Authenticated photo retrieval, replacement, removal, and cross-user isolation.
+- Paired, validated PostgreSQL and upload archives.
+- Restore support for database state and persistent photos together.
+- Repeatable production security audit and zero-warning lint enforcement.
+
+Remaining deployment follow-up:
+
 - Externally built immutable AMD64 and ARM64 images.
-- Clean-host restoration rehearsal and stronger rollback automation.
-- Recurring encrypted off-site backups, tracked in issue #12.
+- Stronger automated rollback and a later full clean-host deployment rehearsal.
+- Encrypted recurring off-site backups, tracked in issue #12.
+- Optional future second local copy on USB storage or the NAS.
 
-See `docs/slice-3-plan.md`, `docs/authentication.md`, and `docs/phone-deployment.md` for architecture and operational instructions.
+See `docs/slice-3-plan.md`, `docs/authentication.md`, `docs/phone-deployment.md`, `docs/review-photo-storage.md`, and `docs/production-security.md` for architecture and operational instructions.
 
-## After the first live version
+## Current delivery sequence
 
-- Raspberry Pi off-site backups to Cloudflare R2
-- Standalone tasks and errands
+### 1. Encrypted off-site backups
+
+**Status: next priority, tracked in issue #12.**
+
+- Store client-side encrypted, deduplicated backups in a private Cloudflare R2 bucket.
+- Create a fresh validated PostgreSQL dump before each off-site run.
+- Include persistent review photos and restoration-critical configuration.
+- Automate nightly snapshots, retention, pruning, and visible failure/staleness checks.
+- Complete and document a clean restore from R2 before beginning the next product slice.
+
+### 2. Slice 4 — Standalone tasks and scheduled Weekly Review
+
+**Status: planned in issue #15 after issue #12.**
+
+Standalone Tasks:
+
+- Add a dedicated Tasks space for concrete one-off actions that do not justify a project.
+- Allow creation from Capture/Inbox and directly from Tasks.
+- Keep the model simple: title, optional notes, and an optional check-in date.
+- Allow tasks without dates to remain open indefinitely without producing an age-based warning.
+- Allow check-in dates to be changed without creating an action timeline.
+- Remove completed tasks from the active Tasks space without adding a completed-task-history destination.
+- Preserve only the completion metadata required by Weekly Review, saved review snapshots, export, backup, and tests.
+- Show due and overdue tasks on Home/Capture using the existing attention language.
+- Keep recurring work out of Tasks; recurrence belongs in a future Routine space.
+
+Weekly Review scheduling:
+
+- Open one review window each Saturday for a fixed preceding review period.
+- Keep unfinished review data anchored to that period instead of allowing it to roll forward.
+- Close the review form after completion until the following Saturday.
+- Keep an unfinished review open through Friday and remind the user daily at 08:00 local time from Sunday onward.
+- Discard an unfinished prior review when the next Saturday opens a fresh window.
+- Include all open standalone tasks and tasks completed during the reviewed week.
+- Keep completed reviews in Review History.
+
+Targeted notification work in this slice is limited to overdue Weekly Review reminders. General task reminders and a generic notification system remain later work.
+
+## Later modules and capabilities
+
 - Offline-friendly capture and synchronisation
+- Routines and recurring responsibilities
 - Books and reading
 - Trips
 - Habits and running summaries
 - Calendar and Strava integrations
-- Notifications and travel-price monitoring
+- Broader notifications and travel-price monitoring
 - Optional AI classification, task breakdown, summaries, and recommendations
-- Push notifications
 - Evaluate a native Android app only if the PWA has important platform limitations
 
 ## Delivery rules
@@ -97,6 +145,8 @@ See `docs/slice-3-plan.md`, `docs/authentication.md`, and `docs/phone-deployment
 - Phone use is the primary interface assumption; desktop is a progressive enhancement.
 - The complete manual workflow comes before specialised trackers.
 - Slice 2 establishes the workflow; Slice 3 makes it safe to trust with real data.
+- Backups are not complete until a representative clean restore has succeeded.
+- One-off tasks, projects, thoughts, and future routines must remain distinct concepts.
 - AI should be anticipated in the data model but must not block the manual workflow.
 - Use only neutral fixtures and examples in the public repository.
 - Deployment must remain portable between AMD64 and ARM64 hosts.

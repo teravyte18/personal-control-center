@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  canSendDebouncedMutation,
   debouncedMutationKey,
   mergeDebouncedMutation,
 } from "../src/domain/debounced-mutations.ts";
@@ -41,6 +42,25 @@ test("the latest value wins for repeated text edits", () => {
   };
 
   assert.deepEqual(mergeDebouncedMutation(first, second), second);
+});
+
+test("temporarily empty item titles remain local until valid", () => {
+  const emptyTitle = {
+    type: "update-item" as const,
+    id: "item-1",
+    updates: { title: "" },
+    occurredAt: "2026-07-24T18:00:00.000Z",
+  };
+  const replacement = {
+    type: "update-item" as const,
+    id: "item-1",
+    updates: { title: "Replacement" },
+    occurredAt: "2026-07-24T18:00:01.000Z",
+  };
+
+  assert.equal(canSendDebouncedMutation(emptyTitle), false);
+  assert.equal(canSendDebouncedMutation(replacement), true);
+  assert.deepEqual(mergeDebouncedMutation(emptyTitle, replacement), replacement);
 });
 
 test("review fields debounce independently", () => {

@@ -51,6 +51,7 @@ function InboxItem({ item }: { item: Item }) {
   const existingAction = getCurrentProjectAction(item);
   const [actionTitle, setActionTitle] = useState(existingAction?.title ?? "");
   const [targetDate, setTargetDate] = useState(existingAction?.targetDate ?? "");
+  const [taskDate, setTaskDate] = useState(item.checkInDate ?? "");
 
   function organiseItem(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -64,6 +65,7 @@ function InboxItem({ item }: { item: Item }) {
       }
     }
 
+    if (item.kind === "task") updateItem(item.id, { checkInDate: taskDate });
     setItemStatus(item.id, "active");
   }
 
@@ -115,6 +117,14 @@ function InboxItem({ item }: { item: Item }) {
               <input type="date" className="input mt-2" value={targetDate} onChange={(event) => setTargetDate(event.target.value)} required />
             </label>
           </div>
+        ) : null}
+
+        {item.kind === "task" ? (
+          <label className="mt-4 block max-w-xs text-sm font-medium text-slate-700">
+            Check-in date
+            <input type="date" className="input mt-2" value={taskDate} onChange={(event) => setTaskDate(event.target.value)} />
+            <span className="mt-2 block text-xs font-normal text-slate-500">Optional. Undated tasks stay open without creating warnings.</span>
+          </label>
         ) : null}
 
         <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">

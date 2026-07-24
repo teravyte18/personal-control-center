@@ -13,13 +13,20 @@ import {
 
 export default function TasksPage() {
   const { items, addItem, updateItem, toggleCompleted } = usePersonalData();
+  const [creating, setCreating] = useState(false);
   const [title, setTitle] = useState("");
   const [notes, setNotes] = useState("");
   const [checkInDate, setCheckInDate] = useState("");
   const [area, setArea] = useState<AreaId>("uncategorized");
 
   const tasks = useMemo(() => items.filter(isOpenTask).sort(compareTasks), [items]);
-  const datedCount = tasks.filter((task) => task.checkInDate).length;
+
+  function resetForm() {
+    setTitle("");
+    setNotes("");
+    setCheckInDate("");
+    setArea("uncategorized");
+  }
 
   function createTask(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -31,54 +38,65 @@ export default function TasksPage() {
     });
     if (!task) return;
     if (checkInDate) updateItem(task.id, { checkInDate });
-    setTitle("");
-    setNotes("");
-    setCheckInDate("");
-    setArea("uncategorized");
+    resetForm();
+    setCreating(false);
+  }
+
+  function cancelCreation() {
+    resetForm();
+    setCreating(false);
   }
 
   return (
     <section className="mx-auto max-w-4xl">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex items-end justify-between gap-4">
         <div>
           <p className="text-sm text-slate-500">Concrete one-off actions</p>
           <h2 className="mt-1 text-3xl font-semibold tracking-tight">Tasks</h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-            Keep actions here when they do not need a project timeline. Dates are optional and can be changed freely.
+            Keep actions here when they do not need a project timeline. Check-in dates are optional and can be changed freely.
           </p>
         </div>
-        <div className="flex gap-2 text-xs font-semibold text-slate-500">
-          <span className="rounded-full bg-white px-3 py-2 shadow-sm">{tasks.length} open</span>
-          <span className="rounded-full bg-white px-3 py-2 shadow-sm">{datedCount} dated</span>
-        </div>
+        {!creating ? (
+          <button type="button" onClick={() => setCreating(true)} className="min-h-11 shrink-0 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white active:scale-[0.99]">
+            New task
+          </button>
+        ) : null}
       </div>
 
-      <form onSubmit={createTask} className="mt-7 rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-        <h3 className="text-lg font-semibold">Add a task</h3>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <label className="sm:col-span-2 text-sm font-medium text-slate-700">
-            Title
-            <input className="input mt-2" value={title} onChange={(event) => setTitle(event.target.value)} placeholder="One concrete thing to do" required />
-          </label>
-          <label className="sm:col-span-2 text-sm font-medium text-slate-700">
-            Notes
-            <textarea className="input mt-2 min-h-24 resize-y" value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Optional context, links, or details…" />
-          </label>
-          <label className="text-sm font-medium text-slate-700">
-            Check-in date
-            <input type="date" className="input mt-2" value={checkInDate} onChange={(event) => setCheckInDate(event.target.value)} />
-          </label>
-          <label className="text-sm font-medium text-slate-700">
-            Area
-            <select className="input mt-2" value={area} onChange={(event) => setArea(event.target.value as AreaId)}>
-              {Object.entries(areaLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-            </select>
-          </label>
-        </div>
-        <button type="submit" className="mt-5 min-h-12 w-full rounded-xl bg-slate-950 px-5 text-sm font-semibold text-white active:scale-[0.99] sm:w-auto">
-          Add task
-        </button>
-      </form>
+      {creating ? (
+        <form onSubmit={createTask} className="mt-7 rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-lg font-semibold">New task</h3>
+            <button type="button" onClick={cancelCreation} className="min-h-10 rounded-xl px-3 text-sm font-semibold text-slate-500 hover:bg-slate-100">
+              Cancel
+            </button>
+          </div>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <label className="sm:col-span-2 text-sm font-medium text-slate-700">
+              Title
+              <input className="input mt-2" value={title} onChange={(event) => setTitle(event.target.value)} placeholder="One concrete thing to do" autoFocus required />
+            </label>
+            <label className="sm:col-span-2 text-sm font-medium text-slate-700">
+              Notes
+              <textarea className="input mt-2 min-h-24 resize-y" value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Optional context, links, or details…" />
+            </label>
+            <label className="text-sm font-medium text-slate-700">
+              Check-in date
+              <input type="date" className="input mt-2" value={checkInDate} onChange={(event) => setCheckInDate(event.target.value)} />
+            </label>
+            <label className="text-sm font-medium text-slate-700">
+              Area
+              <select className="input mt-2" value={area} onChange={(event) => setArea(event.target.value as AreaId)}>
+                {Object.entries(areaLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+              </select>
+            </label>
+          </div>
+          <button type="submit" className="mt-5 min-h-12 w-full rounded-xl bg-slate-950 px-5 text-sm font-semibold text-white active:scale-[0.99] sm:w-auto">
+            Add task
+          </button>
+        </form>
+      ) : null}
 
       {tasks.length === 0 ? (
         <div className="mt-6 rounded-[2rem] border border-dashed border-slate-300 bg-white p-8 text-center">

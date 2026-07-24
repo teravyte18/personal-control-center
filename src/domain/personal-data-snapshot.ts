@@ -14,6 +14,7 @@ import {
   transitionItemStatus,
   updateItemFields,
   updateProjectAction,
+  validDateOnlyOrEmpty,
   type ActionCompletionResolution,
   type Item,
   type ItemStatus,
@@ -76,6 +77,18 @@ export const emptyPersonalDataSnapshot: PersonalDataSnapshot = {
 };
 
 const reviewFields = [
+  "periodStart",
+  "periodEnd",
+  "location",
+  "photoName",
+  "happened",
+  "wentWell",
+  "difficult",
+  "learned",
+  "nextWeek",
+] as const satisfies readonly (keyof ReviewDraft)[];
+
+const reviewContentFields = [
   "location",
   "photoName",
   "happened",
@@ -152,6 +165,12 @@ function normalizeUpdates(value: unknown): ItemUpdates | null {
     if (typeof value.area !== "string" || !areaIds.includes(value.area as Item["area"])) return null;
     updates.area = value.area as Item["area"];
   }
+  if ("checkInDate" in value) {
+    if (typeof value.checkInDate !== "string") return null;
+    const normalized = validDateOnlyOrEmpty(value.checkInDate);
+    if (value.checkInDate && !normalized) return null;
+    updates.checkInDate = normalized || undefined;
+  }
 
   return updates;
 }
@@ -168,7 +187,7 @@ export function normalizePersonalDataSnapshot(value: unknown): PersonalDataSnaps
 export function hasPersonalData(snapshot: PersonalDataSnapshot) {
   return snapshot.items.length > 0
     || snapshot.history.length > 0
-    || reviewFields.some((field) => snapshot.draft[field].trim().length > 0);
+    || reviewContentFields.some((field) => snapshot.draft[field].trim().length > 0);
 }
 
 export function createPersonalDataExport(

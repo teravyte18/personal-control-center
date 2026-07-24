@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useDataConnection } from "@/providers/personal-data-provider";
 
+const LOCAL_DEVELOPMENT = process.env.NEXT_PUBLIC_PCC_LOCAL_DEV_MODE === "1";
+
 export function DataStatusBanner() {
   const {
     dataMode,
@@ -15,6 +17,15 @@ export function DataStatusBanner() {
   const [importing, setImporting] = useState(false);
 
   if (dataMode === "loading") return null;
+
+  if (LOCAL_DEVELOPMENT && dataMode === "local-fallback") {
+    return (
+      <section className="mb-5 rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sky-950 shadow-sm" aria-live="polite">
+        <p className="text-sm font-semibold">Local development mode</p>
+        <p className="mt-1 text-sm leading-6 text-sky-800">Changes are stored only in this browser. Production, PostgreSQL, backups, and other devices are untouched.</p>
+      </section>
+    );
+  }
 
   if (migrationRequired) {
     async function migrate() {

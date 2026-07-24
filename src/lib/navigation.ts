@@ -2,6 +2,7 @@ export type IconName =
   | "capture"
   | "inbox"
   | "projects"
+  | "tasks"
   | "thoughts"
   | "review"
   | "spaces"
@@ -42,6 +43,15 @@ export const destinations: Destination[] = [
     pinnable: true,
   },
   {
+    id: "tasks",
+    label: "Tasks",
+    href: "/tasks",
+    icon: "tasks",
+    description: "Complete one-off actions that do not need a project timeline.",
+    available: true,
+    pinnable: true,
+  },
+  {
     id: "accomplishments",
     label: "Accomplishments",
     href: "/spaces/accomplishments",
@@ -73,7 +83,7 @@ export const destinations: Destination[] = [
     label: "Review",
     href: "/review",
     icon: "review",
-    description: "Reflect on the week and browse previous reviews.",
+    description: "Reflect on the previous Saturday-to-Friday period and browse completed reviews.",
     available: true,
     pinnable: true,
   },
@@ -124,13 +134,39 @@ export const destinations: Destination[] = [
   },
 ];
 
-export const defaultPinnedDestinationIds = ["inbox", "projects", "thoughts", "review"] as const;
+export const mobilePinnedDestinationLimit = 4;
+export const defaultPinnedDestinationIds = ["inbox", "projects", "tasks", "review"] as const;
+export const primaryDestinations = destinations.filter((destination) => destination.available && destination.pinnable);
 
-export const defaultPinnedDestinations = defaultPinnedDestinationIds.map((id) => {
-  const destination = destinations.find((item) => item.id === id);
-  if (!destination) throw new Error(`Missing default destination: ${id}`);
-  return destination;
-});
+export function normalizeMobilePinnedDestinationIds(value: unknown) {
+  const validIds = new Set(primaryDestinations.map((destination) => destination.id));
+  const normalized: string[] = [];
+
+  if (Array.isArray(value)) {
+    for (const candidate of value) {
+      if (typeof candidate !== "string" || !validIds.has(candidate) || normalized.includes(candidate)) continue;
+      normalized.push(candidate);
+      if (normalized.length === mobilePinnedDestinationLimit) return normalized;
+    }
+  }
+
+  for (const candidate of [...defaultPinnedDestinationIds, ...primaryDestinations.map((destination) => destination.id)]) {
+    if (!validIds.has(candidate) || normalized.includes(candidate)) continue;
+    normalized.push(candidate);
+    if (normalized.length === mobilePinnedDestinationLimit) break;
+  }
+
+  return normalized;
+}
+
+export function resolveDestinations(ids: readonly string[]) {
+  return ids.flatMap((id) => {
+    const destination = primaryDestinations.find((candidate) => candidate.id === id);
+    return destination ? [destination] : [];
+  });
+}
+
+export const defaultPinnedDestinations = resolveDestinations(defaultPinnedDestinationIds);
 
 export function isDestinationActive(pathname: string, href: string) {
   return href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);

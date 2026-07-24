@@ -24,6 +24,8 @@ export function Icon({ name, className = "h-5 w-5" }: IconProps) {
       return <svg {...common}><path d="M4 4h16l2 10v5a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-5L4 4Z" /><path d="M2 14h5l2 3h6l2-3h5" /></svg>;
     case "projects":
       return <svg {...common}><rect x="3" y="4" width="8" height="7" rx="2" /><rect x="13" y="4" width="8" height="7" rx="2" /><rect x="3" y="13" width="8" height="7" rx="2" /><path d="M13 16.5h8M17 13v7" /></svg>;
+    case "tasks":
+      return <svg {...common}><rect x="4" y="3" width="16" height="18" rx="2" /><path d="m8 8 1.5 1.5L12 7M14 9h3M8 14l1.5 1.5L12 13M14 15h3" /></svg>;
     case "thoughts":
       return <svg {...common}><path d="M9 18h6M10 22h4" /><path d="M8.2 15.5A7 7 0 1 1 15.8 15.5C14.7 16.3 14 17.1 14 18h-4c0-.9-.7-1.7-1.8-2.5Z" /></svg>;
     case "review":

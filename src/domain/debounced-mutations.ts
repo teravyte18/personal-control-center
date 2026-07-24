@@ -11,6 +11,12 @@ export function debouncedMutationKey(mutation: DebouncedPersonalDataMutation) {
     : `review:${String(mutation.field)}`;
 }
 
+export function canSendDebouncedMutation(mutation: DebouncedPersonalDataMutation) {
+  return mutation.type !== "update-item"
+    || !("title" in mutation.updates)
+    || Boolean(mutation.updates.title?.trim());
+}
+
 export function mergeDebouncedMutation(
   current: DebouncedPersonalDataMutation | undefined,
   next: DebouncedPersonalDataMutation,

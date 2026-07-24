@@ -1,6 +1,25 @@
 # Product Roadmap
 
-This roadmap is intentionally compressed around a first usable personal system. Sequence matters more than fixed dates.
+This roadmap tracks delivered slices and the current decision space. Sequence matters more than fixed dates.
+
+## Progress at a glance
+
+```mermaid
+graph LR
+    S1["Slice 1<br/>Phone-first foundation<br/>✅ PR #7"]
+    S2["Slice 2<br/>Actionable projects<br/>✅ PR #10"]
+    S3["Slice 3<br/>Durable deployment<br/>✅ PR #13"]
+    HARDEN["Deployment hardening<br/>auth, photos, R2<br/>✅ PR #14, #18"]
+    S4["Slice 4<br/>Tasks and Weekly Review<br/>✅ PR #20, #22"]
+    NEXT["Next product slice<br/>not selected"]
+
+    S1 --> S2 --> S3 --> HARDEN --> S4 --> NEXT
+
+    classDef done fill:#ecfdf5,stroke:#10b981,color:#065f46;
+    classDef pending fill:#f8fafc,stroke:#94a3b8,color:#334155;
+    class S1,S2,S3,HARDEN,S4 done;
+    class NEXT pending;
+```
 
 ## Slice 1 — Phone-first foundation and feedback loop
 
@@ -8,17 +27,16 @@ This roadmap is intentionally compressed around a first usable personal system. 
 
 Delivered:
 
-- Mobile-first Next.js application shell
-- Quiet Capture landing page
-- Inbox, Projects, Thoughts, Review, and All Spaces routes
-- Floating mobile dock and matching desktop rail
-- Quick capture with browser-local persistence
-- Open and completed item status
-- Weekly review with open work, completed items, and recent thoughts
-- Guided reflection fields, location, and photo selection metadata
-- Initial PWA manifest and home-screen installation direction
-- Docker-ready runtime for later Raspberry Pi deployment
-- Mobile-resilient navigation and form validation over local-network testing
+- mobile-first Next.js application shell;
+- quiet Capture landing page;
+- Inbox, Projects, Thoughts, Review, and All Spaces routes;
+- floating mobile dock and desktop rail;
+- quick capture with browser-local persistence;
+- basic completion states;
+- Weekly Review with open work, completed items, and recent thoughts;
+- guided reflection fields, location, and photo metadata;
+- initial PWA manifest;
+- Docker-ready runtime.
 
 ## Slice 2 — Make projects actionable
 
@@ -26,25 +44,17 @@ Delivered:
 
 Delivered:
 
-- One shared application data provider
-- Domain logic separated from React state and browser persistence
-- Debounced browser writes and safe migration of existing local data
-- Focused automated tests for item transitions, archive recovery, and weekly calculations
-- Dated project action points with preserved history
-- Compact active-project cards that show only the current action and date
-- Full-screen project details with a three-point timeline preview and full detail available for any recorded history
-- Free-form completion notes followed by a next action, Waiting, or project completion
-- Overdue attention states on Capture, project cards, and timelines
-- Yellow Waiting project treatment without global warnings
-- Completed projects available through an Accomplishments space
-- Recoverable Archive space that restores projects to their previous status
-- Weekly review context for reached dates, opened actions, completed actions, completed projects, unresolved items, and recent thoughts
-- Full phone validation of capture, action timelines, Waiting, Accomplishments, Archive, and Restore
-
-Optional stretch work:
-
-- Persist configurable dock pins
-- Minor Capture, Inbox, and Projects polish based on real phone usage
+- shared application data provider and domain layer;
+- safe migration and debounced browser-local writes;
+- dated project action points with preserved history;
+- compact active-project cards showing the current action and date;
+- full-screen project details and expandable timelines;
+- free-form completion notes followed by a next action, Waiting, or project completion;
+- overdue attention states on Capture, project cards, and timelines;
+- yellow Waiting treatment without global warnings;
+- Accomplishments and recoverable Archive spaces;
+- Weekly Review context for project attention, opened and completed actions, completed projects, and recent thoughts;
+- focused automated tests for lifecycle and date behavior.
 
 ## Slice 3 — Durable personal deployment
 
@@ -52,103 +62,122 @@ Optional stretch work:
 
 Delivered:
 
-- PostgreSQL as the canonical store for personal state.
-- Safe, versioned browser-to-server backup and import.
-- One application and database serving a very small number of users with completely isolated data.
-- Invite-only email/password authentication with owner-controlled activation links.
-- HTTP-only database-backed sessions, owner bootstrap, logout, and immediate account revocation.
-- Per-user reads, mutations, imports, exports, and browser fallback storage.
-- Tailscale Funnel HTTPS ingress with no purchased domain or exposed router ports.
-- Secure-cookie production configuration and a stable `*.ts.net` address.
-- Installable PWA manifest with Android, maskable, and Apple icon variants.
-- Automatic validated daily PostgreSQL custom-format dumps with retention.
-- Safe production deployment and explicit full-database restoration scripts.
-- Exact Compose CI validation of authentication, synchronisation, cross-user isolation, public PWA assets, PNG dimensions, and backup readability.
-- Successful ARM64 deployment on Raspberry Pi.
-- Phone and desktop login and shared-state validation.
-- Successful Raspberry Pi reboot and automatic service recovery.
-- Retirement and destruction of the temporary DigitalOcean host.
+- PostgreSQL as the canonical personal-data store;
+- safe browser-to-server backup and import;
+- invite-only authentication for a small number of fully isolated accounts;
+- HTTP-only database-backed sessions and immediate account revocation;
+- per-user reads, mutations, imports, exports, photos, and browser fallback data;
+- Tailscale Funnel HTTPS without a purchased domain or router port forwarding;
+- Secure-cookie production configuration and a stable `*.ts.net` address;
+- installable PWA icons for Android, maskable, and Apple use;
+- validated local PostgreSQL dumps and paired upload archives;
+- safe deployment and restoration scripts;
+- exact Compose CI validation of migrations, authentication, synchronisation, cross-user isolation, PWA assets, photos, and backup readability;
+- successful ARM64 deployment, reboot recovery, and retirement of the temporary DigitalOcean host.
 
-Completed post-Slice-3 hardening in PR #14:
+### Post-Slice-3 hardening
 
-- Bounded login throttling and account cooldowns for the public Funnel endpoint.
-- Fixed dummy password work to reduce account-enumeration timing differences.
-- Private, user-scoped review-photo persistence outside the application container.
-- Authenticated photo retrieval, replacement, removal, and cross-user isolation.
-- Paired, validated PostgreSQL and upload archives.
-- Restore support for database state and persistent photos together.
-- Repeatable production security audit and zero-warning lint enforcement.
+PR #14 delivered:
 
-Remaining deployment follow-up:
+- bounded login throttling and per-account cooldowns;
+- fixed dummy password work to reduce account-enumeration timing differences;
+- private user-scoped review-photo persistence;
+- authenticated photo retrieval, replacement, removal, and cross-user isolation;
+- paired database and upload backup/restore support;
+- repeatable production security checks and zero-warning lint.
 
-- Externally built immutable AMD64 and ARM64 images.
-- Stronger automated rollback and a later full clean-host deployment rehearsal.
-- Encrypted recurring off-site backups, tracked in issue #12.
-- Optional future second local copy on USB storage or the NAS.
+PR #18 delivered:
 
-See `docs/slice-3-plan.md`, `docs/authentication.md`, `docs/phone-deployment.md`, `docs/review-photo-storage.md`, and `docs/production-security.md` for architecture and operational instructions.
+- client-side encrypted and deduplicated `restic` snapshots in a private Cloudflare R2 bucket;
+- fresh validated database and upload backups before each off-site snapshot;
+- 7 daily, 4 weekly, and 6 monthly retention with controlled pruning;
+- visible backup success, age, size, and health status;
+- staged off-site restore preparation that validates data before applying it;
+- a successful isolated restore rehearsal without overwriting production.
 
-## Current delivery sequence
+Optional deployment hardening remains available but does not block product work:
 
-### 1. Encrypted off-site backups
+- publish immutable AMD64 and ARM64 images from CI instead of building on the production host;
+- automate rollback to a previously published image;
+- repeat disaster recovery on a genuinely separate clean host;
+- add an optional second local copy on USB storage or a future NAS.
 
-**Status: next priority, tracked in issue #12.**
+See `docs/slice-3-plan.md`, `docs/authentication.md`, `docs/phone-deployment.md`, `docs/review-photo-storage.md`, `docs/security-hardening.md`, and `docs/offsite-backups.md`.
 
-- Store client-side encrypted, deduplicated backups in a private Cloudflare R2 bucket.
-- Create a fresh validated PostgreSQL dump before each off-site run.
-- Include persistent review photos and restoration-critical configuration.
-- Automate nightly snapshots, retention, pruning, and visible failure/staleness checks.
-- Complete and document a clean restore from R2 before beginning the next product slice.
+## Slice 4 — Standalone tasks and scheduled Weekly Review
 
-### 2. Slice 4 — Standalone tasks and scheduled Weekly Review
+**Status: complete in PR #20, with continuous-text persistence fixed in PR #22.**
 
-**Status: planned in issue #15 after issue #12.**
+### Standalone Tasks
 
-Standalone Tasks:
+Delivered:
 
-- Add a dedicated Tasks space for concrete one-off actions that do not justify a project.
-- Allow creation from Capture/Inbox and directly from Tasks.
-- Keep the model simple: title, optional notes, and an optional check-in date.
-- Allow tasks without dates to remain open indefinitely without producing an age-based warning.
-- Allow check-in dates to be changed without creating an action timeline.
-- Remove completed tasks from the active Tasks space without adding a completed-task-history destination.
-- Preserve only the completion metadata required by Weekly Review, saved review snapshots, export, backup, and tests.
-- Show due and overdue tasks on Home/Capture using the existing attention language.
-- Keep recurring work out of Tasks; recurrence belongs in a future Routine space.
+- a dedicated Tasks space for one-off actions that do not justify a project;
+- creation directly from Tasks or by classifying an Inbox capture;
+- title, optional notes, area, and optional check-in date;
+- undated tasks that remain open without age-based warnings;
+- freely changeable task dates without an action timeline;
+- due-today and overdue task attention on Capture;
+- quick task completion;
+- no separate completed-task archive, while retaining completion metadata for Weekly Review, export, and backup;
+- a clear boundary between one-off Tasks and future recurring Routines.
 
-Weekly Review scheduling:
+### Scheduled Weekly Review
 
-- Open one review window each Saturday for a fixed preceding review period.
-- Keep unfinished review data anchored to that period instead of allowing it to roll forward.
-- Close the review form after completion until the following Saturday.
-- Keep an unfinished review open through Friday and remind the user daily at 08:00 local time from Sunday onward.
-- Discard an unfinished prior review when the next Saturday opens a fresh window.
-- Include all open standalone tasks and tasks completed during the reviewed week.
-- Keep completed reviews in Review History.
+Delivered:
 
-Targeted notification work in this slice is limited to overdue Weekly Review reminders. General task reminders and a generic notification system remain later work.
+- one fixed review period opening each Saturday for the previous Saturday-to-Friday week;
+- unfinished drafts anchored to their original period through Friday;
+- completion lockout until the next Saturday;
+- replacement of an unfinished stale draft when a new Saturday opens;
+- generated context for project attention, opened/completed actions, completed projects, open tasks, completed tasks, and recent thoughts;
+- review history with the actual reviewed period;
+- an in-app reminder from Sunday through Friday after 08:00 while the review remains unfinished;
+- a narrow best-effort browser/PWA notification path.
 
-## Later modules and capabilities
+Real background notification behavior remains an observation task in issue #21 and does not block use of the in-app reminder.
 
-- Offline-friendly capture and synchronisation
-- Routines and recurring responsibilities
-- Books and reading
-- Trips
-- Habits and running summaries
-- Calendar and Strava integrations
-- Broader notifications and travel-price monitoring
-- Optional AI classification, task breakdown, summaries, and recommendations
-- Evaluate a native Android app only if the PWA has important platform limitations
+### Navigation and persistence polish
+
+Also delivered:
+
+- four configurable mobile quick-access destinations stored per browser/device;
+- all primary destinations in the desktop rail;
+- debounced Inbox and Weekly Review text persistence after roughly 800 ms of inactivity;
+- immediate flush on blur and before organising or completing a review;
+- discrete actions such as dates, statuses, completion, and selectors remaining immediate.
+
+## Current decision point
+
+No product-facing Slice 5 has been selected yet.
+
+The next session should choose one focused outcome rather than starting several modules at once. Current candidates are:
+
+- **Routines** — recurring responsibilities that should not be represented as one-off tasks;
+- **Library** — books, reading status, progress, notes, and recommendations later;
+- **Trips** — trip ideas, decisions, budgets, and later supported price monitoring;
+- **Fitness** — imported running activity and weekly trends;
+- **Offline capture** — reliable capture while disconnected, followed by deliberate synchronisation.
+
+In parallel, issue #21 can remain open while Weekly Review notifications are observed on the installed production phone.
+
+## Later capabilities
+
+- calendar and Strava integrations;
+- broader notifications and conditional monitoring;
+- travel-price monitoring;
+- optional AI classification, task breakdown, summaries, duplicate detection, and recommendations;
+- richer voice or video review capture;
+- native Android evaluation only if the PWA has a demonstrated platform limitation.
 
 ## Delivery rules
 
 - Phone use is the primary interface assumption; desktop is a progressive enhancement.
-- The complete manual workflow comes before specialised trackers.
-- Slice 2 establishes the workflow; Slice 3 makes it safe to trust with real data.
-- Backups are not complete until a representative clean restore has succeeded.
-- One-off tasks, projects, thoughts, and future routines must remain distinct concepts.
-- AI should be anticipated in the data model but must not block the manual workflow.
-- Use only neutral fixtures and examples in the public repository.
-- Deployment must remain portable between AMD64 and ARM64 hosts.
-- Personal-data operations must always be scoped by the authenticated user identity.
-- The visual GitHub Project remains optional until the issue list becomes difficult to scan.
+- Complete one useful workflow before adding breadth.
+- One-off tasks, projects, thoughts, and recurring routines remain distinct concepts.
+- Personal-data operations must always be scoped by authenticated user identity.
+- Backups are only trusted after a representative restore succeeds.
+- Optional infrastructure hardening should not silently replace the agreed product priority.
+- AI must remain optional, transparent, and reviewable.
+- Public fixtures, examples, issues, and documentation must remain neutral.
+- Deployment must remain portable between AMD64 and ARM64.

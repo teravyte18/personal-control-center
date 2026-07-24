@@ -13,8 +13,8 @@ rm -rf "$RESTORE_ROOT"
 mkdir -p "$RESTORE_ROOT"
 
 docker compose run --rm --no-deps \
-  --entrypoint /usr/local/bin/pcc-offsite \
-  backup restore-latest /restore
+  --entrypoint /bin/sh \
+  backup /usr/local/bin/pcc-offsite restore-latest /restore
 
 dump_path="$(find "$RESTORE_ROOT/backups" -maxdepth 1 -type f -name 'personal-control-center-*.dump' -size +0c | sort | tail -n 1)"
 if [ -z "$dump_path" ]; then

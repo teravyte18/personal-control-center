@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { DataStatusBanner } from "@/components/data-status-banner";
 import { Icon } from "@/components/icon";
+import { ReviewReminderController } from "@/components/review-reminder";
 import { defaultPinnedDestinations, isDestinationActive } from "@/lib/navigation";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -34,6 +35,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         <main className="mx-auto min-h-screen max-w-6xl px-4 pb-32 pt-20 sm:px-6 md:px-8 md:pb-10 md:pt-8">
           <DataStatusBanner />
+          <ReviewReminderController />
           {children}
         </main>
       </div>

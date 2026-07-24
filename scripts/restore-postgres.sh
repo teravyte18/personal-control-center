@@ -5,13 +5,29 @@ DUMP_PATH="${1:-}"
 DATABASE_NAME="personal_control_center"
 DATABASE_USER="pcc"
 
+if [ "$(id -u)" -eq 0 ]; then
+  echo "Do not run this restore as root or through sudo." >&2
+  echo "Root execution can discard COMPOSE_PROJECT_NAME and restore into the wrong Compose project." >&2
+  echo "Fix host-directory ownership, then rerun as the normal deployment user." >&2
+  exit 1
+fi
+
 if [ -z "$DUMP_PATH" ] || [ ! -f "$DUMP_PATH" ]; then
   echo "Usage: sh scripts/restore-postgres.sh path/to/backup.dump" >&2
   exit 1
 fi
 
 if [ ! -f compose.yaml ] || [ ! -f .env ]; then
-  echo "Run this script from the configured production repository root." >&2
+  echo "Run this script from the configured repository root." >&2
+  exit 1
+fi
+
+# Create the uploads bind-mount source as the invoking user before Docker can
+# create it as root in a clean checkout.
+mkdir -p data/uploads
+if [ ! -w data/uploads ]; then
+  echo "Upload directory is not writable by $(id -un): data/uploads" >&2
+  echo "Fix its ownership before retrying; do not rerun this command with sudo." >&2
   exit 1
 fi
 
@@ -32,6 +48,14 @@ else
   restore_description="the database from $DUMP_PATH (no paired upload archive was found)"
 fi
 
+compose_project="${COMPOSE_PROJECT_NAME:-}"
+if [ -z "$compose_project" ]; then
+  compose_project="$(sed -n 's/^name:[[:space:]]*//p' compose.yaml | head -n 1)"
+fi
+compose_project="${compose_project:-$(basename "$(pwd -P)")}"
+
+echo "Restore repository: $(pwd -P)"
+echo "Restore Compose project: $compose_project"
 printf 'This replaces %s. Type RESTORE to continue: ' "$restore_description"
 read -r confirmation
 if [ "$confirmation" != "RESTORE" ]; then
@@ -71,7 +95,6 @@ docker compose exec -T postgres \
   < "$DUMP_PATH"
 
 if [ -n "$UPLOAD_ARCHIVE" ]; then
-  mkdir -p data/uploads
   find data/uploads -mindepth 1 -maxdepth 1 -exec rm -rf {} +
   tar -xzf "$UPLOAD_ARCHIVE" -C data/uploads
 fi

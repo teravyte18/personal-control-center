@@ -6,6 +6,7 @@ UPLOAD_DIR="${PCC_UPLOAD_DIR:-/uploads}"
 INTERVAL_HOURS="${PCC_BACKUP_INTERVAL_HOURS:-24}"
 RETENTION_DAYS="${PCC_BACKUP_RETENTION_DAYS:-14}"
 DATABASE_NAME="${PGDATABASE:-personal_control_center}"
+R2_ENABLED="${PCC_R2_ENABLED:-0}"
 
 validate_non_negative_integer() {
   value="$1"
@@ -17,6 +18,14 @@ validate_non_negative_integer() {
       ;;
   esac
 }
+
+case "$R2_ENABLED" in
+  0|1) ;;
+  *)
+    echo "PCC_R2_ENABLED must be 0 or 1." >&2
+    exit 1
+    ;;
+esac
 
 validate_non_negative_integer "$INTERVAL_HOURS" "PCC_BACKUP_INTERVAL_HOURS"
 validate_non_negative_integer "$RETENTION_DAYS" "PCC_BACKUP_RETENTION_DAYS"
@@ -53,13 +62,20 @@ create_backup() {
   mv "$database_temporary" "$database_path"
   mv "$uploads_temporary" "$uploads_path"
 
+  if [ "$R2_ENABLED" = "1" ]; then
+    echo "Starting encrypted off-site backup."
+    if ! sh /usr/local/bin/pcc-offsite backup "$database_path"; then
+      echo "The local backup succeeded, but the R2 backup failed. Check with: sh scripts/manage-offsite-backup.sh status" >&2
+    fi
+  fi
+
   find "$BACKUP_DIR" \
     -type f \
     \( -name 'personal-control-center-*.dump' -o -name 'personal-control-center-*.uploads.tar.gz' \) \
     -mtime "+$RETENTION_DAYS" \
     -delete
 
-  echo "Backup completed: $database_path and $uploads_path"
+  echo "Local backup completed: $database_path and $uploads_path"
 }
 
 if [ "${1:-}" = "--once" ]; then

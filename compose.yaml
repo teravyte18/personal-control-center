@@ -59,7 +59,9 @@ services:
       start_period: 20s
 
   backup:
-    image: postgres:17-alpine
+    build:
+      context: .
+      dockerfile: Dockerfile.backup
     restart: unless-stopped
     init: true
     user: "${PCC_HOST_UID:-1000}:${PCC_HOST_GID:-1000}"
@@ -73,12 +75,26 @@ services:
       PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       PCC_BACKUP_DIR: /backups
       PCC_UPLOAD_DIR: /uploads
+      PCC_SOURCE_ROOT: /source
+      PCC_OFFSITE_RESTORE_ROOT: /restore
       PCC_BACKUP_INTERVAL_HOURS: ${PCC_BACKUP_INTERVAL_HOURS:-24}
       PCC_BACKUP_RETENTION_DAYS: ${PCC_BACKUP_RETENTION_DAYS:-14}
+      PCC_R2_ENABLED: ${PCC_R2_ENABLED:-0}
+      PCC_R2_REPOSITORY: ${PCC_R2_REPOSITORY:-}
+      PCC_R2_REGION: ${PCC_R2_REGION:-auto}
+      PCC_R2_ACCESS_KEY_ID_FILE: ${PCC_R2_ACCESS_KEY_ID_FILE:-/run/secrets/r2-access-key-id}
+      PCC_R2_SECRET_ACCESS_KEY_FILE: ${PCC_R2_SECRET_ACCESS_KEY_FILE:-/run/secrets/r2-secret-access-key}
+      PCC_RESTIC_PASSWORD_FILE: ${PCC_RESTIC_PASSWORD_FILE:-/run/secrets/restic-password}
+      PCC_RESTIC_HOSTNAME: ${PCC_RESTIC_HOSTNAME:-personal-control-center-pi}
+      PCC_R2_MAX_BACKUP_AGE_HOURS: ${PCC_R2_MAX_BACKUP_AGE_HOURS:-36}
     volumes:
       - ./scripts/backup-postgres.sh:/usr/local/bin/pcc-backup:ro
+      - ./scripts/offsite-backup.sh:/usr/local/bin/pcc-offsite:ro
       - ./data/backups:/backups
       - ./data/uploads:/uploads:ro
+      - ./data/offsite-restore:/restore
+      - ./:/source:ro
+      - ./.secrets:/run/secrets:ro
     entrypoint: ["/bin/sh", "/usr/local/bin/pcc-backup"]
     depends_on:
       postgres:
@@ -86,11 +102,11 @@ services:
     security_opt:
       - no-new-privileges:true
     healthcheck:
-      test: ["CMD-SHELL", "find /backups -maxdepth 1 -type f -name 'personal-control-center-*.dump' -size +0c | grep -q . && find /backups -maxdepth 1 -type f -name 'personal-control-center-*.uploads.tar.gz' -size +0c | grep -q ."]
+      test: ["CMD-SHELL", "find /backups -maxdepth 1 -type f -name 'personal-control-center-*.dump' -size +0c | grep -q . && find /backups -maxdepth 1 -type f -name 'personal-control-center-*.uploads.tar.gz' -size +0c | grep -q . && sh /usr/local/bin/pcc-offsite health"]
       interval: 30s
-      timeout: 5s
+      timeout: 10s
       retries: 5
-      start_period: 60s
+      start_period: 90s
 
   tailscale:
     image: tailscale/tailscale:stable

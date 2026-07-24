@@ -29,7 +29,22 @@ jobs:
           npm run lint 2>&1 | tee source-validation.log
 
       - name: Validate operational scripts
-        run: sh -n scripts/backup-postgres.sh scripts/check-production-security.sh scripts/deploy-production.sh scripts/restore-postgres.sh
+        run: sh -n scripts/backup-postgres.sh scripts/check-production-security.sh scripts/deploy-production.sh scripts/manage-offsite-backup.sh scripts/offsite-backup.sh scripts/restore-offsite.sh scripts/restore-postgres.sh
+
+      - name: Verify restore scripts reject root
+        run: |
+          set -eu
+          if sudo sh scripts/manage-offsite-backup.sh status >/tmp/manage-root.log 2>&1; then
+            echo "manage-offsite-backup.sh unexpectedly allowed root execution." >&2
+            exit 1
+          fi
+          grep -q 'Do not run this script as root' /tmp/manage-root.log
+
+          if sudo sh scripts/restore-postgres.sh missing.dump >/tmp/restore-root.log 2>&1; then
+            echo "restore-postgres.sh unexpectedly allowed root execution." >&2
+            exit 1
+          fi
+          grep -q 'Do not run this restore as root' /tmp/restore-root.log
 
       - name: Test domain and security behavior
         run: npm test
@@ -56,6 +71,7 @@ jobs:
           PCC_COOKIE_SECURE: 0
           PCC_BACKUP_INTERVAL_HOURS: 24
           PCC_BACKUP_RETENTION_DAYS: 14
+          PCC_R2_ENABLED: 0
           PCC_ALLOW_INSECURE_USER_HEADER: 1
           TAILSCALE_AUTH_KEY: ci-placeholder
           TAILSCALE_HOSTNAME: personal-control-center-ci
@@ -72,18 +88,19 @@ jobs:
           PCC_COOKIE_SECURE: 0
           PCC_BACKUP_INTERVAL_HOURS: 24
           PCC_BACKUP_RETENTION_DAYS: 14
+          PCC_R2_ENABLED: 0
           PCC_ALLOW_INSECURE_USER_HEADER: 1
         run: |
           set -o pipefail
-          sudo rm -rf data/backups data/uploads
-          mkdir -p data/backups
+          sudo rm -rf data/backups data/uploads data/offsite-restore .secrets
+          mkdir -p data/backups data/offsite-restore .secrets
           sudo install -d -o 1000 -g 1000 -m 0755 data/uploads
           export PCC_HOST_UID="$(id -u)"
           export PCC_HOST_GID="$(id -g)"
           touch compose-validation.log
           exec > >(tee -a compose-validation.log) 2>&1
           set -x
-          trap 'docker compose ps -a; docker compose logs; docker compose down --volumes --remove-orphans; sudo rm -rf data/backups data/uploads; rm -f pwa-manifest.json pwa-icon-* upload-archive.list' EXIT
+          trap 'docker compose ps -a; docker compose logs; docker compose down --volumes --remove-orphans; sudo rm -rf data/backups data/uploads data/offsite-restore .secrets; rm -f pwa-manifest.json pwa-icon-* upload-archive.list' EXIT
           docker compose up -d --build
           for attempt in $(seq 1 60); do
             if curl --fail --silent http://127.0.0.1:3000/api/health >/dev/null; then
@@ -131,6 +148,7 @@ jobs:
           docker compose exec -T backup pg_restore --list "/backups/$(basename "$latest_dump")" >/dev/null
           tar -tzf "$latest_uploads" > upload-archive.list
           grep -Eq '^\./[^/]+/review-photos/[0-9a-f-]{36}$' upload-archive.list
+          docker compose run --rm --no-deps --entrypoint /bin/sh backup /usr/local/bin/pcc-offsite status | grep -q 'R2 off-site backups are disabled'
 
       - name: Upload Compose failure log
         if: failure()

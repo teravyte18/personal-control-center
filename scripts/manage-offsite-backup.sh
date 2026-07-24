@@ -11,8 +11,8 @@ command="${1:-status}"
 case "$command" in
   init|status|check|prune)
     docker compose run --rm --no-deps \
-      --entrypoint /usr/local/bin/pcc-offsite \
-      backup "$command"
+      --entrypoint /bin/sh \
+      backup /usr/local/bin/pcc-offsite "$command"
     ;;
   backup-now)
     docker compose run --rm backup --once

@@ -64,7 +64,7 @@ create_backup() {
 
   if [ "$R2_ENABLED" = "1" ]; then
     echo "Starting encrypted off-site backup."
-    if ! /usr/local/bin/pcc-offsite backup "$database_path"; then
+    if ! sh /usr/local/bin/pcc-offsite backup "$database_path"; then
       echo "The local backup succeeded, but the R2 backup failed. Check with: sh scripts/manage-offsite-backup.sh status" >&2
     fi
   fi

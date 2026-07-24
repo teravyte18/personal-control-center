@@ -105,9 +105,10 @@ export function ReviewReminderController() {
 export function ReviewNotificationControl() {
   const [permission, setPermission] = useState<NotificationPermission | "unsupported">("unsupported");
   const [requesting, setRequesting] = useState(false);
-  const secure = typeof window !== "undefined" && window.isSecureContext;
+  const [secure, setSecure] = useState(false);
 
   useEffect(() => {
+    setSecure(window.isSecureContext);
     setPermission("Notification" in window ? Notification.permission : "unsupported");
   }, []);
 

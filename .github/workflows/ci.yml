@@ -31,6 +31,21 @@ jobs:
       - name: Validate operational scripts
         run: sh -n scripts/backup-postgres.sh scripts/check-production-security.sh scripts/deploy-production.sh scripts/manage-offsite-backup.sh scripts/offsite-backup.sh scripts/restore-offsite.sh scripts/restore-postgres.sh
 
+      - name: Verify restore scripts reject root
+        run: |
+          set -eu
+          if sudo sh scripts/manage-offsite-backup.sh status >/tmp/manage-root.log 2>&1; then
+            echo "manage-offsite-backup.sh unexpectedly allowed root execution." >&2
+            exit 1
+          fi
+          grep -q 'Do not run this script as root' /tmp/manage-root.log
+
+          if sudo sh scripts/restore-postgres.sh missing.dump >/tmp/restore-root.log 2>&1; then
+            echo "restore-postgres.sh unexpectedly allowed root execution." >&2
+            exit 1
+          fi
+          grep -q 'Do not run this restore as root' /tmp/restore-root.log
+
       - name: Test domain and security behavior
         run: npm test
 

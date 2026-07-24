@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { activeBrowserUserStorageKey } from "@/lib/personal-storage";
 
 const SESSION_REFRESH_INTERVAL_MS = 60_000;
+const LOCAL_DEVELOPMENT = process.env.NEXT_PUBLIC_PCC_LOCAL_DEV_MODE === "1";
 
 type GuardState = "checking" | "ready" | "error";
 
@@ -39,9 +40,10 @@ async function checkSession() {
 }
 
 export function SessionGuard({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<GuardState>("checking");
+  const [state, setState] = useState<GuardState>(LOCAL_DEVELOPMENT ? "ready" : "checking");
 
   const retry = useCallback(() => {
+    if (LOCAL_DEVELOPMENT) return;
     setState("checking");
     void checkSession()
       .then((authenticated) => {
@@ -51,6 +53,7 @@ export function SessionGuard({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    if (LOCAL_DEVELOPMENT) return;
     let cancelled = false;
 
     void checkSession()
@@ -67,7 +70,7 @@ export function SessionGuard({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (state !== "ready") return;
+    if (LOCAL_DEVELOPMENT || state !== "ready") return;
 
     const recheck = () => {
       void checkSession().catch(() => undefined);

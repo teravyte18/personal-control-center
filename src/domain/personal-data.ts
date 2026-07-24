@@ -38,6 +38,7 @@ export type Item = {
   kind: ItemKind;
   status: ItemStatus;
   area: AreaId;
+  checkInDate?: string;
   createdAt: string;
   updatedAt: string;
   completedAt?: string;
@@ -47,6 +48,8 @@ export type Item = {
 };
 
 export type ReviewDraft = {
+  periodStart: string;
+  periodEnd: string;
   location: string;
   photoName: string;
   happened: string;
@@ -62,6 +65,8 @@ export type ReviewEntry = ReviewDraft & {
 };
 
 export const emptyReview: ReviewDraft = {
+  periodStart: "",
+  periodEnd: "",
   location: "",
   photoName: "",
   happened: "",
@@ -118,7 +123,7 @@ function validDateOrFallback(value: unknown, fallback: string) {
   return typeof value === "string" && !Number.isNaN(Date.parse(value)) ? value : fallback;
 }
 
-function validDateOnlyOrEmpty(value: unknown) {
+export function validDateOnlyOrEmpty(value: unknown) {
   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return "";
   return Number.isNaN(Date.parse(`${value}T00:00:00`)) ? "" : value;
 }
@@ -187,6 +192,7 @@ export function normalizeItem(value: unknown, fallbackNow = new Date()): Item | 
     kind,
     status,
     area: isAreaId(value.area) ? value.area : "uncategorized",
+    checkInDate: validDateOnlyOrEmpty(value.checkInDate) || undefined,
     createdAt,
     updatedAt,
     completedAt: preservesCompletion ? completedAt : undefined,
@@ -209,6 +215,8 @@ export function normalizeItems(value: unknown, fallbackNow = new Date()) {
 export function normalizeReviewDraft(value: unknown): ReviewDraft {
   if (!isRecord(value)) return { ...emptyReview };
   return {
+    periodStart: validDateOnlyOrEmpty(value.periodStart),
+    periodEnd: validDateOnlyOrEmpty(value.periodEnd),
     location: stringOrEmpty(value.location),
     photoName: stringOrEmpty(value.photoName),
     happened: stringOrEmpty(value.happened),
@@ -248,7 +256,7 @@ export function createId() {
 
 export function createItem(
   title: string,
-  options: Partial<Pick<Item, "description" | "kind" | "status" | "area">> = {},
+  options: Partial<Pick<Item, "description" | "kind" | "status" | "area" | "checkInDate">> = {},
   now = new Date(),
 ): Item | null {
   const trimmedTitle = title.trim();
@@ -263,6 +271,7 @@ export function createItem(
     kind: options.kind ?? "unclassified",
     status: options.status ?? "inbox",
     area: options.area ?? "uncategorized",
+    checkInDate: validDateOnlyOrEmpty(options.checkInDate) || undefined,
     createdAt: timestamp,
     updatedAt: timestamp,
   };
@@ -276,6 +285,7 @@ export function updateItemFields(
   return {
     ...item,
     ...updates,
+    checkInDate: "checkInDate" in updates ? validDateOnlyOrEmpty(updates.checkInDate) || undefined : item.checkInDate,
     id: item.id,
     createdAt: item.createdAt,
     updatedAt: now.toISOString(),
@@ -368,6 +378,22 @@ export function toggleItemCompleted(item: Item, now = new Date()): Item {
     ? item.statusBeforeCompletion ?? "active"
     : "completed";
   return transitionItemStatus(item, nextStatus, now);
+}
+
+export function isOpenTask(item: Item) {
+  return item.kind === "task" && !["completed", "archived"].includes(item.status);
+}
+
+export function isTaskDueToday(item: Item, reference = new Date()) {
+  const checkInDate = item.checkInDate ?? "";
+  if (!isOpenTask(item) || !checkInDate) return false;
+  return checkInDate === formatLocalDate(reference);
+}
+
+export function isTaskOverdue(item: Item, reference = new Date()) {
+  const checkInDate = item.checkInDate ?? "";
+  if (!isOpenTask(item) || !checkInDate) return false;
+  return checkInDate < formatLocalDate(reference);
 }
 
 export function createProjectAction(title: string, targetDate: string, now = new Date()): ProjectAction | null {
@@ -504,4 +530,11 @@ export function isProjectActionTargetReached(action: ProjectAction, reference = 
   today.setHours(0, 0, 0, 0);
   const target = new Date(`${action.targetDate}T00:00:00`);
   return target <= today;
+}
+
+function formatLocalDate(reference: Date) {
+  const year = reference.getFullYear();
+  const month = String(reference.getMonth() + 1).padStart(2, "0");
+  const day = String(reference.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }

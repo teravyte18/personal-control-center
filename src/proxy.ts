@@ -12,6 +12,7 @@ function isPublicPath(pathname: string) {
     || pathname === "/api/auth/session"
     || pathname === "/manifest.webmanifest"
     || pathname === "/favicon.ico"
+    || pathname === "/review-reminder-sw.js"
     || pathname.startsWith("/api/pwa-icon/")
     || pathname.startsWith("/_next/")
     || pathname.startsWith("/icons/");
@@ -20,6 +21,10 @@ function isPublicPath(pathname: string) {
 export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   if (isPublicPath(pathname)) return NextResponse.next();
+
+  const localDevelopment = process.env.NODE_ENV !== "production"
+    && process.env.PCC_LOCAL_DEV_MODE === "1";
+  if (localDevelopment) return NextResponse.next();
 
   const testIdentityAllowed = process.env.PCC_ALLOW_INSECURE_USER_HEADER === "1"
     && Boolean(request.headers.get(INSECURE_USER_HEADER));

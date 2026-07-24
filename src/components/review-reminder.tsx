@@ -180,7 +180,6 @@ async function showReviewNotification() {
         icon: "/api/pwa-icon/192",
         badge: "/api/pwa-icon/192",
         tag: "pcc-weekly-review",
-        renotify: false,
         data: { url: "/review" },
       });
       return true;

@@ -62,6 +62,15 @@ async function sendCapture(mutation: PersonalDataMutation) {
   }
 }
 
+async function confirmServerConnection() {
+  const response = await fetch("/api/personal-data", { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error(response.status === 401
+      ? "Sign in again before pending captures can be synchronised."
+      : "The server is still unavailable.");
+  }
+}
+
 export function OfflineCaptureProvider({ children }: { children: ReactNode }) {
   const { addItem } = usePersonalData();
   const { dataMode, refreshServerData } = useDataConnection();
@@ -81,10 +90,13 @@ export function OfflineCaptureProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const identity = loadActiveBrowserUser(window.localStorage);
-    userIdRef.current = identity?.id ?? (LOCAL_DEVELOPMENT ? "local-development" : null);
-    setOnline(navigator.onLine);
-    reloadPending();
+    const timeout = window.setTimeout(() => {
+      const identity = loadActiveBrowserUser(window.localStorage);
+      userIdRef.current = identity?.id ?? (LOCAL_DEVELOPMENT ? "local-development" : null);
+      setOnline(navigator.onLine);
+      reloadPending();
+    }, 0);
+    return () => window.clearTimeout(timeout);
   }, [reloadPending]);
 
   useEffect(() => {
@@ -96,7 +108,7 @@ export function OfflineCaptureProvider({ children }: { children: ReactNode }) {
     };
     window.addEventListener("storage", refresh);
     return () => window.removeEventListener("storage", refresh);
-  }, [reloadPending]);
+  }, [reloadPending, pending.length]);
 
   const retry = useCallback(async () => {
     const userId = userIdRef.current;
@@ -117,20 +129,26 @@ export function OfflineCaptureProvider({ children }: { children: ReactNode }) {
           const message = error instanceof Error ? error.message : "The capture could not be synchronised.";
           records = markOfflineCaptureAttempt(window.localStorage, userId, record.id, message);
           setPending(records);
-          setLastError(message);
-          break;
+          throw new Error(message);
         }
       }
 
       if (records.length === 0) {
+        if (dataMode === "local-fallback") {
+          await confirmServerConnection();
+          window.location.reload();
+          return;
+        }
         await refreshServerData();
         setLastError("");
       }
+    } catch (error) {
+      setLastError(error instanceof Error ? error.message : "Pending captures could not be synchronised.");
     } finally {
       syncingRef.current = false;
       setSyncing(false);
     }
-  }, [refreshServerData]);
+  }, [dataMode, refreshServerData]);
 
   useEffect(() => {
     const becameOnline = () => {
@@ -161,7 +179,9 @@ export function OfflineCaptureProvider({ children }: { children: ReactNode }) {
   }, [dataMode, pending.length, retry]);
 
   useEffect(() => {
-    if (online && (pending.length > 0 || dataMode === "local-fallback")) void retry();
+    if (!online || (pending.length === 0 && dataMode !== "local-fallback")) return;
+    const timeout = window.setTimeout(() => void retry(), 0);
+    return () => window.clearTimeout(timeout);
   }, [dataMode, online, pending.length, retry]);
 
   const capture = useCallback(async (title: string): Promise<CaptureResult | null> => {
@@ -176,7 +196,7 @@ export function OfflineCaptureProvider({ children }: { children: ReactNode }) {
     const userId = userIdRef.current;
     if (!userId) throw new Error("Open the app online and sign in once before using offline capture.");
 
-    if (!navigator.onLine || dataMode !== "server") {
+    if (!navigator.onLine || dataMode !== "server" || syncingRef.current) {
       const records = enqueueOfflineCapture(window.localStorage, userId, mutation);
       setPending(records);
       setOnline(navigator.onLine);

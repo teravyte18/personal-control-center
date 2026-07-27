@@ -236,7 +236,7 @@ The next two product slices are ordered:
 1. **Google Calendar bridge** — expose dated Tasks and project action check-ins as all-day entries in a separate calendar through one-way synchronisation.
 2. **Offline capture** — allow new Capture items to survive temporary connection loss and synchronise without duplicates when the server becomes reachable.
 
-After those slices, Routines, Library/Media, Trips, Fitness, and Events/Appointments have equal documented priority. Library may be a likely personal choice, beginning with books and potentially adding movies later, but it is not formally ordered ahead of the other modules.
+After those slices, Routines, Library/Media, Trips, Fitness, and Events/Appointments have equal documented priority. Books and possibly movies may be the first personal preference considered, but Library/Media is not formally ordered ahead of the other modules.
 
 ## Current non-goals
 

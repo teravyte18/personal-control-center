@@ -29,6 +29,25 @@ function formatTimestamp(value: string | null) {
   }).format(new Date(value));
 }
 
+function oauthResultMessage(result: string | null) {
+  if (result === "connected") {
+    return { notice: "Google Calendar connected and initial synchronisation completed.", error: "" };
+  }
+  if (result === "cancelled") {
+    return { notice: "Google Calendar connection was cancelled.", error: "" };
+  }
+  if (result === "not-configured") {
+    return { notice: "", error: "Google Calendar server configuration is incomplete." };
+  }
+  if (["error", "expired", "invalid-state"].includes(result ?? "")) {
+    return {
+      notice: "",
+      error: "Google Calendar could not be connected. Check the server logs and OAuth configuration, then try again.",
+    };
+  }
+  return { notice: "", error: "" };
+}
+
 export function GoogleCalendarSettings() {
   const [status, setStatus] = useState<GoogleCalendarStatus | null>(null);
   const [loading, setLoading] = useState(true);
@@ -47,15 +66,14 @@ export function GoogleCalendarSettings() {
 
   useEffect(() => {
     let cancelled = false;
-    const result = new URLSearchParams(window.location.search).get("calendar");
-    if (result === "connected") setNotice("Google Calendar connected and initial synchronisation completed.");
-    if (result === "cancelled") setNotice("Google Calendar connection was cancelled.");
-    if (result === "not-configured") setError("Google Calendar server configuration is incomplete.");
-    if (["error", "expired", "invalid-state"].includes(result ?? "")) {
-      setError("Google Calendar could not be connected. Check the server logs and OAuth configuration, then try again.");
-    }
+    const resultMessage = oauthResultMessage(new URLSearchParams(window.location.search).get("calendar"));
 
     void loadStatus()
+      .then(() => {
+        if (cancelled) return;
+        if (resultMessage.notice) setNotice(resultMessage.notice);
+        if (resultMessage.error) setError(resultMessage.error);
+      })
       .catch((loadError) => {
         if (!cancelled) setError(loadError instanceof Error ? loadError.message : "Could not load Google Calendar status.");
       })

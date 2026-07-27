@@ -1,6 +1,3 @@
-import { getCurrentProjectAction, type Item } from "@/domain/personal-data";
-import type { PersonalDataMutation, PersonalDataSnapshot } from "@/domain/personal-data-snapshot";
-
 export type GoogleCalendarSourceType = "task" | "project-action";
 
 export type GoogleCalendarProjection = {
@@ -26,8 +23,35 @@ export type GoogleCalendarEventBody = {
   };
 };
 
-function isActiveItem(item: Item) {
+type CalendarAction = {
+  id: string;
+  title: string;
+  targetDate: string;
+  openedAt: string;
+  completedAt?: string;
+};
+
+type CalendarItem = {
+  id: string;
+  title: string;
+  description: string;
+  kind: string;
+  status: string;
+  checkInDate?: string;
+  actions: CalendarAction[];
+};
+
+type CalendarSnapshot = { items: CalendarItem[] };
+type MutationLike = { type: string };
+
+function isActiveItem(item: CalendarItem) {
   return !["completed", "archived"].includes(item.status);
+}
+
+function currentProjectAction(item: CalendarItem) {
+  return [...item.actions]
+    .filter((action) => !action.completedAt)
+    .sort((left, right) => Date.parse(right.openedAt) - Date.parse(left.openedAt))[0];
 }
 
 export function nextDate(date: string) {
@@ -36,7 +60,7 @@ export function nextDate(date: string) {
   return value.toISOString().slice(0, 10);
 }
 
-export function buildGoogleCalendarProjections(snapshot: PersonalDataSnapshot): GoogleCalendarProjection[] {
+export function buildGoogleCalendarProjections(snapshot: CalendarSnapshot): GoogleCalendarProjection[] {
   const projections: GoogleCalendarProjection[] = [];
 
   for (const item of snapshot.items) {
@@ -57,7 +81,7 @@ export function buildGoogleCalendarProjections(snapshot: PersonalDataSnapshot): 
     }
 
     if (item.kind === "project") {
-      const action = getCurrentProjectAction(item);
+      const action = currentProjectAction(item);
       if (!action?.targetDate) continue;
       projections.push({
         sourceType: "project-action",
@@ -92,6 +116,6 @@ export function buildGoogleCalendarEventBody(projection: GoogleCalendarProjectio
   };
 }
 
-export function mutationAffectsGoogleCalendar(mutation: PersonalDataMutation) {
+export function mutationAffectsGoogleCalendar(mutation: MutationLike) {
   return !["update-review-draft", "complete-review"].includes(mutation.type);
 }

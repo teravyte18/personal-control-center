@@ -102,7 +102,7 @@ Reconciliation runs after relevant server-side personal-data mutations and impor
 
 ## Manual acceptance tests
 
-Use neutral temporary records and delete them after testing.
+Use neutral temporary records and delete them after testing where the current UI supports removal.
 
 ### A. Connection and initial sync
 
@@ -124,11 +124,7 @@ Use neutral temporary records and delete them after testing.
 4. Add or change notes and confirm the event description updates.
 5. Remove the Task date and confirm its event disappears.
 6. Add the date again and confirm one event is recreated.
-7. Complete the Task and confirm the event disappears.
-8. Reopen the Task and confirm the event returns.
-9. Archive it and confirm the event disappears.
-10. Restore it and confirm the event returns when its date remains present.
-11. Delete it and confirm the event disappears permanently.
+7. Complete the Task and confirm the event disappears. The completed Task itself will leave the active Tasks view, as it already does without Calendar integration.
 
 ### C. Project-action lifecycle
 

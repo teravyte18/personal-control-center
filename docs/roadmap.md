@@ -151,7 +151,7 @@ Also delivered:
 
 No product-facing Slice 5 has been selected yet.
 
-The next session should choose one focused outcome rather than starting several modules at once. Current candidates are:
+The next session should choose one focused outcome rather than starting several modules at once. The original candidates after Slice 4 were:
 
 - **Routines** — recurring responsibilities that should not be represented as one-off tasks;
 - **Library** — books, reading status, progress, notes, and recommendations later;
@@ -159,11 +159,28 @@ The next session should choose one focused outcome rather than starting several 
 - **Fitness** — imported running activity and weekly trends;
 - **Offline capture** — reliable capture while disconnected, followed by deliberate synchronisation.
 
-In parallel, issue #21 can remain open while Weekly Review notifications are observed on the installed production phone.
+A new candidate is now defined:
+
+- **Google Calendar bridge** — project dated items into a separate Personal Control Center calendar while the application remains the source of truth.
+
+The initial calendar direction is intentionally narrow:
+
+- one-way synchronisation from the application to Google Calendar;
+- a separate calendar rather than writing into the user's primary calendar;
+- all-day events for the first version because existing Tasks and project action points store dates rather than times;
+- initial coverage for dated Tasks and project current-action check-in dates;
+- create, update, reschedule, complete, archive, and delete behavior must keep the linked calendar event consistent;
+- store the external calendar event identifier so retries do not create duplicates;
+- surface sync status and recover safely from temporary Google API failures;
+- no two-way editing from Google Calendar back into the application.
+
+Time-specific commitments are a separate future need. A later **Events or Appointments** space may support start times, end times, locations, and appointment-oriented context without forcing those records into the one-off Task model. That future module could use the same calendar connection while preserving the application as the canonical editor.
+
+In parallel, issue #21 can remain open while Weekly Review notifications are observed on the installed production phone. It is not a prerequisite for selecting or delivering the next product slice.
 
 ## Later capabilities
 
-- calendar and Strava integrations;
+- time-specific Events or Appointments and Strava integration;
 - broader notifications and conditional monitoring;
 - travel-price monitoring;
 - optional AI classification, task breakdown, summaries, duplicate detection, and recommendations;
@@ -174,7 +191,7 @@ In parallel, issue #21 can remain open while Weekly Review notifications are obs
 
 - Phone use is the primary interface assumption; desktop is a progressive enhancement.
 - Complete one useful workflow before adding breadth.
-- One-off tasks, projects, thoughts, and recurring routines remain distinct concepts.
+- One-off tasks, projects, thoughts, recurring routines, and future time-specific events remain distinct concepts.
 - Personal-data operations must always be scoped by authenticated user identity.
 - Backups are only trusted after a representative restore succeeds.
 - Optional infrastructure hardening should not silently replace the agreed product priority.

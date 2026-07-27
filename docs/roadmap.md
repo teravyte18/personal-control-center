@@ -11,14 +11,18 @@ graph LR
     S3["Slice 3<br/>Durable deployment<br/>✅ PR #13"]
     HARDEN["Deployment hardening<br/>auth, photos, R2<br/>✅ PR #14, #18"]
     S4["Slice 4<br/>Tasks and Weekly Review<br/>✅ PR #20, #22"]
-    NEXT["Next product slice<br/>not selected"]
+    S5["Slice 5<br/>Google Calendar bridge<br/>Selected next"]
+    S6["Slice 6<br/>Offline capture<br/>Selected after Calendar"]
+    POOL["Later product modules<br/>Equal priority"]
 
-    S1 --> S2 --> S3 --> HARDEN --> S4 --> NEXT
+    S1 --> S2 --> S3 --> HARDEN --> S4 --> S5 --> S6 --> POOL
 
     classDef done fill:#ecfdf5,stroke:#10b981,color:#065f46;
+    classDef selected fill:#eff6ff,stroke:#3b82f6,color:#1e3a8a;
     classDef pending fill:#f8fafc,stroke:#94a3b8,color:#334155;
     class S1,S2,S3,HARDEN,S4 done;
-    class NEXT pending;
+    class S5,S6 selected;
+    class POOL pending;
 ```
 
 ## Slice 1 — Phone-first foundation and feedback loop
@@ -147,23 +151,15 @@ Also delivered:
 - immediate flush on blur and before organising or completing a review;
 - discrete actions such as dates, statuses, completion, and selectors remaining immediate.
 
-## Current decision point
+## Selected product direction
 
-No product-facing Slice 5 has been selected yet.
+Two product slices are now ordered. This is the committed near-term sequence rather than a general priority list.
 
-The next session should choose one focused outcome rather than starting several modules at once. The original candidates after Slice 4 were:
+### Slice 5 — Google Calendar bridge
 
-- **Routines** — recurring responsibilities that should not be represented as one-off tasks;
-- **Library** — books, reading status, progress, notes, and recommendations later;
-- **Trips** — trip ideas, decisions, budgets, and later supported price monitoring;
-- **Fitness** — imported running activity and weekly trends;
-- **Offline capture** — reliable capture while disconnected, followed by deliberate synchronisation.
+Project dated items into a separate Personal Control Center Google Calendar while the application remains the source of truth.
 
-A new candidate is now defined:
-
-- **Google Calendar bridge** — project dated items into a separate Personal Control Center calendar while the application remains the source of truth.
-
-The initial calendar direction is intentionally narrow:
+The initial direction is intentionally narrow:
 
 - one-way synchronisation from the application to Google Calendar;
 - a separate calendar rather than writing into the user's primary calendar;
@@ -176,11 +172,37 @@ The initial calendar direction is intentionally narrow:
 
 Time-specific commitments are a separate future need. A later **Events or Appointments** space may support start times, end times, locations, and appointment-oriented context without forcing those records into the one-off Task model. That future module could use the same calendar connection while preserving the application as the canonical editor.
 
-In parallel, issue #21 can remain open while Weekly Review notifications are observed on the installed production phone. It is not a prerequisite for selecting or delivering the next product slice.
+### Slice 6 — Offline capture
+
+Make quick capture dependable during temporary connectivity loss, particularly when the phone cannot reach the self-hosted deployment.
+
+The first version should remain focused on Capture rather than making the complete application offline-capable:
+
+- allow new Capture items to be created while disconnected;
+- retain them durably on the device until the server is reachable;
+- show a clear pending or unsynchronised state;
+- synchronise automatically or through an obvious retry action when connectivity returns;
+- make retries idempotent so the same capture is not created twice;
+- preserve the existing fast Capture interaction and authenticated user isolation;
+- avoid broad offline editing and conflict resolution across Projects, Tasks, Thoughts, and Review in the first version.
+
+## Equal-priority pool after Slice 6
+
+No order is selected among the remaining product modules. The next one should be chosen based on the most useful workflow at that time rather than its position in this list:
+
+- **Routines** — recurring responsibilities that should not be represented as one-off tasks;
+- **Library and media** — begin with books, reading status, progress, notes, and recommendations; potentially expand to movies or other media without committing to one combined data model yet;
+- **Trips** — trip ideas, decisions, budgets, and later supported price monitoring;
+- **Fitness** — imported running activity and weekly trends;
+- **Events or Appointments** — time-specific commitments with start and end times, locations, and appointment context.
+
+Library may be a likely personal preference after the two selected slices, with books as the probable first scope and movies as a possible follow-up, but it does not currently outrank the other modules in this pool.
+
+In parallel, issue #21 can remain open while Weekly Review notifications are observed on the installed production phone. It is not a prerequisite for either selected slice.
 
 ## Later capabilities
 
-- time-specific Events or Appointments and Strava integration;
+- Strava and other external integrations;
 - broader notifications and conditional monitoring;
 - travel-price monitoring;
 - optional AI classification, task breakdown, summaries, duplicate detection, and recommendations;

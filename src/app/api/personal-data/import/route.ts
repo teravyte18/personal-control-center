@@ -1,3 +1,4 @@
+import { reconcileGoogleCalendar } from "@/server/google-calendar";
 import {
   importPersonalData,
   PersonalDataImportConflictError,
@@ -18,6 +19,11 @@ export async function POST(request: Request) {
   try {
     const user = await resolveRequestUser(request);
     const state = await importPersonalData(user.id, body);
+    try {
+      await reconcileGoogleCalendar(user.id, state.snapshot);
+    } catch (calendarError) {
+      console.error("Personal data was imported, but Google Calendar synchronisation failed.", calendarError);
+    }
     return Response.json(state, {
       headers: { "Cache-Control": "no-store" },
     });

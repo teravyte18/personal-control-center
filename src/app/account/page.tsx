@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
+import { GoogleCalendarSettings } from "@/components/google-calendar-settings";
 
 type SessionUser = {
   id: string;
@@ -184,6 +185,8 @@ export default function AccountPage() {
           </div>
         </div>
       </div>
+
+      <GoogleCalendarSettings />
 
       {currentUser?.role === "owner" ? (
         <>

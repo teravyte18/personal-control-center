@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 type GoogleCalendarStatus = {
   configured: boolean;
@@ -48,6 +48,15 @@ function oauthResultMessage(result: string | null) {
   return { notice: "", error: "" };
 }
 
+async function fetchCalendarStatus() {
+  const response = await fetch("/api/integrations/google-calendar", { cache: "no-store" });
+  const body = await response.json() as GoogleCalendarStatus | { error?: string };
+  if (!response.ok || !("connected" in body)) {
+    throw new Error(errorMessage(body, "Could not load Google Calendar status."));
+  }
+  return body;
+}
+
 export function GoogleCalendarSettings() {
   const [status, setStatus] = useState<GoogleCalendarStatus | null>(null);
   const [loading, setLoading] = useState(true);
@@ -55,22 +64,14 @@ export function GoogleCalendarSettings() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
-  const loadStatus = useCallback(async () => {
-    const response = await fetch("/api/integrations/google-calendar", { cache: "no-store" });
-    const body = await response.json() as GoogleCalendarStatus | { error?: string };
-    if (!response.ok || !("connected" in body)) {
-      throw new Error(errorMessage(body, "Could not load Google Calendar status."));
-    }
-    setStatus(body);
-  }, []);
-
   useEffect(() => {
     let cancelled = false;
     const resultMessage = oauthResultMessage(new URLSearchParams(window.location.search).get("calendar"));
 
-    void loadStatus()
-      .then(() => {
+    void fetchCalendarStatus()
+      .then((loadedStatus) => {
         if (cancelled) return;
+        setStatus(loadedStatus);
         if (resultMessage.notice) setNotice(resultMessage.notice);
         if (resultMessage.error) setError(resultMessage.error);
       })
@@ -84,7 +85,7 @@ export function GoogleCalendarSettings() {
     return () => {
       cancelled = true;
     };
-  }, [loadStatus]);
+  }, []);
 
   async function syncNow() {
     setWorking(true);
@@ -100,7 +101,8 @@ export function GoogleCalendarSettings() {
       setNotice("Google Calendar synchronised.");
     } catch (syncError) {
       setError(syncError instanceof Error ? syncError.message : "Google Calendar could not be synchronised.");
-      await loadStatus().catch(() => undefined);
+      const refreshed = await fetchCalendarStatus().catch(() => null);
+      if (refreshed) setStatus(refreshed);
     } finally {
       setWorking(false);
     }

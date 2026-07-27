@@ -15,7 +15,7 @@ const LEGACY_REVIEW_KEY = "pcc-review-v1";
 const REVIEW_HISTORY_KEY = "pcc-review-history-v1";
 export const activeBrowserUserStorageKey = "pcc-active-browser-user-v1";
 
-type BrowserUserIdentity = {
+export type BrowserUserIdentity = {
   id: string;
   role: "owner" | "member";
 };
@@ -29,7 +29,7 @@ export type StoredPersonalData = {
   history: ReviewEntry[];
 };
 
-function activeBrowserUser(storage: StorageReader): BrowserUserIdentity | null {
+export function loadActiveBrowserUser(storage: StorageReader): BrowserUserIdentity | null {
   try {
     const value = storage.getItem(activeBrowserUserStorageKey);
     if (!value) return null;
@@ -48,7 +48,7 @@ function scopedKey(userId: string, key: string) {
 }
 
 function readForActiveUser(storage: StorageReader, key: string, legacyKey?: string) {
-  const identity = activeBrowserUser(storage);
+  const identity = loadActiveBrowserUser(storage);
   if (!identity) return storage.getItem(key) ?? (legacyKey ? storage.getItem(legacyKey) : null);
 
   const scoped = storage.getItem(scopedKey(identity.id, key));
@@ -63,7 +63,7 @@ function readForActiveUser(storage: StorageReader, key: string, legacyKey?: stri
 }
 
 function writeForActiveUser(storage: StorageWriter, key: string, value: string) {
-  const identity = activeBrowserUser(storage);
+  const identity = loadActiveBrowserUser(storage);
   storage.setItem(identity ? scopedKey(identity.id, key) : key, value);
 }
 

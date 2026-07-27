@@ -9,7 +9,7 @@ create table google_calendar_connections (
 );
 
 create table google_calendar_events (
-  user_id text not null references users(id) on delete cascade,
+  user_id text not null references google_calendar_connections(user_id) on delete cascade,
   source_type text not null,
   source_id text not null,
   item_id text not null,

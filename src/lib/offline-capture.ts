@@ -1,7 +1,5 @@
-import {
-  normalizePersonalDataMutation,
-  type PersonalDataMutation,
-} from "@/domain/personal-data-snapshot";
+import { normalizeItem } from "../domain/personal-data";
+import type { PersonalDataMutation } from "../domain/personal-data-snapshot";
 
 export const OFFLINE_CAPTURE_STORAGE_VERSION = 1;
 export const OFFLINE_CAPTURE_STORAGE_PREFIX = "pcc-offline-captures-v1";
@@ -33,6 +31,12 @@ function isDateTime(value: unknown): value is string {
   return typeof value === "string" && !Number.isNaN(Date.parse(value));
 }
 
+function normalizeOfflineMutation(value: unknown): OfflineCaptureMutation | null {
+  if (!isRecord(value) || value.type !== "add-item") return null;
+  const item = normalizeItem(value.item);
+  return item ? { type: "add-item", item } : null;
+}
+
 function normalizeRecord(value: unknown): OfflineCaptureRecord | null {
   if (!isRecord(value)
     || typeof value.id !== "string"
@@ -41,8 +45,8 @@ function normalizeRecord(value: unknown): OfflineCaptureRecord | null {
     || !Number.isInteger(value.attemptCount)
     || value.attemptCount < 0) return null;
 
-  const mutation = normalizePersonalDataMutation(value.mutation);
-  if (!mutation || mutation.type !== "add-item" || mutation.item.id !== value.id) return null;
+  const mutation = normalizeOfflineMutation(value.mutation);
+  if (!mutation || mutation.item.id !== value.id) return null;
 
   const lastAttemptAt = value.lastAttemptAt === undefined
     ? undefined

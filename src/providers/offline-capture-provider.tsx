@@ -74,6 +74,7 @@ async function confirmServerConnection() {
 export function OfflineCaptureProvider({ children }: { children: ReactNode }) {
   const { addItem } = usePersonalData();
   const { dataMode, refreshServerData } = useDataConnection();
+  const [userId, setUserId] = useState<string | null>(null);
   const [online, setOnline] = useState(true);
   const [pending, setPending] = useState<OfflineCaptureRecord[]>([]);
   const [syncing, setSyncing] = useState(false);
@@ -82,9 +83,9 @@ export function OfflineCaptureProvider({ children }: { children: ReactNode }) {
   const syncingRef = useRef(false);
 
   const reloadPending = useCallback(() => {
-    const userId = userIdRef.current;
-    if (!userId) return [];
-    const records = loadOfflineCaptures(window.localStorage, userId);
+    const currentUserId = userIdRef.current;
+    if (!currentUserId) return [];
+    const records = loadOfflineCaptures(window.localStorage, currentUserId);
     setPending(records);
     return records;
   }, []);
@@ -92,15 +93,16 @@ export function OfflineCaptureProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const timeout = window.setTimeout(() => {
       const identity = loadActiveBrowserUser(window.localStorage);
-      userIdRef.current = identity?.id ?? (LOCAL_DEVELOPMENT ? "local-development" : null);
+      const resolvedUserId = identity?.id ?? (LOCAL_DEVELOPMENT ? "local-development" : null);
+      userIdRef.current = resolvedUserId;
+      setUserId(resolvedUserId);
       setOnline(navigator.onLine);
-      reloadPending();
+      if (resolvedUserId) setPending(loadOfflineCaptures(window.localStorage, resolvedUserId));
     }, 0);
     return () => window.clearTimeout(timeout);
-  }, [reloadPending]);
+  }, []);
 
   useEffect(() => {
-    const userId = userIdRef.current;
     if (!userId) return;
     const key = offlineCaptureStorageKey(userId);
     const refresh = (event: StorageEvent) => {
@@ -108,26 +110,26 @@ export function OfflineCaptureProvider({ children }: { children: ReactNode }) {
     };
     window.addEventListener("storage", refresh);
     return () => window.removeEventListener("storage", refresh);
-  }, [reloadPending, pending.length]);
+  }, [reloadPending, userId]);
 
   const retry = useCallback(async () => {
-    const userId = userIdRef.current;
-    if (!userId || syncingRef.current || !navigator.onLine || LOCAL_DEVELOPMENT) return;
+    const currentUserId = userIdRef.current;
+    if (!currentUserId || syncingRef.current || !navigator.onLine || LOCAL_DEVELOPMENT) return;
 
     syncingRef.current = true;
     setSyncing(true);
     setLastError("");
 
     try {
-      let records = loadOfflineCaptures(window.localStorage, userId);
+      let records = loadOfflineCaptures(window.localStorage, currentUserId);
       for (const record of records) {
         try {
           await sendCapture(record.mutation);
-          records = removeOfflineCapture(window.localStorage, userId, record.id);
+          records = removeOfflineCapture(window.localStorage, currentUserId, record.id);
           setPending(records);
         } catch (error) {
           const message = error instanceof Error ? error.message : "The capture could not be synchronised.";
-          records = markOfflineCaptureAttempt(window.localStorage, userId, record.id, message);
+          records = markOfflineCaptureAttempt(window.localStorage, currentUserId, record.id, message);
           setPending(records);
           throw new Error(message);
         }
@@ -179,10 +181,10 @@ export function OfflineCaptureProvider({ children }: { children: ReactNode }) {
   }, [dataMode, pending.length, retry]);
 
   useEffect(() => {
-    if (!online || (pending.length === 0 && dataMode !== "local-fallback")) return;
+    if (!online || !userId || (pending.length === 0 && dataMode !== "local-fallback")) return;
     const timeout = window.setTimeout(() => void retry(), 0);
     return () => window.clearTimeout(timeout);
-  }, [dataMode, online, pending.length, retry]);
+  }, [dataMode, online, pending.length, retry, userId]);
 
   const capture = useCallback(async (title: string): Promise<CaptureResult | null> => {
     if (LOCAL_DEVELOPMENT) {
@@ -193,11 +195,11 @@ export function OfflineCaptureProvider({ children }: { children: ReactNode }) {
     const item = createItem(title);
     if (!item) return null;
     const mutation = { type: "add-item", item } as const;
-    const userId = userIdRef.current;
-    if (!userId) throw new Error("Open the app online and sign in once before using offline capture.");
+    const currentUserId = userIdRef.current;
+    if (!currentUserId) throw new Error("Open the app online and sign in once before using offline capture.");
 
     if (!navigator.onLine || dataMode !== "server" || syncingRef.current) {
-      const records = enqueueOfflineCapture(window.localStorage, userId, mutation);
+      const records = enqueueOfflineCapture(window.localStorage, currentUserId, mutation);
       setPending(records);
       setOnline(navigator.onLine);
       setLastError("");
@@ -212,7 +214,7 @@ export function OfflineCaptureProvider({ children }: { children: ReactNode }) {
       return { item, queued: false };
     } catch (error) {
       const message = error instanceof Error ? error.message : "The capture could not be saved to the server.";
-      const records = enqueueOfflineCapture(window.localStorage, userId, mutation);
+      const records = enqueueOfflineCapture(window.localStorage, currentUserId, mutation);
       setPending(records);
       setLastError(message);
       return { item, queued: true };

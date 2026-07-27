@@ -1,4 +1,8 @@
+import {
+  mutationAffectsGoogleCalendar,
+} from "@/domain/google-calendar";
 import { normalizePersonalDataMutation } from "@/domain/personal-data-snapshot";
+import { reconcileGoogleCalendar } from "@/server/google-calendar";
 import { applyStoredPersonalDataMutation } from "@/server/personal-data-store";
 import { AuthenticationRequiredError, resolveRequestUser } from "@/server/request-user";
 
@@ -21,6 +25,15 @@ export async function POST(request: Request) {
   try {
     const user = await resolveRequestUser(request);
     const state = await applyStoredPersonalDataMutation(user.id, mutation);
+
+    if (mutationAffectsGoogleCalendar(mutation)) {
+      try {
+        await reconcileGoogleCalendar(user.id, state.snapshot);
+      } catch (calendarError) {
+        console.error("Personal data was saved, but Google Calendar synchronisation failed.", calendarError);
+      }
+    }
+
     return Response.json(state, {
       headers: { "Cache-Control": "no-store" },
     });

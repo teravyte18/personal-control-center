@@ -12,6 +12,7 @@ function isPublicPath(pathname: string) {
     || pathname === "/api/auth/session"
     || pathname === "/manifest.webmanifest"
     || pathname === "/favicon.ico"
+    || pathname === "/pcc-sw.js"
     || pathname === "/review-reminder-sw.js"
     || pathname.startsWith("/api/pwa-icon/")
     || pathname.startsWith("/_next/")

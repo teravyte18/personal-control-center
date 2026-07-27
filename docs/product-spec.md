@@ -32,12 +32,15 @@ The repository is public, so code, documentation, fixtures, examples, issues, an
 - Design phone interactions first and progressively enhance desktop use.
 - Keep AI suggestions optional, transparent, and reviewable.
 - Treat external calendars as projections of application data rather than a second canonical store unless a later feature explicitly defines conflict handling.
+- Keep quick capture usable through temporary connection loss without pretending the entire application is offline-capable.
 
 ## Current page map
 
 ### Capture
 
 A quiet landing page centred on one input. It also shows a compact Inbox count plus due or overdue attention that requires action now.
+
+A selected future slice will allow new Capture items to be retained locally while disconnected and synchronised safely when the server becomes reachable again.
 
 ### Inbox
 
@@ -88,7 +91,7 @@ A directory containing:
 - Accomplishments and Archive;
 - Account & access;
 - the expandable mobile quick-access configuration;
-- future Library, Trips, Fitness, Habits/Routines, Events/Appointments, and Settings destinations.
+- future Library/Media, Trips, Fitness, Habits/Routines, Events/Appointments, and Settings destinations.
 
 ## Navigation model
 
@@ -129,6 +132,10 @@ A one-off action that does not need an action timeline. Tasks may be dated or un
 ### Event or appointment
 
 A future time-specific commitment with a start time and potentially an end time, location, preparation context, or attendance details. It should remain distinct from Tasks unless the record is genuinely an action rather than a commitment on the calendar.
+
+### Pending offline capture
+
+A new Capture item created while the application cannot reach the server. It remains visibly unsynchronised on that device until an idempotent server write succeeds. Pending captures are not treated as canonical server data and must never be silently duplicated or discarded.
 
 ### Status
 
@@ -183,6 +190,8 @@ From Sunday through Friday after 08:00 local time, an unfinished review produces
 
 Add an item in seconds with only a title. Classification and additional metadata can wait.
 
+After the offline-capture slice, this workflow should still succeed during temporary connection loss by creating a visible pending record that synchronises safely later.
+
 ### Clarify
 
 Expand an Inbox item, improve its title/context, choose its kind and area, and organise it into a project, task, thought/note, or another supported lifecycle.
@@ -220,6 +229,15 @@ The usable system now includes:
 11. installable PWA assets and public HTTPS ingress;
 12. validated local and encrypted off-site backups.
 
+## Selected delivery order
+
+The next two product slices are ordered:
+
+1. **Google Calendar bridge** — expose dated Tasks and project action check-ins as all-day entries in a separate calendar through one-way synchronisation.
+2. **Offline capture** — allow new Capture items to survive temporary connection loss and synchronise without duplicates when the server becomes reachable.
+
+After those slices, Routines, Library/Media, Trips, Fitness, and Events/Appointments have equal documented priority. Library may be a likely personal choice, beginning with books and potentially adding movies later, but it is not formally ordered ahead of the other modules.
+
 ## Current non-goals
 
 - native iOS or Android applications;
@@ -228,29 +246,14 @@ The usable system now includes:
 - shared projects or shared spaces;
 - full calendar replacement;
 - two-way calendar synchronisation or editing application records from Google Calendar;
+- full offline editing of every application space or general cross-device conflict resolution;
 - automatic travel booking;
 - autonomous AI changes;
 - generic task-reminder or notification-centre behavior;
-- complete reading, fitness, travel, routine, or appointment modules;
+- complete reading, media, fitness, travel, routine, or appointment modules;
 - voice or video reviews before the written workflow proves it is needed.
 
-## Later specialised modules
-
-### Routines
-
-Recurring responsibilities and practices that should not be recreated as one-off Tasks.
-
-### Library
-
-Books, reading status, progress, dates, notes, ratings, and eventually recommendations grounded in reading history.
-
-### Fitness
-
-Imported activities, weekly frequency, distance, and trend summaries without requiring manual activity entry.
-
-### Trips
-
-Trip ideas, possible dates, budget, transport and accommodation options, decision deadlines, and supported price monitoring.
+## Planned integrations and specialised modules
 
 ### Google Calendar bridge
 
@@ -263,6 +266,37 @@ The first version should:
 - update or remove the linked event when the source record is rescheduled, completed, archived, or deleted;
 - store external event identifiers and expose synchronisation status so retries remain idempotent;
 - avoid two-way editing and conflict resolution.
+
+### Offline capture
+
+A focused resilience feature for the quickest and most important phone workflow.
+
+The first version should:
+
+- permit new Capture items while the server is unreachable;
+- store pending records durably on the current device;
+- clearly distinguish pending records from server-synchronised items;
+- retry safely when connectivity returns;
+- use stable client-generated identifiers or an equivalent idempotency mechanism to prevent duplicates;
+- avoid expanding the slice into complete offline support for Inbox, Projects, Tasks, Thoughts, or Review.
+
+### Routines
+
+Recurring responsibilities and practices that should not be recreated as one-off Tasks.
+
+### Library and media
+
+Begin with books: reading status, progress, dates, notes, ratings, and eventually recommendations grounded in reading history.
+
+Movies may later be added either as an extension of this space or as a related media tracker. The data model should not assume that reading progress and movie tracking are identical before that decision is made.
+
+### Fitness
+
+Imported activities, weekly frequency, distance, and trend summaries without requiring manual activity entry.
+
+### Trips
+
+Trip ideas, possible dates, budget, transport and accommodation options, decision deadlines, and supported price monitoring.
 
 ### Events or appointments
 
@@ -292,4 +326,5 @@ The system is useful when:
 - navigation can grow without redesigning the application shell;
 - the system remains useful when integrations, notifications, and AI are unavailable;
 - external calendar events can be recreated from canonical application records rather than becoming the only copy of important data;
+- a Capture item created while disconnected remains visible, survives reloads, and reaches the server exactly once after reconnection;
 - production data can be restored from validated local and off-site backups.

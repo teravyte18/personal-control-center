@@ -1,4 +1,3 @@
-import { normalizeItem } from "../domain/personal-data";
 import type { PersonalDataMutation } from "../domain/personal-data-snapshot";
 
 export const OFFLINE_CAPTURE_STORAGE_VERSION = 1;
@@ -32,9 +31,21 @@ function isDateTime(value: unknown): value is string {
 }
 
 function normalizeOfflineMutation(value: unknown): OfflineCaptureMutation | null {
-  if (!isRecord(value) || value.type !== "add-item") return null;
-  const item = normalizeItem(value.item);
-  return item ? { type: "add-item", item } : null;
+  if (!isRecord(value) || value.type !== "add-item" || !isRecord(value.item)) return null;
+  const item = value.item;
+  if (typeof item.id !== "string"
+    || typeof item.title !== "string"
+    || !item.title.trim()
+    || typeof item.description !== "string"
+    || !Array.isArray(item.actions)
+    || item.actions.length !== 0
+    || item.kind !== "unclassified"
+    || item.status !== "inbox"
+    || item.area !== "uncategorized"
+    || !isDateTime(item.createdAt)
+    || !isDateTime(item.updatedAt)) return null;
+
+  return { type: "add-item", item: item as OfflineCaptureMutation["item"] };
 }
 
 function normalizeRecord(value: unknown): OfflineCaptureRecord | null {

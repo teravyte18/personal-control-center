@@ -25,12 +25,13 @@ The repository is public, so code, documentation, fixtures, examples, issues, an
 - Capture first; organise later.
 - Remain useful without AI or external integrations.
 - Show what matters now instead of everything stored.
-- Keep projects, one-off tasks, thoughts, and recurring routines conceptually distinct.
+- Keep projects, one-off tasks, thoughts, recurring routines, and future time-specific events conceptually distinct.
 - Support reflection without turning every thought into an obligation.
 - Reconstruct the review period from recorded activity so the user does not need to remember every detail.
 - Save long-form input without generating one server write per character.
 - Design phone interactions first and progressively enhance desktop use.
 - Keep AI suggestions optional, transparent, and reviewable.
+- Treat external calendars as projections of application data rather than a second canonical store unless a later feature explicitly defines conflict handling.
 
 ## Current page map
 
@@ -59,7 +60,7 @@ Concrete one-off actions that do not justify a project timeline. A task has:
 - an area;
 - an optional check-in date.
 
-An undated task stays open indefinitely without an age-based warning. Recurring responsibilities belong to a future Routines space rather than Tasks.
+An undated task stays open indefinitely without an age-based warning. Recurring responsibilities belong to a future Routines space rather than Tasks. Time-specific commitments such as appointments may later belong to a separate Events or Appointments space rather than overloading Tasks.
 
 ### Thoughts
 
@@ -87,7 +88,7 @@ A directory containing:
 - Accomplishments and Archive;
 - Account & access;
 - the expandable mobile quick-access configuration;
-- future Library, Trips, Fitness, Habits/Routines, and Settings destinations.
+- future Library, Trips, Fitness, Habits/Routines, Events/Appointments, and Settings destinations.
 
 ## Navigation model
 
@@ -124,6 +125,10 @@ A finite outcome requiring multiple actions. Projects preserve their action time
 ### Task
 
 A one-off action that does not need an action timeline. Tasks may be dated or undated and disappear from the active Tasks view after completion.
+
+### Event or appointment
+
+A future time-specific commitment with a start time and potentially an end time, location, preparation context, or attendance details. It should remain distinct from Tasks unless the record is genuinely an action rather than a commitment on the calendar.
 
 ### Status
 
@@ -222,10 +227,11 @@ The usable system now includes:
 - public registration;
 - shared projects or shared spaces;
 - full calendar replacement;
+- two-way calendar synchronisation or editing application records from Google Calendar;
 - automatic travel booking;
 - autonomous AI changes;
 - generic task-reminder or notification-centre behavior;
-- complete reading, fitness, travel, or routine modules;
+- complete reading, fitness, travel, routine, or appointment modules;
 - voice or video reviews before the written workflow proves it is needed.
 
 ## Later specialised modules
@@ -245,6 +251,22 @@ Imported activities, weekly frequency, distance, and trend summaries without req
 ### Trips
 
 Trip ideas, possible dates, budget, transport and accommodation options, decision deadlines, and supported price monitoring.
+
+### Google Calendar bridge
+
+A narrow one-way projection from the application into a separate Personal Control Center Google Calendar.
+
+The first version should:
+
+- keep the application as the source of truth;
+- create all-day entries for dated Tasks and project current-action check-in dates;
+- update or remove the linked event when the source record is rescheduled, completed, archived, or deleted;
+- store external event identifiers and expose synchronisation status so retries remain idempotent;
+- avoid two-way editing and conflict resolution.
+
+### Events or appointments
+
+A later time-specific space for commitments that benefit from start times, end times, locations, and appointment-oriented context. It may reuse the Google Calendar connection while remaining a distinct domain concept from Tasks and Projects.
 
 ### AI assistance
 
@@ -269,4 +291,5 @@ The system is useful when:
 - phone and desktop share canonical data while remaining isolated from other accounts;
 - navigation can grow without redesigning the application shell;
 - the system remains useful when integrations, notifications, and AI are unavailable;
+- external calendar events can be recreated from canonical application records rather than becoming the only copy of important data;
 - production data can be restored from validated local and off-site backups.

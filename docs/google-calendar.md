@@ -9,7 +9,7 @@ The first version synchronises:
 - open Tasks with a check-in date;
 - the current open action of each active project when it has a target date.
 
-Each record becomes an all-day event. Undated, completed, or archived records do not appear. The integration is one-way: editing an event in Google Calendar does not update the application and a later application synchronisation may overwrite that edit.
+Each record becomes an all-day event. Undated, completed, or archived records do not appear. The integration is one-way: editing an event in Google Calendar does not update the application. Direct Google-side edits are unsupported and may remain visible until the corresponding application record changes or is recreated.
 
 The app creates a secondary calendar named **Personal Control Center**. It does not write into the user's primary calendar.
 
@@ -95,10 +95,10 @@ A reconciliation compares canonical application data with the stored Google even
 - completing, archiving, deleting, or removing the date deletes the event;
 - completing a project action and choosing a next action removes the old event and creates the next one;
 - unchanged entries are skipped using a content hash;
-- if a mapped Google event was manually deleted, the next sync recreates it;
+- if a mapped Google event was manually deleted, the next application-side change to that record recreates it;
 - retries use stored source IDs and event IDs to avoid duplicate events.
 
-Reconciliation runs after relevant server-side personal-data mutations and imports. **Sync now** performs a complete manual reconciliation.
+Reconciliation runs after relevant server-side personal-data mutations and imports. **Sync now** retries the current application projection and clears recoverable errors; it does not import or inspect direct Google-side edits.
 
 ## Manual acceptance tests
 
@@ -148,22 +148,21 @@ Use neutral temporary records and delete them after testing.
 ### D. Idempotency and recovery
 
 1. Press **Sync now** several times; confirm no duplicates appear.
-2. Manually delete one projected event in Google Calendar.
-3. Press **Sync now**; confirm the missing event is recreated exactly once.
-4. Temporarily set an invalid Google client secret or block outbound access, then change a dated Task:
+2. Temporarily set an invalid Google client secret or block outbound access, then change a dated Task:
    - confirm the Task change still saves in Personal Control Center;
    - confirm Account & access shows a Calendar sync error.
-5. Restore the correct configuration and press **Sync now**:
+3. Restore the correct configuration and press **Sync now**:
    - confirm the error clears;
    - confirm projected and synced counts match;
    - confirm the pending Calendar change is applied once.
+4. Manually delete one projected event in Google Calendar, then change that record's title in Personal Control Center. Confirm the missing event is recreated exactly once with the new title.
 
 ### E. One-way boundary
 
 1. Edit a projected event title or date directly in Google Calendar.
 2. Confirm Personal Control Center does not change.
-3. Press **Sync now** and confirm the event is restored to the application title and date.
-4. Create an unrelated event manually inside the Personal Control Center calendar and press **Sync now**. Confirm the app leaves the unrelated event untouched.
+3. Change the corresponding record in Personal Control Center and confirm Google Calendar follows the application value without creating a duplicate.
+4. Create an unrelated event manually inside the Personal Control Center calendar, change a different application record, and confirm the unrelated event remains untouched.
 
 ### F. Account isolation
 

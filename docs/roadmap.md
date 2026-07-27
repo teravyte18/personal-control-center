@@ -196,7 +196,7 @@ No order is selected among the remaining product modules. The next one should be
 - **Fitness** — imported running activity and weekly trends;
 - **Events or Appointments** — time-specific commitments with start and end times, locations, and appointment context.
 
-Library may be a likely personal preference after the two selected slices, with books as the probable first scope and movies as a possible follow-up, but it does not currently outrank the other modules in this pool.
+Books and possibly movies may be the first personal preference considered after the two selected slices, but Library/Media does not formally outrank the other modules in this pool.
 
 In parallel, issue #21 can remain open while Weekly Review notifications are observed on the installed production phone. It is not a prerequisite for either selected slice.
 

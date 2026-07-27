@@ -8,7 +8,7 @@ export function ServiceWorkerRegistration() {
     if (!("serviceWorker" in navigator) || !window.isSecureContext) return;
     let cancelled = false;
 
-    async function register() {
+    async function registerAndWarm() {
       try {
         const registration = await navigator.serviceWorker.register("/pcc-sw.js", { scope: "/" });
         await navigator.serviceWorker.ready;
@@ -19,12 +19,22 @@ export function ServiceWorkerRegistration() {
       }
     }
 
-    const warmWhenOnline = () => void register();
-    void register();
+    const warmWhenOnline = () => void registerAndWarm();
+    const warmWhenVisible = () => {
+      if (document.visibilityState === "visible" && navigator.onLine) void registerAndWarm();
+    };
+    const delayedWarm = window.setTimeout(() => void registerAndWarm(), 2_000);
+
+    void registerAndWarm();
     window.addEventListener("online", warmWhenOnline);
+    window.addEventListener("focus", warmWhenOnline);
+    document.addEventListener("visibilitychange", warmWhenVisible);
     return () => {
       cancelled = true;
+      window.clearTimeout(delayedWarm);
       window.removeEventListener("online", warmWhenOnline);
+      window.removeEventListener("focus", warmWhenOnline);
+      document.removeEventListener("visibilitychange", warmWhenVisible);
     };
   }, []);
 

@@ -167,7 +167,7 @@ export function ReviewNotificationControl() {
 
 async function registerReminderWorker() {
   if (!("serviceWorker" in navigator) || !window.isSecureContext) return null;
-  return navigator.serviceWorker.register("/review-reminder-sw.js", { scope: "/" });
+  return navigator.serviceWorker.register("/pcc-sw.js", { scope: "/" });
 }
 
 async function showReviewNotification() {

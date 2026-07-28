@@ -109,7 +109,7 @@ jobs:
           touch compose-validation.log
           exec > >(tee -a compose-validation.log) 2>&1
           set -x
-          trap 'docker compose ps -a; docker compose logs; docker compose down --volumes --remove-orphans; sudo rm -rf data/backups data/uploads data/offsite-restore .secrets; rm -f pwa-manifest.json pwa-icon-* upload-archive.list' EXIT
+          trap 'docker compose ps -a; docker compose logs; docker compose down --volumes --remove-orphans; sudo rm -rf data/backups data/uploads data/offsite-restore .secrets; rm -f pwa-manifest.json pwa-icon-* pwa-static-* upload-archive.list' EXIT
           docker compose up -d --build
           for attempt in $(seq 1 60); do
             if curl --fail --silent http://127.0.0.1:3000/api/health >/dev/null; then
@@ -130,6 +130,25 @@ jobs:
           if (!icons.some((icon) => icon.sizes === '512x512' && icon.type === 'image/png')) throw new Error('Missing 512px PNG icon.');
           if (!icons.some((icon) => icon.sizes === '512x512' && icon.purpose === 'maskable')) throw new Error('Missing maskable icon.');
           NODE
+
+          docker compose exec -T app sh -lc '
+            test -f /app/public/pcc-sw.js
+            test -f /app/public/offline-capture.html
+            test -f /app/public/offline-capture.js
+          '
+
+          curl --fail --silent --show-error --dump-header pwa-static-worker.headers --output pwa-static-worker.js http://127.0.0.1:3000/pcc-sw.js
+          grep -Eqi '^content-type:.*javascript' pwa-static-worker.headers
+          grep -Eq 'pcc-offline-capture-v[0-9]+' pwa-static-worker.js
+          grep -q '/offline-capture.html' pwa-static-worker.js
+
+          curl --fail --silent --show-error --dump-header pwa-static-script.headers --output pwa-static-script.js http://127.0.0.1:3000/offline-capture.js
+          grep -Eqi '^content-type:.*javascript' pwa-static-script.headers
+          grep -q 'pcc-offline-captures-v1' pwa-static-script.js
+
+          curl --fail --silent --show-error --dump-header pwa-static-page.headers --output pwa-static-page.html http://127.0.0.1:3000/offline-capture.html
+          grep -Eqi '^content-type:.*text/html' pwa-static-page.headers
+          grep -q 'Offline capture' pwa-static-page.html
 
           for size in 192 512; do
             curl --fail --silent --show-error --dump-header "pwa-icon-$size.headers" --output "pwa-icon-$size.png" "http://127.0.0.1:3000/api/pwa-icon/$size"

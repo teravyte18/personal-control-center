@@ -11,8 +11,8 @@ graph LR
     S3["Slice 3<br/>Durable deployment<br/>✅ PR #13"]
     HARDEN["Deployment hardening<br/>auth, photos, R2<br/>✅ PR #14, #18"]
     S4["Slice 4<br/>Tasks and Weekly Review<br/>✅ PR #20, #22"]
-    S5["Slice 5<br/>Google Calendar bridge<br/>Selected next"]
-    S6["Slice 6<br/>Offline capture<br/>Selected after Calendar"]
+    S5["Slice 5<br/>Google Calendar bridge<br/>✅ PR #25"]
+    S6["Slice 6<br/>Offline capture<br/>Draft implementation"]
     POOL["Later product modules<br/>Equal priority"]
 
     S1 --> S2 --> S3 --> HARDEN --> S4 --> S5 --> S6 --> POOL
@@ -20,8 +20,8 @@ graph LR
     classDef done fill:#ecfdf5,stroke:#10b981,color:#065f46;
     classDef selected fill:#eff6ff,stroke:#3b82f6,color:#1e3a8a;
     classDef pending fill:#f8fafc,stroke:#94a3b8,color:#334155;
-    class S1,S2,S3,HARDEN,S4 done;
-    class S5,S6 selected;
+    class S1,S2,S3,HARDEN,S4,S5 done;
+    class S6 selected;
     class POOL pending;
 ```
 
@@ -112,79 +112,59 @@ See `docs/slice-3-plan.md`, `docs/authentication.md`, `docs/phone-deployment.md`
 
 **Status: complete in PR #20, with continuous-text persistence fixed in PR #22.**
 
-### Standalone Tasks
+Delivered:
+
+- standalone dated or undated Tasks;
+- one fixed Saturday-to-Friday Weekly Review period;
+- generated project, task, completion, and thought context;
+- review history and in-app reminders;
+- best-effort browser/PWA notification delivery;
+- four configurable mobile quick-access destinations;
+- debounced continuous-text persistence with immediate blur/action flushes.
+
+Real background notification behavior remains an observation task in issue #21 and does not block product work.
+
+## Slice 5 — Google Calendar bridge
+
+**Status: complete, live-tested, and merged in PR #25.**
 
 Delivered:
 
-- a dedicated Tasks space for one-off actions that do not justify a project;
-- creation directly from Tasks or by classifying an Inbox capture;
-- title, optional notes, area, and optional check-in date;
-- undated tasks that remain open without age-based warnings;
-- freely changeable task dates without an action timeline;
-- due-today and overdue task attention on Capture;
-- quick task completion;
-- no separate completed-task archive, while retaining completion metadata for Weekly Review, export, and backup;
-- a clear boundary between one-off Tasks and future recurring Routines.
+- per-user Google OAuth with encrypted refresh-token storage;
+- a separate Personal Control Center Google Calendar;
+- one-way projection of dated Tasks and current project actions;
+- all-day event creation, updates, rescheduling, completion, archive, deletion, and next-action transitions;
+- duplicate-safe event mappings and manual reconciliation;
+- visible connection, event-count, last-sync, and failure state;
+- clean disconnect/reconnect behavior;
+- production OAuth configuration without the seven-day Testing token limit.
 
-### Scheduled Weekly Review
+Two-way synchronisation remains intentionally out of scope and is tracked as an optional future evaluation in issue #26.
 
-Delivered:
+## Slice 6 — Offline capture
 
-- one fixed review period opening each Saturday for the previous Saturday-to-Friday week;
-- unfinished drafts anchored to their original period through Friday;
-- completion lockout until the next Saturday;
-- replacement of an unfinished stale draft when a new Saturday opens;
-- generated context for project attention, opened/completed actions, completed projects, open tasks, completed tasks, and recent thoughts;
-- review history with the actual reviewed period;
-- an in-app reminder from Sunday through Friday after 08:00 while the review remains unfinished;
-- a narrow best-effort browser/PWA notification path.
+**Status: implemented on a draft branch; automated and live phone validation are required before merge.**
 
-Real background notification behavior remains an observation task in issue #21 and does not block use of the in-app reminder.
+The implementation remains focused on Quick Capture rather than making the complete application offline-capable.
 
-### Navigation and persistence polish
+Implemented:
 
-Also delivered:
+- an authenticated PWA shell that can be warmed online and reopened without network access;
+- a durable browser queue scoped to the last authenticated application user;
+- offline creation of new Inbox captures with stable client-generated IDs;
+- visible online/offline, pending, syncing, and retry-error states;
+- automatic retry after reconnection, focus, visibility changes, and periodic checks;
+- an explicit retry action;
+- duplicate-safe recovery when a request succeeds on the server but its response is lost;
+- a unified service worker for offline shell caching and Weekly Review notification clicks;
+- focused queue tests and a full manual acceptance battery in `docs/offline-capture.md`.
 
-- four configurable mobile quick-access destinations stored per browser/device;
-- all primary destinations in the desktop rail;
-- debounced Inbox and Weekly Review text persistence after roughly 800 ms of inactivity;
-- immediate flush on blur and before organising or completing a review;
-- discrete actions such as dates, statuses, completion, and selectors remaining immediate.
+Explicit boundaries:
 
-## Selected product direction
-
-Two product slices are now ordered. This is the committed near-term sequence rather than a general priority list.
-
-### Slice 5 — Google Calendar bridge
-
-Project dated items into a separate Personal Control Center Google Calendar while the application remains the source of truth.
-
-The initial direction is intentionally narrow:
-
-- one-way synchronisation from the application to Google Calendar;
-- a separate calendar rather than writing into the user's primary calendar;
-- all-day events for the first version because existing Tasks and project action points store dates rather than times;
-- initial coverage for dated Tasks and project current-action check-in dates;
-- create, update, reschedule, complete, archive, and delete behavior must keep the linked calendar event consistent;
-- store the external calendar event identifier so retries do not create duplicates;
-- surface sync status and recover safely from temporary Google API failures;
-- no two-way editing from Google Calendar back into the application.
-
-Time-specific commitments are a separate future need. A later **Events or Appointments** space may support start times, end times, locations, and appointment-oriented context without forcing those records into the one-off Task model. That future module could use the same calendar connection while preserving the application as the canonical editor.
-
-### Slice 6 — Offline capture
-
-Make quick capture dependable during temporary connectivity loss, particularly when the phone cannot reach the self-hosted deployment.
-
-The first version should remain focused on Capture rather than making the complete application offline-capable:
-
-- allow new Capture items to be created while disconnected;
-- retain them durably on the device until the server is reachable;
-- show a clear pending or unsynchronised state;
-- synchronise automatically or through an obvious retry action when connectivity returns;
-- make retries idempotent so the same capture is not created twice;
-- preserve the existing fast Capture interaction and authenticated user isolation;
-- avoid broad offline editing and conflict resolution across Projects, Tasks, Thoughts, and Review in the first version.
+- queued captures are device-local until PostgreSQL confirms them;
+- API responses are never cached by the service worker;
+- Inbox organisation and edits to Projects, Tasks, Thoughts, Reviews, photos, Account settings, and Calendar settings remain online-only;
+- clearing browser site data or uninstalling the PWA can remove unsynchronised device-local captures.
 
 ## Equal-priority pool after Slice 6
 
@@ -196,12 +176,11 @@ No order is selected among the remaining product modules. The next one should be
 - **Fitness** — imported running activity and weekly trends;
 - **Events or Appointments** — time-specific commitments with start and end times, locations, and appointment context.
 
-Books and possibly movies may be the first personal preference considered after the two selected slices, but Library/Media does not formally outrank the other modules in this pool.
-
-In parallel, issue #21 can remain open while Weekly Review notifications are observed on the installed production phone. It is not a prerequisite for either selected slice.
+Books and possibly movies may be the first personal preference considered after Slice 6, but Library/Media does not formally outrank the other modules in this pool.
 
 ## Later capabilities
 
+- optional two-way Calendar synchronisation after conflict rules are defined;
 - Strava and other external integrations;
 - broader notifications and conditional monitoring;
 - travel-price monitoring;
@@ -214,7 +193,8 @@ In parallel, issue #21 can remain open while Weekly Review notifications are obs
 - Phone use is the primary interface assumption; desktop is a progressive enhancement.
 - Complete one useful workflow before adding breadth.
 - One-off tasks, projects, thoughts, recurring routines, and future time-specific events remain distinct concepts.
-- Personal-data operations must always be scoped by authenticated user identity.
+- Personal-data operations and browser queues must always be scoped by authenticated user identity.
+- Device-local pending data must be visibly distinguished from canonical server data.
 - Backups are only trusted after a representative restore succeeds.
 - Optional infrastructure hardening should not silently replace the agreed product priority.
 - AI must remain optional, transparent, and reviewable.

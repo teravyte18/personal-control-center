@@ -2,6 +2,7 @@
   const ACTIVE_USER_KEY = "pcc-active-browser-user-v1";
   const QUEUE_PREFIX = "pcc-offline-captures-v1";
   const QUEUE_VERSION = 1;
+  const SERVER_CHECK_INTERVAL_MS = 15_000;
 
   const form = document.getElementById("capture-form");
   const input = document.getElementById("capture-input");
@@ -11,6 +12,7 @@
   const pendingList = document.getElementById("pending-list");
   const openAppButton = document.getElementById("open-app");
   const connectionLabel = document.getElementById("connection-label");
+  let checkingServer = false;
 
   function readIdentity() {
     try {
@@ -70,8 +72,7 @@
   function render() {
     const identity = readIdentity();
     const records = identity ? loadQueue(identity.id) : [];
-    const online = navigator.onLine;
-    connectionLabel.textContent = online ? "Server unavailable" : "Offline capture";
+    connectionLabel.textContent = navigator.onLine ? "Server unavailable" : "Offline capture";
 
     if (!identity) {
       form.hidden = true;
@@ -90,6 +91,32 @@
     }));
   }
 
+  async function openFullAppWhenAvailable(showStatus = false) {
+    if (checkingServer || !navigator.onLine) return false;
+    checkingServer = true;
+    if (showStatus) {
+      connectionLabel.textContent = "Checking server";
+      message.textContent = "Checking whether Personal Control Center is reachable…";
+    }
+
+    try {
+      const response = await fetch("/api/health", { cache: "no-store" });
+      if (!response.ok) return false;
+      connectionLabel.textContent = "Server restored";
+      message.textContent = "Opening the full app to synchronise pending captures…";
+      window.location.assign("/");
+      return true;
+    } catch {
+      if (showStatus) {
+        connectionLabel.textContent = "Server unavailable";
+        message.textContent = "The server is still unavailable. Your captures remain safe on this device.";
+      }
+      return false;
+    } finally {
+      checkingServer = false;
+    }
+  }
+
   form.addEventListener("submit", (event) => {
     event.preventDefault();
     const identity = readIdentity();
@@ -106,16 +133,18 @@
   });
 
   openAppButton.addEventListener("click", () => {
-    window.location.assign("/");
+    void openFullAppWhenAvailable(true);
   });
 
   window.addEventListener("online", () => {
-    connectionLabel.textContent = "Connection restored";
-    message.textContent = "Connection restored. Opening the full app to synchronise pending captures…";
-    window.setTimeout(() => window.location.assign("/"), 700);
+    void openFullAppWhenAvailable(true);
   });
   window.addEventListener("offline", render);
   window.addEventListener("storage", render);
+  window.setInterval(() => {
+    void openFullAppWhenAvailable(false);
+  }, SERVER_CHECK_INTERVAL_MS);
 
   render();
+  void openFullAppWhenAvailable(false);
 })();

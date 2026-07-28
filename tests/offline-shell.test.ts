@@ -23,7 +23,7 @@ test("service worker pre-caches and serves the dedicated offline page", async ()
   assert.match(serviceWorker, /const OFFLINE_PAGE = "\/offline-capture\.html"/);
   assert.match(serviceWorker, /await cache\.addAll\(OFFLINE_ASSETS\)/);
   assert.match(serviceWorker, /return await cache\.match\(OFFLINE_PAGE\)/);
-  assert.doesNotMatch(serviceWorker, /cache\.put\(request/);
+  assert.doesNotMatch(serviceWorker, /cacheablePage|warmOfflineCapture/);
 });
 
 test("offline page writes the same user-scoped queue consumed by the app", async () => {

@@ -1,10 +1,10 @@
-const CACHE_NAME = "pcc-offline-capture-v3";
+const CACHE_NAME = "pcc-offline-capture-v4";
 const OFFLINE_PAGE = "/offline-capture.html";
 const OFFLINE_ASSETS = [
   OFFLINE_PAGE,
   "/offline-capture.js",
-  "/manifest.webmanifest",
 ];
+const OFFLINE_GATEWAY_STATUSES = new Set([502, 503, 504]);
 
 self.addEventListener("install", (event) => {
   event.waitUntil((async () => {
@@ -40,6 +40,7 @@ self.addEventListener("fetch", (event) => {
   }
 
   if (OFFLINE_ASSETS.includes(url.pathname)
+    || url.pathname === "/manifest.webmanifest"
     || url.pathname === "/pcc-sw.js"
     || url.pathname.startsWith("/icons/")) {
     event.respondWith(cacheFirst(request));
@@ -63,11 +64,14 @@ self.addEventListener("notificationclick", (event) => {
 
 async function networkNavigationOrOffline(request) {
   try {
-    return await fetch(request);
+    const response = await fetch(request);
+    if (!OFFLINE_GATEWAY_STATUSES.has(response.status)) return response;
   } catch {
-    const cache = await caches.open(CACHE_NAME);
-    return await cache.match(OFFLINE_PAGE) || offlineFallback();
+    // A network failure uses the same dedicated fallback as a Funnel gateway failure.
   }
+
+  const cache = await caches.open(CACHE_NAME);
+  return await cache.match(OFFLINE_PAGE) || offlineFallback();
 }
 
 async function cacheFirst(request) {

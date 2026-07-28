@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#f8fafc" />
+  <title>Offline Capture · Personal Control Center</title>
+  <style>
+    :root { color-scheme: light; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; background: #f8fafc; color: #0f172a; padding: max(24px, env(safe-area-inset-top)) 16px max(32px, env(safe-area-inset-bottom)); }
+    main { width: min(100%, 640px); margin: 0 auto; }
+    .status { display: inline-flex; align-items: center; gap: 8px; border: 1px solid #fcd34d; border-radius: 999px; background: #fffbeb; color: #92400e; padding: 8px 12px; font-size: 13px; font-weight: 700; }
+    .dot { width: 9px; height: 9px; border-radius: 999px; background: #f59e0b; }
+    .card { margin-top: 20px; border: 1px solid #e2e8f0; border-radius: 30px; background: white; padding: 24px; box-shadow: 0 12px 32px rgba(15, 23, 42, 0.07); }
+    h1 { margin: 10px 0 0; font-size: clamp(30px, 8vw, 42px); line-height: 1.08; letter-spacing: -0.035em; }
+    p { color: #64748b; line-height: 1.6; }
+    textarea { width: 100%; min-height: 150px; resize: none; border: 1px solid #cbd5e1; border-radius: 18px; padding: 16px; font: inherit; font-size: 16px; line-height: 1.55; color: #0f172a; background: white; }
+    textarea:focus { outline: 3px solid rgba(15, 23, 42, 0.12); border-color: #0f172a; }
+    button { width: 100%; min-height: 50px; border: 0; border-radius: 16px; padding: 12px 16px; font: inherit; font-weight: 750; cursor: pointer; }
+    .primary { margin-top: 12px; background: #0f172a; color: white; }
+    .secondary { margin-top: 10px; border: 1px solid #cbd5e1; background: white; color: #0f172a; }
+    button:disabled { cursor: default; opacity: 0.55; }
+    .message { min-height: 24px; margin: 12px 0 0; font-size: 14px; font-weight: 650; }
+    .pending { margin-top: 18px; border-top: 1px solid #e2e8f0; padding-top: 18px; }
+    .pending h2 { margin: 0; font-size: 16px; }
+    ul { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 8px; }
+    li { border: 1px solid #e2e8f0; border-radius: 14px; background: #f8fafc; padding: 12px 14px; font-size: 14px; overflow-wrap: anywhere; }
+    .footnote { margin-top: 18px; font-size: 12px; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <main>
+    <span class="status"><span class="dot"></span><span id="connection-label">Offline capture</span></span>
+    <section class="card">
+      <p style="margin:0;font-size:14px;font-weight:700">Quick capture</p>
+      <h1>What is on your mind?</h1>
+      <p>This lightweight screen stores new Inbox items on this device. They will synchronise when Personal Control Center can reach the server again.</p>
+
+      <form id="capture-form">
+        <textarea id="capture-input" required placeholder="A task, project, question, observation…" aria-label="Capture a thought"></textarea>
+        <button class="primary" type="submit">Save for synchronisation</button>
+      </form>
+      <p id="message" class="message" aria-live="polite"></p>
+      <button id="open-app" class="secondary" type="button">Try opening the full app</button>
+
+      <section id="pending-section" class="pending" hidden>
+        <h2 id="pending-heading">Pending captures</h2>
+        <ul id="pending-list"></ul>
+      </section>
+
+      <p class="footnote">Only Quick Capture is available offline. Do not clear this app's storage before pending captures have synchronised.</p>
+    </section>
+  </main>
+  <script src="/offline-capture.js" defer></script>
+</body>
+</html>

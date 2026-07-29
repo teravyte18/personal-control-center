@@ -28,6 +28,8 @@ export function Icon({ name, className = "h-5 w-5" }: IconProps) {
       return <svg {...common}><rect x="4" y="3" width="16" height="18" rx="2" /><path d="m8 8 1.5 1.5L12 7M14 9h3M8 14l1.5 1.5L12 13M14 15h3" /></svg>;
     case "thoughts":
       return <svg {...common}><path d="M9 18h6M10 22h4" /><path d="M8.2 15.5A7 7 0 1 1 15.8 15.5C14.7 16.3 14 17.1 14 18h-4c0-.9-.7-1.7-1.8-2.5Z" /></svg>;
+    case "notes":
+      return <svg {...common}><path d="M6 3h9l3 3v15H6z" /><path d="M15 3v4h4M9 11h6M9 15h6" /></svg>;
     case "review":
       return <svg {...common}><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" /><path d="M8 8h8M8 12h8M8 16h5" /></svg>;
     case "spaces":

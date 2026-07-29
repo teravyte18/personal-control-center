@@ -51,6 +51,7 @@ export type Item = {
   status: ItemStatus;
   area: AreaId;
   checkInDate?: string;
+  projectTakeaways?: string;
   createdAt: string;
   updatedAt: string;
   completedAt?: string;
@@ -197,6 +198,13 @@ function normalizeProjectActions(value: unknown, fallbackTimestamp: string) {
   });
 }
 
+function normalizeProjectWorkflowStatus(kind: ItemKind, status: ItemStatus, actions: ProjectAction[]): ItemStatus {
+  if (kind !== "project" || !["active", "in-progress", "waiting"].includes(status)) return status;
+  const hasOpenActions = actions.some((action) => !action.completedAt);
+  if (!hasOpenActions) return "waiting";
+  return status === "waiting" ? "active" : status;
+}
+
 export function normalizeItem(value: unknown, fallbackNow = new Date()): Item | null {
   if (!isRecord(value) || typeof value.id !== "string" || typeof value.title !== "string") return null;
 
@@ -204,11 +212,11 @@ export function normalizeItem(value: unknown, fallbackNow = new Date()): Item | 
   const createdAt = validDateOrFallback(value.createdAt, fallbackTimestamp);
   const updatedAt = validDateOrFallback(value.updatedAt, createdAt);
   const kind = isItemKind(value.kind) ? value.kind : "unclassified";
-  const status = isItemStatus(value.status) ? value.status : "inbox";
-  const statusBeforeArchive = status === "archived" && isArchiveReturnStatus(value.statusBeforeArchive)
+  const rawStatus = isItemStatus(value.status) ? value.status : "inbox";
+  const statusBeforeArchive = rawStatus === "archived" && isArchiveReturnStatus(value.statusBeforeArchive)
     ? value.statusBeforeArchive
     : undefined;
-  const preservesCompletion = status === "completed" || (status === "archived" && statusBeforeArchive === "completed");
+  const preservesCompletion = rawStatus === "completed" || (rawStatus === "archived" && statusBeforeArchive === "completed");
   const completedAt = typeof value.completedAt === "string" && !Number.isNaN(Date.parse(value.completedAt))
     ? value.completedAt
     : undefined;
@@ -225,6 +233,9 @@ export function normalizeItem(value: unknown, fallbackNow = new Date()): Item | 
     }];
   }
 
+  const status = normalizeProjectWorkflowStatus(kind, rawStatus, actions);
+  const projectTakeaways = stringOrEmpty(value.projectTakeaways).trim();
+
   return {
     id: value.id,
     title: value.title,
@@ -234,13 +245,14 @@ export function normalizeItem(value: unknown, fallbackNow = new Date()): Item | 
     status,
     area: isAreaId(value.area) ? value.area : "uncategorized",
     checkInDate: validDateOnlyOrEmpty(value.checkInDate) || undefined,
+    projectTakeaways: projectTakeaways || undefined,
     createdAt,
     updatedAt,
     completedAt: preservesCompletion ? completedAt : undefined,
     statusBeforeCompletion: preservesCompletion && isRestorableStatus(value.statusBeforeCompletion)
       ? value.statusBeforeCompletion
       : undefined,
-    archivedAt: status === "archived" ? validDateOrFallback(value.archivedAt, updatedAt) : undefined,
+    archivedAt: rawStatus === "archived" ? validDateOrFallback(value.archivedAt, updatedAt) : undefined,
     statusBeforeArchive,
   };
 }
@@ -327,6 +339,9 @@ export function updateItemFields(
     ...item,
     ...updates,
     checkInDate: "checkInDate" in updates ? validDateOnlyOrEmpty(updates.checkInDate) || undefined : item.checkInDate,
+    projectTakeaways: "projectTakeaways" in updates
+      ? updates.projectTakeaways?.trim() || undefined
+      : item.projectTakeaways,
     id: item.id,
     createdAt: item.createdAt,
     updatedAt: now.toISOString(),
@@ -368,16 +383,17 @@ export function restoreArchivedItem(item: Item, now = new Date()): Item {
     statusBeforeCompletion: _statusBeforeCompletion,
     ...restored
   } = withoutArchiveMetadata;
-  return {
+  return transitionItemStatus({
     ...restored,
     status: restoredStatus,
     updatedAt: timestamp,
-  };
+  }, restoredStatus, now);
 }
 
-export function transitionItemStatus(item: Item, nextStatus: ItemStatus, now = new Date()): Item {
+export function transitionItemStatus(item: Item, requestedStatus: ItemStatus, now = new Date()): Item {
+  if (requestedStatus === "archived") return archiveItem(item, now);
+  const nextStatus = normalizeProjectWorkflowStatus(item.kind, requestedStatus, item.actions);
   if (item.status === nextStatus) return item;
-  if (nextStatus === "archived") return archiveItem(item, now);
   const timestamp = now.toISOString();
 
   if (nextStatus === "completed") {
@@ -479,6 +495,7 @@ export function addProjectAction(item: Item, title: string, targetDate = "", now
   return {
     ...item,
     actions: [action, ...item.actions],
+    status: item.status === "waiting" ? "active" : item.status,
     updatedAt: now.toISOString(),
   };
 }
@@ -552,7 +569,11 @@ export function completeProjectAction(
   let updatedItem: Item = { ...item, actions, updatedAt: timestamp };
   if (resolution === "next-action") {
     const nextAction = createProjectAction(nextActionTitle, nextTargetDate, now);
-    if (nextAction) updatedItem = { ...updatedItem, actions: [nextAction, ...actions] };
+    if (nextAction) {
+      updatedItem = transitionItemStatus({ ...updatedItem, actions: [nextAction, ...actions] }, "active", now);
+    }
+  } else if (resolution === "keep-active") {
+    updatedItem = transitionItemStatus(updatedItem, "active", now);
   } else if (resolution === "waiting") {
     updatedItem = transitionItemStatus(updatedItem, "waiting", now);
   } else if (resolution === "complete-project") {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { getNotes, noteContent, parseNoteContent } from "@/domain/notes";
 import { type Item, usePersonalData } from "@/lib/personal-data";
 
@@ -129,6 +129,19 @@ function NoteEditor({
 }) {
   const [content, setContent] = useState(initialContent);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const cancelOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onCancel();
+    };
+    window.addEventListener("keydown", cancelOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", cancelOnEscape);
+    };
+  }, [onCancel]);
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

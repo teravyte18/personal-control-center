@@ -24,6 +24,7 @@ export type ProjectActionReschedule = {
   previousTargetDate: string;
   targetDate: string;
   changedAt: string;
+  note?: string;
 };
 
 export type ProjectAction = {
@@ -35,6 +36,10 @@ export type ProjectAction = {
   completedAt?: string;
   completionNote?: string;
   reschedules?: ProjectActionReschedule[];
+};
+
+export type ProjectActionUpdates = Pick<ProjectAction, "title" | "targetDate"> & {
+  rescheduleNote?: string;
 };
 
 export type Item = {
@@ -135,15 +140,28 @@ export function validDateOnlyOrEmpty(value: unknown) {
   return Number.isNaN(Date.parse(`${value}T00:00:00`)) ? "" : value;
 }
 
+function normalizeOptionalDateOnly(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  if (!value) return "";
+  return validDateOnlyOrEmpty(value) || null;
+}
+
 function normalizeProjectActionReschedules(value: unknown): ProjectActionReschedule[] {
   if (!Array.isArray(value)) return [];
   return value.flatMap((candidate): ProjectActionReschedule[] => {
     if (!isRecord(candidate)) return [];
-    const previousTargetDate = validDateOnlyOrEmpty(candidate.previousTargetDate);
-    const targetDate = validDateOnlyOrEmpty(candidate.targetDate);
-    if (!targetDate || typeof candidate.changedAt !== "string" || Number.isNaN(Date.parse(candidate.changedAt))) return [];
+    const previousTargetDate = normalizeOptionalDateOnly(candidate.previousTargetDate);
+    const targetDate = normalizeOptionalDateOnly(candidate.targetDate);
+    if (previousTargetDate === null || targetDate === null) return [];
     if (previousTargetDate === targetDate) return [];
-    return [{ previousTargetDate, targetDate, changedAt: candidate.changedAt }];
+    if (typeof candidate.changedAt !== "string" || Number.isNaN(Date.parse(candidate.changedAt))) return [];
+    const note = stringOrEmpty(candidate.note).trim();
+    return [{
+      previousTargetDate,
+      targetDate,
+      changedAt: candidate.changedAt,
+      note: note || undefined,
+    }];
   });
 }
 
@@ -151,6 +169,8 @@ function normalizeProjectAction(value: unknown, fallbackTimestamp: string): Proj
   if (!isRecord(value) || typeof value.id !== "string" || typeof value.title !== "string") return null;
   const title = value.title.trim();
   if (!title) return null;
+  const targetDate = normalizeOptionalDateOnly(value.targetDate);
+  if (targetDate === null) return null;
   const openedAt = validDateOrFallback(value.openedAt, fallbackTimestamp);
   const completedAt = typeof value.completedAt === "string" && !Number.isNaN(Date.parse(value.completedAt))
     ? value.completedAt
@@ -160,7 +180,7 @@ function normalizeProjectAction(value: unknown, fallbackTimestamp: string): Proj
   return {
     id: value.id,
     title,
-    targetDate: validDateOnlyOrEmpty(value.targetDate),
+    targetDate,
     openedAt,
     updatedAt: validDateOrFallback(value.updatedAt, openedAt),
     completedAt,
@@ -417,10 +437,10 @@ export function isTaskOverdue(item: Item, reference = new Date()) {
   return checkInDate < formatLocalDate(reference);
 }
 
-export function createProjectAction(title: string, targetDate: string, now = new Date()): ProjectAction | null {
+export function createProjectAction(title: string, targetDate = "", now = new Date()): ProjectAction | null {
   const trimmedTitle = title.trim();
   const normalizedDate = validDateOnlyOrEmpty(targetDate);
-  if (!trimmedTitle || !normalizedDate) return null;
+  if (!trimmedTitle || (targetDate && !normalizedDate)) return null;
   const timestamp = now.toISOString();
   return {
     id: createId(),
@@ -452,7 +472,7 @@ export function getCompletedProjectActions(item: Item) {
     .sort((a, b) => Date.parse(b.completedAt ?? b.updatedAt) - Date.parse(a.completedAt ?? a.updatedAt));
 }
 
-export function addProjectAction(item: Item, title: string, targetDate: string, now = new Date()): Item {
+export function addProjectAction(item: Item, title: string, targetDate = "", now = new Date()): Item {
   if (item.kind !== "project") return item;
   const action = createProjectAction(title, targetDate, now);
   if (!action) return item;
@@ -466,12 +486,12 @@ export function addProjectAction(item: Item, title: string, targetDate: string, 
 export function updateProjectAction(
   item: Item,
   actionId: string,
-  updates: Pick<ProjectAction, "title" | "targetDate">,
+  updates: ProjectActionUpdates,
   now = new Date(),
 ): Item {
   const title = updates.title.trim();
   const targetDate = validDateOnlyOrEmpty(updates.targetDate);
-  if (!title || !targetDate) return item;
+  if (!title || (updates.targetDate && !targetDate)) return item;
   const timestamp = now.toISOString();
   let changed = false;
   const actions = item.actions.map((action) => {
@@ -479,6 +499,7 @@ export function updateProjectAction(
     if (action.title === title && action.targetDate === targetDate) return action;
     changed = true;
     const dateChanged = action.targetDate !== targetDate;
+    const note = updates.rescheduleNote?.trim();
     return {
       ...action,
       title,
@@ -487,7 +508,12 @@ export function updateProjectAction(
       reschedules: dateChanged
         ? [
           ...(action.reschedules ?? []),
-          { previousTargetDate: action.targetDate, targetDate, changedAt: timestamp },
+          {
+            previousTargetDate: action.targetDate,
+            targetDate,
+            changedAt: timestamp,
+            note: note || undefined,
+          },
         ]
         : action.reschedules,
     };
@@ -543,8 +569,8 @@ export function projectHasNextAction(item: Item) {
   return !projectRequiresNextAction(item) || getOpenProjectActions(item).length > 0;
 }
 
-export function projectActionNeedsDate(item: Item) {
-  return getOpenProjectActions(item).some((action) => !action.targetDate);
+export function projectActionNeedsDate(_item: Item) {
+  return false;
 }
 
 export function startOfWeek(reference = new Date()) {

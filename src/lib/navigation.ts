@@ -4,6 +4,7 @@ export type IconName =
   | "projects"
   | "tasks"
   | "thoughts"
+  | "notes"
   | "review"
   | "spaces"
   | "archive"
@@ -75,6 +76,15 @@ export const destinations: Destination[] = [
     href: "/thoughts",
     icon: "thoughts",
     description: "Keep observations and ideas that do not require action.",
+    available: true,
+    pinnable: true,
+  },
+  {
+    id: "notes",
+    label: "Notes",
+    href: "/notes",
+    icon: "notes",
+    description: "Create and edit free-form reference notes.",
     available: true,
     pinnable: true,
   },

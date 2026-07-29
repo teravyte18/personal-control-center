@@ -197,6 +197,12 @@ function normalizeUpdates(value: unknown): ItemUpdates | null {
     if (value.checkInDate && !normalized) return null;
     updates.checkInDate = normalized || undefined;
   }
+  if ("projectTakeaways" in value) {
+    if (value.projectTakeaways !== undefined && typeof value.projectTakeaways !== "string") return null;
+    updates.projectTakeaways = typeof value.projectTakeaways === "string"
+      ? value.projectTakeaways.trim() || undefined
+      : undefined;
+  }
 
   return updates;
 }
@@ -400,7 +406,12 @@ export function applyPersonalDataMutation(
 
     if (mutation.type === "add-project-action") {
       if (item.kind !== "project") return [item];
-      return [{ ...item, actions: [mutation.action, ...item.actions], updatedAt: mutation.action.openedAt }];
+      return [{
+        ...item,
+        actions: [mutation.action, ...item.actions],
+        status: item.status === "waiting" ? "active" : item.status,
+        updatedAt: mutation.action.openedAt,
+      }];
     }
 
     if (mutation.type === "update-project-action") {
@@ -426,7 +437,9 @@ export function applyPersonalDataMutation(
 
       let updatedItem: Item = { ...item, actions, updatedAt: mutation.occurredAt };
       if (mutation.resolution === "next-action" && mutation.nextAction) {
-        updatedItem = { ...updatedItem, actions: [mutation.nextAction, ...actions] };
+        updatedItem = transitionItemStatus({ ...updatedItem, actions: [mutation.nextAction, ...actions] }, "active", now);
+      } else if (mutation.resolution === "keep-active") {
+        updatedItem = transitionItemStatus(updatedItem, "active", now);
       } else if (mutation.resolution === "waiting") {
         updatedItem = transitionItemStatus(updatedItem, "waiting", now);
       } else if (mutation.resolution === "complete-project") {

@@ -1,5 +1,7 @@
 import type { Item } from "./personal-data";
 
+export const NOTE_ORDER_METADATA_TITLE = "__pcc_note_order_v1__";
+
 export type ParsedNoteContent = {
   title: string;
   description: string;
@@ -23,19 +25,50 @@ export function noteContent(note: Pick<Item, "title" | "description">) {
   return note.description ? `${note.title}\n${note.description}` : note.title;
 }
 
+export function getNoteOrderMetadata(items: readonly Item[]) {
+  return items.find((item) => (
+    item.title === NOTE_ORDER_METADATA_TITLE
+    && item.kind === "unclassified"
+    && item.status === "archived"
+  ));
+}
+
+export function parseNoteOrder(items: readonly Item[]) {
+  const metadata = getNoteOrderMetadata(items);
+  if (!metadata) return [];
+
+  try {
+    const value: unknown = JSON.parse(metadata.description);
+    if (!Array.isArray(value)) return [];
+    const ids: string[] = [];
+    for (const candidate of value) {
+      if (typeof candidate !== "string" || ids.includes(candidate)) continue;
+      ids.push(candidate);
+    }
+    return ids;
+  } catch {
+    return [];
+  }
+}
+
+export function serializeNoteOrder(notes: readonly Pick<Item, "id">[]) {
+  return JSON.stringify(notes.map((note) => note.id));
+}
+
 export function getNotes(items: readonly Item[]) {
+  const order = parseNoteOrder(items);
+  const orderIndexes = new Map(order.map((id, index) => [id, index]));
+
   return items
     .filter((item) => item.kind === "note" && item.status === "active")
     .sort((left, right) => {
-      const leftOrdered = typeof left.noteOrder === "number";
-      const rightOrdered = typeof right.noteOrder === "number";
+      const leftIndex = orderIndexes.get(left.id);
+      const rightIndex = orderIndexes.get(right.id);
+      const leftOrdered = leftIndex !== undefined;
+      const rightOrdered = rightIndex !== undefined;
 
-      if (leftOrdered && rightOrdered) {
-        const byOrder = (left.noteOrder ?? 0) - (right.noteOrder ?? 0);
-        if (byOrder) return byOrder;
-      }
+      if (leftOrdered && rightOrdered) return leftIndex - rightIndex;
       if (leftOrdered !== rightOrdered) return leftOrdered ? 1 : -1;
-
       return Date.parse(right.updatedAt) - Date.parse(left.updatedAt);
     });
 }

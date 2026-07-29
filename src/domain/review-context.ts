@@ -1,4 +1,4 @@
-import { getCurrentProjectAction, isOpenTask, isProjectActionTargetReached, projectRequiresNextAction, type Item } from "@/domain/personal-data";
+import { getOpenProjectActions, isOpenTask, isProjectActionTargetReached, projectRequiresNextAction, type Item } from "@/domain/personal-data";
 import { formatLocalDate, isTimestampInReviewPeriod, type ReviewPeriod } from "@/domain/weekly-review";
 
 export type ReviewLine = { id: string; text: string; detail?: string };
@@ -9,13 +9,17 @@ export function buildReviewContext(items: Item[], period: ReviewPeriod) {
   const attention: ReviewLine[] = [];
 
   for (const project of items.filter((item) => item.kind === "project" && item.status !== "archived")) {
-    const currentAction = getCurrentProjectAction(project);
-    if (projectRequiresNextAction(project) && !currentAction) {
-      attention.push({ id: `${project.id}-missing`, text: project.title, detail: "Needs a current action point" });
-    } else if (currentAction && !currentAction.targetDate) {
-      attention.push({ id: `${project.id}-date`, text: `${project.title}: ${currentAction.title}`, detail: "Needs a check-in date" });
-    } else if (currentAction && isProjectActionTargetReached(currentAction)) {
-      attention.push({ id: currentAction.id, text: `${project.title}: ${currentAction.title}`, detail: `Check-in reached ${formatDate(currentAction.targetDate)}` });
+    const openActions = getOpenProjectActions(project);
+    if (projectRequiresNextAction(project) && openActions.length === 0) {
+      attention.push({ id: `${project.id}-missing`, text: project.title, detail: "Needs an open action" });
+    }
+
+    for (const action of openActions) {
+      if (!action.targetDate) {
+        attention.push({ id: `${action.id}-date`, text: `${project.title}: ${action.title}`, detail: "Needs a check-in date" });
+      } else if (isProjectActionTargetReached(action)) {
+        attention.push({ id: action.id, text: `${project.title}: ${action.title}`, detail: `Check-in reached ${formatDate(action.targetDate)}` });
+      }
     }
 
     for (const action of project.actions) {

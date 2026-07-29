@@ -6,7 +6,6 @@ import {
   areaLabels,
   getCompletedProjectActions,
   getOpenProjectActions,
-  type ActionCompletionResolution,
   type AreaId,
   type Item,
   type ItemStatus,
@@ -36,11 +35,12 @@ export function ExpandButton({ label, onClick }: { label: string; onClick: () =>
 }
 
 export function ProjectDetail({ project, onClose, accomplishment = false, archived = false }: { project: Item; onClose: () => void; accomplishment?: boolean; archived?: boolean }) {
-  const { updateItem, setItemStatus, addProjectAction, updateProjectAction, completeProjectAction, toggleCompleted, archiveItem, restoreArchivedItem } = usePersonalData();
+  const { updateItem, addProjectAction, updateProjectAction, completeProjectAction, toggleCompleted, archiveItem, restoreArchivedItem } = usePersonalData();
   const [editingProject, setEditingProject] = useState(false);
   const [addingAction, setAddingAction] = useState(false);
   const [completingActionId, setCompletingActionId] = useState<string | null>(null);
   const [editingActionId, setEditingActionId] = useState<string | null>(null);
+  const [completingProject, setCompletingProject] = useState(false);
   const [showFullHistory, setShowFullHistory] = useState(false);
   const openActions = getOpenProjectActions(project);
   const completingAction = openActions.find((action) => action.id === completingActionId);
@@ -68,7 +68,7 @@ export function ProjectDetail({ project, onClose, accomplishment = false, archiv
           <button type="button" onClick={onClose} className="flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700" aria-label="Close project">
             <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-current" strokeWidth="1.8"><path d="m15 18-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" /></svg>
           </button>
-          {!archived ? <button type="button" onClick={() => setEditingProject((value) => !value)} className="min-h-10 rounded-xl px-3 text-xs font-semibold text-slate-500">{editingProject ? "Cancel" : "Edit project"}</button> : <span />}
+          {!archived && !accomplishment ? <button type="button" onClick={() => setEditingProject((value) => !value)} className="min-h-10 rounded-xl px-3 text-xs font-semibold text-slate-500">{editingProject ? "Cancel" : "Edit project"}</button> : <span />}
         </div>
       </header>
 
@@ -79,11 +79,18 @@ export function ProjectDetail({ project, onClose, accomplishment = false, archiv
         <h2 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">{project.title}</h2>
         {project.description ? <p className="mt-4 whitespace-pre-wrap text-sm leading-7 text-slate-600">{project.description}</p> : null}
 
-        {editingProject && !archived ? <ProjectEditForm project={project} updateItem={updateItem} setItemStatus={setItemStatus} onSaved={() => setEditingProject(false)} /> : null}
+        {project.projectTakeaways ? (
+          <section className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">Project takeaways</p>
+            <p className="mt-2 whitespace-pre-wrap text-sm leading-7 text-emerald-950">{project.projectTakeaways}</p>
+          </section>
+        ) : null}
+
+        {editingProject && !readOnly ? <ProjectEditForm project={project} updateItem={updateItem} onSaved={() => setEditingProject(false)} /> : null}
 
         <section className="mt-8">
           <div className="flex items-end justify-between gap-4">
-            <div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Next steps</p><h3 className="mt-1 text-xl font-semibold text-slate-950">Open actions</h3></div>
+            <div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Next steps</p><h3 className="mt-1 text-xl font-semibold text-slate-950">{accomplishment ? "Unfinished actions" : "Open actions"}</h3></div>
             <span className="text-xs text-slate-400">{openActions.length} open</span>
           </div>
 
@@ -95,22 +102,22 @@ export function ProjectDetail({ project, onClose, accomplishment = false, archiv
                   action={action}
                   primary={index === 0}
                   readOnly={readOnly}
-                  onComplete={() => { setCompletingActionId(action.id); setEditingActionId(null); }}
-                  onEdit={() => { setEditingActionId(action.id); setCompletingActionId(null); }}
+                  onComplete={() => { setCompletingActionId(action.id); setEditingActionId(null); setCompletingProject(false); }}
+                  onEdit={() => { setEditingActionId(action.id); setCompletingActionId(null); setCompletingProject(false); }}
                 />
               ))}
             </div>
-          ) : <p className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-white p-5 text-sm text-slate-500">No open actions.</p>}
+          ) : <p className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-white p-5 text-sm text-slate-500">No open actions. This project stays in Waiting until you add one or complete the project.</p>}
 
           {!readOnly ? (
-            <button type="button" onClick={() => { setAddingAction((value) => !value); setCompletingActionId(null); setEditingActionId(null); }} className="mt-4 min-h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700">
+            <button type="button" onClick={() => { setAddingAction((value) => !value); setCompletingActionId(null); setEditingActionId(null); setCompletingProject(false); }} className="mt-4 min-h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700">
               {addingAction ? "Cancel new action" : "Add open action"}
             </button>
           ) : null}
 
           {addingAction && !readOnly ? <AddActionForm onCancel={() => setAddingAction(false)} onAdd={(title, date) => { addProjectAction(project.id, title, date); setAddingAction(false); }} /> : null}
           {editingAction && !readOnly ? <EditActionForm action={editingAction} onCancel={() => setEditingActionId(null)} onSave={(title, date, note) => { const updates: ProjectActionEdit = { title, targetDate: date, rescheduleNote: note }; updateProjectAction(project.id, editingAction.id, updates); setEditingActionId(null); }} /> : null}
-          {completingAction && !readOnly ? <CompleteActionForm action={completingAction} hasOtherOpenActions={openActions.length > 1} onCancel={() => setCompletingActionId(null)} onComplete={(note, resolution, nextTitle, nextDate) => { completeProjectAction(project.id, completingAction.id, note, resolution, nextTitle, nextDate); setCompletingActionId(null); }} /> : null}
+          {completingAction && !readOnly ? <CompleteActionForm action={completingAction} hasOtherOpenActions={openActions.length > 1} onCancel={() => setCompletingActionId(null)} onComplete={(note, nextTitle, nextDate) => { const resolution = nextTitle.trim() ? "next-action" : openActions.length > 1 ? "keep-active" : "waiting"; completeProjectAction(project.id, completingAction.id, note, resolution, nextTitle, nextDate); setCompletingActionId(null); }} /> : null}
         </section>
 
         <section className="mt-10 border-t border-slate-200 pt-8">
@@ -121,6 +128,17 @@ export function ProjectDetail({ project, onClose, accomplishment = false, archiv
           <CompletedTimeline project={project} showAll={showFullHistory} />
           {getCompletedProjectActions(project).length > 3 ? <button type="button" onClick={() => setShowFullHistory((value) => !value)} className="mt-3 min-h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700">{showFullHistory ? "Show recent history" : "View full history"}</button> : null}
         </section>
+
+        {!archived && !accomplishment ? (
+          <section className="mt-10 border-t border-slate-200 pt-8">
+            <h3 className="text-lg font-semibold text-slate-950">Project outcome</h3>
+            <p className="mt-2 text-sm leading-6 text-slate-500">Complete the project when the outcome is achieved, even if some planned actions became unnecessary.</p>
+            <button type="button" onClick={() => { setCompletingProject((value) => !value); setAddingAction(false); setCompletingActionId(null); setEditingActionId(null); }} className="mt-4 min-h-11 rounded-xl bg-emerald-900 px-4 text-sm font-semibold text-white">
+              {completingProject ? "Cancel completion" : "Complete project"}
+            </button>
+            {completingProject ? <CompleteProjectForm openActionCount={openActions.length} onCancel={() => setCompletingProject(false)} onComplete={(takeaways) => { updateItem(project.id, { projectTakeaways: takeaways }); toggleCompleted(project.id); }} /> : null}
+          </section>
+        ) : null}
 
         <div className="mt-8 flex flex-wrap gap-2 border-t border-slate-200 pt-6">
           {archived ? <button type="button" onClick={() => restoreArchivedItem(project.id)} className="min-h-11 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white">Restore project</button> : (
@@ -152,16 +170,16 @@ function OpenActionCard({ action, primary, readOnly, onComplete, onEdit }: { act
   );
 }
 
-function ProjectEditForm({ project, updateItem, setItemStatus, onSaved }: { project: Item; updateItem: ReturnType<typeof usePersonalData>["updateItem"]; setItemStatus: ReturnType<typeof usePersonalData>["setItemStatus"]; onSaved: () => void }) {
+function ProjectEditForm({ project, updateItem, onSaved }: { project: Item; updateItem: ReturnType<typeof usePersonalData>["updateItem"]; onSaved: () => void }) {
   const [title, setTitle] = useState(project.title);
   const [description, setDescription] = useState(project.description);
   const [area, setArea] = useState<AreaId>(project.area);
-  const [status, setStatus] = useState<ItemStatus>(project.status);
-  function saveProject(event: FormEvent<HTMLFormElement>) { event.preventDefault(); const trimmedTitle = title.trim(); if (!trimmedTitle) return; updateItem(project.id, { title: trimmedTitle, description: description.trim(), area }); setItemStatus(project.id, status); onSaved(); }
+  function saveProject(event: FormEvent<HTMLFormElement>) { event.preventDefault(); const trimmedTitle = title.trim(); if (!trimmedTitle) return; updateItem(project.id, { title: trimmedTitle, description: description.trim(), area }); onSaved(); }
   return <form className="mt-6 rounded-2xl border border-slate-200 bg-white p-4" onSubmit={saveProject}>
     <label className="block text-sm font-medium text-slate-700">Project title<input className="input mt-2" value={title} onChange={(event) => setTitle(event.target.value)} required /></label>
     <label className="mt-4 block text-sm font-medium text-slate-700">Outcome or context<textarea className="input mt-2 min-h-24 resize-y" value={description} onChange={(event) => setDescription(event.target.value)} /></label>
-    <div className="mt-4 grid gap-4 sm:grid-cols-2"><label className="text-sm font-medium text-slate-700">Area<select className="input mt-2" value={area} onChange={(event) => setArea(event.target.value as AreaId)}>{Object.entries(areaLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><label className="text-sm font-medium text-slate-700">Status<select className="input mt-2" value={status} onChange={(event) => setStatus(event.target.value as ItemStatus)}>{projectStatuses.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label></div>
+    <label className="mt-4 block text-sm font-medium text-slate-700">Area<select className="input mt-2" value={area} onChange={(event) => setArea(event.target.value as AreaId)}>{Object.entries(areaLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+    <p className="mt-3 text-xs leading-5 text-slate-500">Status is automatic: projects with open actions are Active; projects without open actions are Waiting.</p>
     <div className="mt-4 flex justify-end"><button type="submit" className="min-h-10 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white">Save project</button></div>
   </form>;
 }
@@ -186,7 +204,7 @@ function RescheduleHistory({ action, compact = false }: { action: ProjectAction;
 
 function AddActionForm({ onAdd, onCancel }: { onAdd: (title: string, date: string) => void; onCancel: () => void }) {
   const [title, setTitle] = useState(""); const [date, setDate] = useState("");
-  return <form className="mt-4 rounded-2xl border border-slate-200 bg-white p-4" onSubmit={(event) => { event.preventDefault(); onAdd(title, date); }}><p className="text-sm font-semibold text-slate-900">Add an open action</p><label className="mt-3 block text-sm font-medium text-slate-700">Action<input className="input mt-2" value={title} onChange={(event) => setTitle(event.target.value)} required /></label><label className="mt-3 block text-sm font-medium text-slate-700">Check-in date<input type="date" className="input mt-2" value={date} onChange={(event) => setDate(event.target.value)} /><span className="mt-2 block text-xs font-normal text-slate-500">Optional. Undated actions remain open without creating warnings.</span></label><div className="mt-4 flex justify-end gap-2"><button type="button" onClick={onCancel} className="min-h-10 rounded-xl px-3 text-sm font-semibold text-slate-600">Cancel</button><button type="submit" className="min-h-10 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white">Add action</button></div></form>;
+  return <form className="mt-4 rounded-2xl border border-slate-200 bg-white p-4" onSubmit={(event) => { event.preventDefault(); onAdd(title, date); }}><p className="text-sm font-semibold text-slate-900">Add an open action</p><label className="mt-3 block text-sm font-medium text-slate-700">Action<input className="input mt-2" value={title} onChange={(event) => setTitle(event.target.value)} required /></label><label className="mt-3 block text-sm font-medium text-slate-700">Check-in date<input type="date" className="input mt-2" value={date} onChange={(event) => setDate(event.target.value)} /><span className="mt-2 block text-xs font-normal text-slate-500">Optional. Adding an action automatically makes a Waiting project Active.</span></label><div className="mt-4 flex justify-end gap-2"><button type="button" onClick={onCancel} className="min-h-10 rounded-xl px-3 text-sm font-semibold text-slate-600">Cancel</button><button type="submit" className="min-h-10 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white">Add action</button></div></form>;
 }
 
 function EditActionForm({ action, onSave, onCancel }: { action: ProjectAction; onSave: (title: string, date: string, note: string) => void; onCancel: () => void }) {
@@ -194,11 +212,15 @@ function EditActionForm({ action, onSave, onCancel }: { action: ProjectAction; o
   return <form className="mt-4 rounded-2xl border border-sky-200 bg-sky-50 p-4" onSubmit={(event) => { event.preventDefault(); onSave(title, date, note); }}><p className="text-sm font-semibold text-sky-950">Edit open action</p><label className="mt-3 block text-sm font-medium text-sky-950">Action<input className="input mt-2 bg-white" value={title} onChange={(event) => setTitle(event.target.value)} required /></label><label className="mt-3 block text-sm font-medium text-sky-950">Check-in date<input type="date" className="input mt-2 bg-white" value={date} onChange={(event) => setDate(event.target.value)} /><span className="mt-2 block text-xs font-normal text-sky-800">Optional. Clearing it keeps the action open without a date.</span></label><label className="mt-3 block text-sm font-medium text-sky-950">Reschedule note<textarea className="input mt-2 min-h-20 resize-y bg-white" value={note} onChange={(event) => setNote(event.target.value)} placeholder="Optional reason or context for the date change" /></label><p className="mt-3 text-xs leading-5 text-sky-800">Changing or removing the date keeps this action open and records the previous date and optional note.</p><div className="mt-4 flex justify-end gap-2"><button type="button" onClick={onCancel} className="min-h-10 rounded-xl px-3 text-sm font-semibold text-sky-900">Cancel</button><button type="submit" className="min-h-10 rounded-xl bg-sky-950 px-4 text-sm font-semibold text-white">Save action</button></div></form>;
 }
 
-function CompleteActionForm({ action, hasOtherOpenActions, onCancel, onComplete }: { action: ProjectAction; hasOtherOpenActions: boolean; onCancel: () => void; onComplete: (note: string, resolution: ActionCompletionResolution, nextTitle: string, nextDate: string) => void }) {
+function CompleteActionForm({ action, hasOtherOpenActions, onCancel, onComplete }: { action: ProjectAction; hasOtherOpenActions: boolean; onCancel: () => void; onComplete: (note: string, nextTitle: string, nextDate: string) => void }) {
   const [note, setNote] = useState("");
-  const [resolution, setResolution] = useState<ActionCompletionResolution>(hasOtherOpenActions ? "keep-active" : "next-action");
   const [nextTitle, setNextTitle] = useState(""); const [nextDate, setNextDate] = useState("");
-  return <form className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4" onSubmit={(event) => { event.preventDefault(); onComplete(note, resolution, nextTitle, nextDate); }}><p className="text-sm font-semibold text-emerald-950">Complete: {action.title}</p><label className="mt-3 block text-sm font-medium text-emerald-950">What happened?<textarea className="input mt-2 min-h-24 resize-y bg-white" value={note} onChange={(event) => setNote(event.target.value)} required /></label><label className="mt-3 block text-sm font-medium text-emerald-950">What happens next?<select className="input mt-2 bg-white" value={resolution} onChange={(event) => setResolution(event.target.value as ActionCompletionResolution)}>{hasOtherOpenActions ? <><option value="keep-active">Continue with the other open actions</option><option value="next-action">Add another open action</option></> : <><option value="next-action">Open the next action</option><option value="waiting">Move project to waiting</option><option value="complete-project">Complete the project</option></>}</select></label>{resolution === "next-action" ? <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_11rem]"><label className="block text-sm font-medium text-emerald-950">Next action<input className="input mt-2 bg-white" value={nextTitle} onChange={(event) => setNextTitle(event.target.value)} required /></label><label className="block text-sm font-medium text-emerald-950">Check-in date<input type="date" className="input mt-2 bg-white" value={nextDate} onChange={(event) => setNextDate(event.target.value)} /><span className="mt-2 block text-xs font-normal text-emerald-800">Optional.</span></label></div> : null}<div className="mt-4 flex justify-end gap-2"><button type="button" onClick={onCancel} className="min-h-10 rounded-xl px-3 text-sm font-semibold text-emerald-900">Cancel</button><button type="submit" className="min-h-10 rounded-xl bg-emerald-900 px-4 text-sm font-semibold text-white">Save completion</button></div></form>;
+  return <form className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4" onSubmit={(event) => { event.preventDefault(); onComplete(note, nextTitle, nextDate); }}><p className="text-sm font-semibold text-emerald-950">Complete: {action.title}</p><label className="mt-3 block text-sm font-medium text-emerald-950">What happened?<textarea className="input mt-2 min-h-24 resize-y bg-white" value={note} onChange={(event) => setNote(event.target.value)} required /></label><div className="mt-3 grid gap-3 sm:grid-cols-[1fr_11rem]"><label className="block text-sm font-medium text-emerald-950">Add a next action<input className="input mt-2 bg-white" value={nextTitle} onChange={(event) => setNextTitle(event.target.value)} placeholder="Optional" /></label><label className="block text-sm font-medium text-emerald-950">Check-in date<input type="date" className="input mt-2 bg-white" value={nextDate} onChange={(event) => setNextDate(event.target.value)} disabled={!nextTitle.trim()} /><span className="mt-2 block text-xs font-normal text-emerald-800">Optional.</span></label></div><p className="mt-3 text-xs leading-5 text-emerald-800">{hasOtherOpenActions ? "Leave the next action blank to continue with the other open actions." : "Leave the next action blank to move the project to Waiting automatically."}</p><div className="mt-4 flex justify-end gap-2"><button type="button" onClick={onCancel} className="min-h-10 rounded-xl px-3 text-sm font-semibold text-emerald-900">Cancel</button><button type="submit" className="min-h-10 rounded-xl bg-emerald-900 px-4 text-sm font-semibold text-white">Save completion</button></div></form>;
+}
+
+function CompleteProjectForm({ openActionCount, onCancel, onComplete }: { openActionCount: number; onCancel: () => void; onComplete: (takeaways: string) => void }) {
+  const [takeaways, setTakeaways] = useState("");
+  return <form className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4" onSubmit={(event) => { event.preventDefault(); onComplete(takeaways.trim()); }}><p className="text-sm font-semibold text-emerald-950">Complete this project</p><label className="mt-3 block text-sm font-medium text-emerald-950">Project takeaways<textarea className="input mt-2 min-h-32 resize-y bg-white" value={takeaways} onChange={(event) => setTakeaways(event.target.value)} placeholder="What went well? What was difficult? What did you learn?" required /></label>{openActionCount > 0 ? <p className="mt-3 text-xs leading-5 text-amber-800">{openActionCount} still-open {openActionCount === 1 ? "action will" : "actions will"} remain visible as unfinished history, but will stop creating reminders and Calendar events.</p> : null}<div className="mt-4 flex justify-end gap-2"><button type="button" onClick={onCancel} className="min-h-10 rounded-xl px-3 text-sm font-semibold text-emerald-900">Cancel</button><button type="submit" className="min-h-10 rounded-xl bg-emerald-900 px-4 text-sm font-semibold text-white">Complete project</button></div></form>;
 }
 
 function formatReschedule(previousDate: string, nextDate: string) {

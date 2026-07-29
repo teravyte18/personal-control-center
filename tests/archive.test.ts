@@ -16,13 +16,15 @@ const waitingProject: Item = {
     title: "Wait for a result",
     targetDate: "2026-07-20",
     openedAt: "2026-07-10T10:00:00.000Z",
-    updatedAt: "2026-07-10T10:00:00.000Z",
+    updatedAt: "2026-07-16T10:00:00.000Z",
+    completedAt: "2026-07-16T10:00:00.000Z",
+    completionNote: "The action is resolved; the project is waiting for a future next step.",
   }],
   kind: "project",
   status: "waiting",
   area: "uncategorized",
   createdAt: "2026-07-10T10:00:00.000Z",
-  updatedAt: "2026-07-10T10:00:00.000Z",
+  updatedAt: "2026-07-16T10:00:00.000Z",
 };
 
 test("archive preserves project history and restores the prior status", () => {
@@ -44,7 +46,7 @@ test("archived accomplishments retain their original completion metadata", () =>
   const accomplishment: Item = {
     ...waitingProject,
     status: "completed",
-    statusBeforeCompletion: "active",
+    statusBeforeCompletion: "waiting",
     completedAt: "2026-07-16T09:00:00.000Z",
   };
   const archived = archiveItem(accomplishment, new Date("2026-07-17T12:00:00.000Z"));
@@ -58,5 +60,5 @@ test("archived accomplishments retain their original completion metadata", () =>
   const restored = restoreArchivedItem(normalized, new Date("2026-07-18T12:00:00.000Z"));
   assert.equal(restored.status, "completed");
   assert.equal(restored.completedAt, "2026-07-16T09:00:00.000Z");
-  assert.equal(restored.statusBeforeCompletion, "active");
+  assert.equal(restored.statusBeforeCompletion, "waiting");
 });

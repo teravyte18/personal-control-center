@@ -112,6 +112,11 @@ function InboxItem({ item }: { item: Item }) {
             onBlur={description.flush}
             placeholder="Optional details, links, or why this matters…"
           />
+          {item.kind === "note" ? (
+            <span className="mt-2 block text-xs font-normal text-slate-500">
+              The title becomes the note&apos;s first line; this context becomes the editable body below it.
+            </span>
+          ) : null}
         </label>
 
         <div className="mt-4 grid gap-4 sm:grid-cols-2">

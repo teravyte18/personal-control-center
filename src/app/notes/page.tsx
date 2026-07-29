@@ -1,15 +1,58 @@
 "use client";
 
-import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { getNotes, noteContent, parseNoteContent } from "@/domain/notes";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
+import { getNotes, noteContent, parseNoteContent, reorderNotes } from "@/domain/notes";
 import { type Item, usePersonalData } from "@/lib/personal-data";
+
+const LONG_PRESS_MS = 350;
+const PRESS_MOVE_TOLERANCE_PX = 10;
+
+type PendingPress = {
+  noteId: string;
+  pointerId: number;
+  startX: number;
+  startY: number;
+  element: HTMLButtonElement;
+};
 
 export default function NotesPage() {
   const { items, addItem, updateItem, deleteItem } = usePersonalData();
   const notes = useMemo(() => getNotes(items), [items]);
+  const [orderedNotes, setOrderedNotes] = useState(notes);
+  const orderedNotesRef = useRef(notes);
   const [creating, setCreating] = useState(false);
   const [openNoteId, setOpenNoteId] = useState<string | null>(null);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const pressRef = useRef<PendingPress | null>(null);
+  const pressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const suppressClickRef = useRef(false);
   const openNote = notes.find((note) => note.id === openNoteId);
+
+  useEffect(() => {
+    if (draggingId) return;
+    orderedNotesRef.current = notes;
+    setOrderedNotes(notes);
+  }, [draggingId, notes]);
+
+  useEffect(() => {
+    if (!draggingId) return;
+    const previousUserSelect = document.body.style.userSelect;
+    document.body.style.userSelect = "none";
+    return () => {
+      document.body.style.userSelect = previousUserSelect;
+    };
+  }, [draggingId]);
+
+  useEffect(() => () => {
+    if (pressTimerRef.current) clearTimeout(pressTimerRef.current);
+  }, []);
 
   function createNote(content: string) {
     const parsed = parseNoteContent(content);
@@ -42,6 +85,94 @@ export default function NotesPage() {
     setOpenNoteId(null);
   }
 
+  function clearPressTimer() {
+    if (!pressTimerRef.current) return;
+    clearTimeout(pressTimerRef.current);
+    pressTimerRef.current = null;
+  }
+
+  function startPress(noteId: string, event: ReactPointerEvent<HTMLButtonElement>) {
+    if (event.button !== 0) return;
+    clearPressTimer();
+    pressRef.current = {
+      noteId,
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      element: event.currentTarget,
+    };
+
+    pressTimerRef.current = setTimeout(() => {
+      const press = pressRef.current;
+      if (!press || press.noteId !== noteId) return;
+      suppressClickRef.current = true;
+      setDraggingId(noteId);
+      press.element.setPointerCapture(press.pointerId);
+      if (typeof navigator.vibrate === "function") navigator.vibrate(15);
+    }, LONG_PRESS_MS);
+  }
+
+  function movePress(event: ReactPointerEvent<HTMLButtonElement>) {
+    const press = pressRef.current;
+    if (!press || press.pointerId !== event.pointerId) return;
+
+    if (!draggingId) {
+      const distance = Math.hypot(event.clientX - press.startX, event.clientY - press.startY);
+      if (distance > PRESS_MOVE_TOLERANCE_PX) {
+        clearPressTimer();
+        pressRef.current = null;
+      }
+      return;
+    }
+
+    event.preventDefault();
+    const target = document
+      .elementFromPoint(event.clientX, event.clientY)
+      ?.closest<HTMLElement>("[data-note-card-id]");
+    const targetId = target?.dataset.noteCardId;
+
+    if (targetId && targetId !== draggingId) {
+      setOrderedNotes((current) => {
+        const next = reorderNotes(current, draggingId, targetId);
+        orderedNotesRef.current = next;
+        return next;
+      });
+    }
+
+    if (event.clientY < 90) window.scrollBy({ top: -14, behavior: "auto" });
+    if (event.clientY > window.innerHeight - 110) window.scrollBy({ top: 14, behavior: "auto" });
+  }
+
+  function finishPress(event: ReactPointerEvent<HTMLButtonElement>) {
+    clearPressTimer();
+    const press = pressRef.current;
+    pressRef.current = null;
+
+    if (!draggingId || !press || press.pointerId !== event.pointerId) return;
+
+    try {
+      press.element.releasePointerCapture(event.pointerId);
+    } catch {
+      // Pointer capture can already be released by the browser after cancellation.
+    }
+
+    orderedNotesRef.current.forEach((note, index) => {
+      if (note.noteOrder !== index) updateItem(note.id, { noteOrder: index });
+    });
+    setDraggingId(null);
+    window.setTimeout(() => {
+      suppressClickRef.current = false;
+    }, 0);
+  }
+
+  function openCard(noteId: string, event: React.MouseEvent<HTMLButtonElement>) {
+    if (suppressClickRef.current) {
+      event.preventDefault();
+      return;
+    }
+    setOpenNoteId(noteId);
+  }
+
   return (
     <section className="mx-auto max-w-4xl">
       <div className="flex items-end justify-between gap-4">
@@ -49,7 +180,7 @@ export default function NotesPage() {
           <p className="text-sm text-slate-500">Mutable reference space</p>
           <h2 className="mt-1 text-3xl font-semibold tracking-tight">Notes</h2>
           <p className="mt-3 text-sm leading-6 text-slate-500">
-            The first line is the title. Cards stay compact until you open the full note.
+            The first line is the title. Long-press a card and drag it to reorder the grid.
           </p>
         </div>
         <button
@@ -77,16 +208,33 @@ export default function NotesPage() {
         </div>
       ) : (
         <div className="mt-7 grid grid-cols-2 gap-3 sm:gap-4">
-          {notes.map((note) => (
-            <button
-              key={note.id}
-              type="button"
-              onClick={() => setOpenNoteId(note.id)}
-              className="min-h-28 rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:border-slate-400 active:scale-[0.99] sm:min-h-32 sm:p-5"
-            >
-              <span className="line-clamp-4 font-semibold leading-6 text-slate-900">{note.title}</span>
-            </button>
-          ))}
+          {orderedNotes.map((note) => {
+            const dragging = draggingId === note.id;
+            return (
+              <button
+                key={note.id}
+                type="button"
+                data-note-card-id={note.id}
+                aria-grabbed={dragging}
+                onClick={(event) => openCard(note.id, event)}
+                onPointerDown={(event) => startPress(note.id, event)}
+                onPointerMove={movePress}
+                onPointerUp={finishPress}
+                onPointerCancel={finishPress}
+                onContextMenu={(event) => event.preventDefault()}
+                style={{ touchAction: dragging ? "none" : "pan-y" }}
+                className={`min-h-16 rounded-2xl border bg-white p-3 text-left shadow-sm transition sm:min-h-20 sm:p-4 ${
+                  dragging
+                    ? "z-10 scale-[1.03] cursor-grabbing border-slate-500 opacity-80 shadow-lg"
+                    : "cursor-grab border-slate-200 hover:border-slate-400 active:scale-[0.99]"
+                }`}
+              >
+                <span className="line-clamp-2 text-sm font-semibold leading-5 text-slate-900 sm:text-base sm:leading-6">
+                  {note.title}
+                </span>
+              </button>
+            );
+          })}
         </div>
       )}
 

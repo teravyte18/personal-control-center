@@ -6,9 +6,18 @@ import {
   useRef,
   useState,
   type FormEvent,
+  type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
-import { getNotes, noteContent, parseNoteContent, reorderNotes } from "@/domain/notes";
+import {
+  getNoteOrderMetadata,
+  getNotes,
+  NOTE_ORDER_METADATA_TITLE,
+  noteContent,
+  parseNoteContent,
+  reorderNotes,
+  serializeNoteOrder,
+} from "@/domain/notes";
 import { type Item, usePersonalData } from "@/lib/personal-data";
 
 const LONG_PRESS_MS = 350;
@@ -143,6 +152,22 @@ export default function NotesPage() {
     if (event.clientY > window.innerHeight - 110) window.scrollBy({ top: 14, behavior: "auto" });
   }
 
+  function persistCurrentOrder() {
+    const description = serializeNoteOrder(orderedNotesRef.current);
+    const metadata = getNoteOrderMetadata(items);
+    if (metadata) {
+      updateItem(metadata.id, { description });
+      return;
+    }
+
+    addItem(NOTE_ORDER_METADATA_TITLE, {
+      description,
+      kind: "unclassified",
+      status: "archived",
+      area: "uncategorized",
+    });
+  }
+
   function finishPress(event: ReactPointerEvent<HTMLButtonElement>) {
     clearPressTimer();
     const press = pressRef.current;
@@ -156,16 +181,14 @@ export default function NotesPage() {
       // Pointer capture can already be released by the browser after cancellation.
     }
 
-    orderedNotesRef.current.forEach((note, index) => {
-      if (note.noteOrder !== index) updateItem(note.id, { noteOrder: index });
-    });
+    persistCurrentOrder();
     setDraggingId(null);
     window.setTimeout(() => {
       suppressClickRef.current = false;
     }, 0);
   }
 
-  function openCard(noteId: string, event: React.MouseEvent<HTMLButtonElement>) {
+  function openCard(noteId: string, event: ReactMouseEvent<HTMLButtonElement>) {
     if (suppressClickRef.current) {
       event.preventDefault();
       return;

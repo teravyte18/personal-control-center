@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ExpandButton, ProjectDetail, formatDateOnly } from "@/components/project-detail";
-import { isProjectPastCheckIn } from "@/domain/project-dates";
+import { isProjectActionPastCheckIn, isProjectPastCheckIn } from "@/domain/project-dates";
 import {
   areaLabels,
   getOpenProjectActions,
@@ -49,10 +49,10 @@ export default function ProjectsPage() {
   return (
     <section>
       <div className="max-w-3xl">
-        <p className="text-sm text-slate-500">Finite outcomes that move through dated action points</p>
+        <p className="text-sm text-slate-500">Finite outcomes that move through concrete action points</p>
         <h2 className="mt-1 text-3xl font-semibold tracking-tight">Projects across your life.</h2>
         <p className="mt-3 text-sm leading-6 text-slate-500">
-          Cards show the nearest open action. Expand a project to manage parallel actions and completed history.
+          Cards show the nearest dated action first, followed by undated actions. Expand a project to manage parallel work and completed history.
         </p>
       </div>
 
@@ -93,7 +93,7 @@ function EmptyProjects() {
     <div className="mt-6 rounded-[2rem] border border-dashed border-slate-300 bg-white p-8 text-center">
       <h3 className="text-lg font-semibold">No active projects yet.</h3>
       <p className="mt-2 text-sm leading-6 text-slate-500">
-        Capture an idea, then classify it as a project with its first action point.
+        Capture an idea, classify it as a project, and add actions whenever they become clear.
       </p>
       <Link href="/inbox" className="mt-5 inline-flex min-h-11 items-center rounded-xl bg-slate-950 px-5 text-sm font-semibold text-white">
         Open inbox
@@ -108,14 +108,13 @@ function ProjectCard({ project }: { project: Item }) {
   const primaryAction = openActions[0];
   const additionalActions = Math.max(0, openActions.length - 1);
   const overdue = isProjectPastCheckIn(project);
-  const primaryOverdue = Boolean(primaryAction && primaryAction.targetDate && overdue && primaryAction.targetDate < new Date().toLocaleDateString("en-CA"));
+  const primaryOverdue = Boolean(primaryAction && isProjectActionPastCheckIn(primaryAction));
   const waiting = project.status === "waiting";
   const needsAction = projectRequiresNextAction(project) && openActions.length === 0;
-  const needsDate = openActions.some((action) => !action.targetDate);
   const statusLabel = projectStatuses.find((option) => option.value === project.status)?.label ?? project.status;
   const cardTone = overdue ? "border-rose-300 bg-white" : waiting ? "border-amber-200 bg-amber-50/70" : "border-slate-200 bg-white";
-  const attentionTone = overdue ? "border border-rose-300 bg-rose-50" : waiting ? "border border-amber-200 bg-amber-100/70" : needsAction || needsDate ? "border border-amber-200 bg-amber-50" : "bg-slate-50";
-  const labelTone = overdue ? "text-rose-700" : waiting || needsAction || needsDate ? "text-amber-700" : "text-slate-400";
+  const attentionTone = overdue ? "border border-rose-300 bg-rose-50" : waiting ? "border border-amber-200 bg-amber-100/70" : needsAction ? "border border-amber-200 bg-amber-50" : "bg-slate-50";
+  const labelTone = overdue ? "text-rose-700" : waiting || needsAction ? "text-amber-700" : "text-slate-400";
 
   return (
     <>
@@ -137,14 +136,14 @@ function ProjectCard({ project }: { project: Item }) {
           {primaryAction ? (
             <>
               <p className="mt-2 text-sm font-medium leading-6 text-slate-900">{primaryAction.title}</p>
-              <p className={`mt-2 text-xs ${primaryOverdue ? "font-semibold text-rose-700" : needsDate ? "font-semibold text-amber-800" : "text-slate-500"}`}>
-                {primaryAction.targetDate ? `${primaryOverdue ? "Check-in passed" : "Check in"} ${formatDateOnly(primaryAction.targetDate)}` : "Choose a check-in date."}
+              <p className={`mt-2 text-xs ${primaryOverdue ? "font-semibold text-rose-700" : "text-slate-500"}`}>
+                {primaryAction.targetDate ? `${primaryOverdue ? "Check-in passed" : "Check in"} ${formatDateOnly(primaryAction.targetDate)}` : "No check-in date"}
               </p>
               {additionalActions > 0 ? <p className="mt-2 text-xs font-semibold text-slate-500">+{additionalActions} other open {additionalActions === 1 ? "action" : "actions"}</p> : null}
             </>
           ) : (
             <p className={`mt-2 text-sm leading-6 ${waiting || needsAction ? "font-medium text-amber-900" : "text-slate-600"}`}>
-              {waiting ? "Paused until something external changes." : needsAction ? "This project needs an open action." : "No open action while this project is paused."}
+              {waiting ? "Paused until something external changes." : needsAction ? "This project has no open actions yet." : "No open action while this project is paused."}
             </p>
           )}
         </div>

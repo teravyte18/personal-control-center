@@ -140,13 +140,14 @@ test("rescheduling records notes when dates are changed, removed, or set", () =>
   assert.deepEqual(getOpenProjectActions(restored)[0].reschedules, updated.reschedules);
 });
 
-test("any overdue dated action marks the project overdue while undated actions do not", () => {
+test("any overdue dated action marks an active project overdue while undated and waiting projects stay quiet", () => {
   const undated = addProjectAction(baseProject, "Undated action", "", new Date("2026-07-20T10:00:00.000Z"));
   assert.equal(isProjectPastCheckIn(undated, new Date(2026, 6, 29)), false);
 
   const future = addProjectAction(undated, "Future action", "2026-08-10", new Date("2026-07-21T10:00:00.000Z"));
   const project = addProjectAction(future, "Overdue action", "2026-07-28", new Date("2026-07-22T10:00:00.000Z"));
   assert.equal(isProjectPastCheckIn(project, new Date(2026, 6, 29)), true);
+  assert.equal(isProjectPastCheckIn({ ...project, status: "waiting" }, new Date(2026, 6, 29)), false);
 });
 
 test("Google Calendar projects dated open actions and skips undated actions", () => {

@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
+import { getThoughts } from "@/domain/thoughts";
 import { Item, usePersonalData } from "@/lib/personal-data";
 
 export default function ThoughtsPage() {
@@ -8,9 +9,7 @@ export default function ThoughtsPage() {
   const [thought, setThought] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
-  const thoughts = useMemo(() => items
-    .filter((item) => ["thought", "note"].includes(item.kind) && item.status !== "archived")
-    .sort((left, right) => right.createdAt.localeCompare(left.createdAt)), [items]);
+  const thoughts = useMemo(() => getThoughts(items), [items]);
 
   function submitThought(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

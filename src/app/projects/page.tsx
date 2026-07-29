@@ -7,7 +7,6 @@ import { isProjectActionPastCheckIn, isProjectPastCheckIn } from "@/domain/proje
 import {
   areaLabels,
   getOpenProjectActions,
-  projectRequiresNextAction,
   type AreaId,
   type Item,
   type ItemStatus,
@@ -49,10 +48,10 @@ export default function ProjectsPage() {
   return (
     <section>
       <div className="max-w-3xl">
-        <p className="text-sm text-slate-500">Finite outcomes that move through concrete action points</p>
+        <p className="text-sm text-slate-500">Finite outcomes that move through concrete actions</p>
         <h2 className="mt-1 text-3xl font-semibold tracking-tight">Projects across your life.</h2>
         <p className="mt-3 text-sm leading-6 text-slate-500">
-          Cards show the nearest dated action first, followed by undated actions. Expand a project to manage parallel work and completed history.
+          Projects with open actions are Active. Projects without one wait quietly until you add the next step or complete the outcome.
         </p>
       </div>
 
@@ -110,11 +109,10 @@ function ProjectCard({ project }: { project: Item }) {
   const overdue = isProjectPastCheckIn(project);
   const primaryOverdue = Boolean(primaryAction && isProjectActionPastCheckIn(primaryAction));
   const waiting = project.status === "waiting";
-  const needsAction = projectRequiresNextAction(project) && openActions.length === 0;
   const statusLabel = projectStatuses.find((option) => option.value === project.status)?.label ?? project.status;
   const cardTone = overdue ? "border-rose-300 bg-white" : waiting ? "border-amber-200 bg-amber-50/70" : "border-slate-200 bg-white";
-  const attentionTone = overdue ? "border border-rose-300 bg-rose-50" : waiting ? "border border-amber-200 bg-amber-100/70" : needsAction ? "border border-amber-200 bg-amber-50" : "bg-slate-50";
-  const labelTone = overdue ? "text-rose-700" : waiting || needsAction ? "text-amber-700" : "text-slate-400";
+  const attentionTone = overdue ? "border border-rose-300 bg-rose-50" : waiting ? "border border-amber-200 bg-amber-100/70" : "bg-slate-50";
+  const labelTone = overdue ? "text-rose-700" : waiting ? "text-amber-700" : "text-slate-400";
 
   return (
     <>
@@ -142,8 +140,8 @@ function ProjectCard({ project }: { project: Item }) {
               {additionalActions > 0 ? <p className="mt-2 text-xs font-semibold text-slate-500">+{additionalActions} other open {additionalActions === 1 ? "action" : "actions"}</p> : null}
             </>
           ) : (
-            <p className={`mt-2 text-sm leading-6 ${waiting || needsAction ? "font-medium text-amber-900" : "text-slate-600"}`}>
-              {waiting ? "Paused until something external changes." : needsAction ? "This project has no open actions yet." : "No open action while this project is paused."}
+            <p className="mt-2 text-sm font-medium leading-6 text-amber-900">
+              No open action. Add one to reactivate the project, or complete the project if the outcome is finished.
             </p>
           )}
         </div>

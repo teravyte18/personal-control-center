@@ -11,20 +11,18 @@ export function buildReviewContext(items: Item[], period: ReviewPeriod) {
   for (const project of items.filter((item) => item.kind === "project" && item.status !== "archived")) {
     const openActions = getOpenProjectActions(project);
     if (projectRequiresNextAction(project) && openActions.length === 0) {
-      attention.push({ id: `${project.id}-missing`, text: project.title, detail: "Needs an open action" });
+      attention.push({ id: `${project.id}-missing`, text: project.title, detail: "Has no open actions" });
     }
 
     for (const action of openActions) {
-      if (!action.targetDate) {
-        attention.push({ id: `${action.id}-date`, text: `${project.title}: ${action.title}`, detail: "Needs a check-in date" });
-      } else if (isProjectActionTargetReached(action)) {
+      if (action.targetDate && isProjectActionTargetReached(action)) {
         attention.push({ id: action.id, text: `${project.title}: ${action.title}`, detail: `Check-in reached ${formatDate(action.targetDate)}` });
       }
     }
 
     for (const action of project.actions) {
       if (isTimestampInReviewPeriod(action.openedAt, period)) {
-        openedActions.push({ id: `${action.id}-opened`, text: `${project.title}: ${action.title}`, detail: action.targetDate ? `Check in ${formatDate(action.targetDate)}` : undefined });
+        openedActions.push({ id: `${action.id}-opened`, text: `${project.title}: ${action.title}`, detail: action.targetDate ? `Check in ${formatDate(action.targetDate)}` : "No check-in date" });
       }
       if (isTimestampInReviewPeriod(action.completedAt, period)) {
         completedActions.push({ id: `${action.id}-completed`, text: `${project.title}: ${action.title}`, detail: action.completionNote || undefined });

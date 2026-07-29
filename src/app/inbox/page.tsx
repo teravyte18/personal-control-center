@@ -69,7 +69,7 @@ function InboxItem({ item }: { item: Item }) {
     title.flush();
     description.flush();
 
-    if (item.kind === "project") {
+    if (item.kind === "project" && actionTitle.trim()) {
       if (existingAction) {
         updateProjectAction(item.id, existingAction.id, { title: actionTitle, targetDate });
       } else {
@@ -133,12 +133,14 @@ function InboxItem({ item }: { item: Item }) {
         {item.kind === "project" ? (
           <div className="mt-4 grid gap-4 sm:grid-cols-[1fr_11rem]">
             <label className="block text-sm font-medium text-slate-700">
-              First action point
-              <input className="input mt-2" value={actionTitle} onChange={(event) => setActionTitle(event.target.value)} placeholder="One concrete action to move the project" required />
+              First action
+              <input className="input mt-2" value={actionTitle} onChange={(event) => setActionTitle(event.target.value)} placeholder="Optional concrete next step" />
+              <span className="mt-2 block text-xs font-normal text-slate-500">Optional. You can create the project first and add actions later.</span>
             </label>
             <label className="block text-sm font-medium text-slate-700">
               Check-in date
-              <input type="date" className="input mt-2" value={targetDate} onChange={(event) => setTargetDate(event.target.value)} required />
+              <input type="date" className="input mt-2" value={targetDate} onChange={(event) => setTargetDate(event.target.value)} disabled={!actionTitle.trim()} />
+              <span className="mt-2 block text-xs font-normal text-slate-500">Optional when an action is provided.</span>
             </label>
           </div>
         ) : null}

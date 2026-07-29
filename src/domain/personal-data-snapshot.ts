@@ -19,6 +19,7 @@ import {
   type ItemStatus,
   type ProjectAction,
   type ProjectActionReschedule,
+  type ProjectActionUpdates,
   type ReviewDraft,
   type ReviewEntry,
 } from "@/domain/personal-data";
@@ -40,7 +41,6 @@ export type PersonalDataExport = {
 };
 
 type ItemUpdates = Partial<Omit<Item, "id" | "createdAt">>;
-type ProjectActionUpdates = Pick<ProjectAction, "title" | "targetDate">;
 
 export type PersonalDataMutation =
   | { type: "add-item"; item: Item }
@@ -112,17 +112,22 @@ function isDateOnly(value: unknown): value is string {
     && !Number.isNaN(Date.parse(`${value}T00:00:00`));
 }
 
+function isDateOnlyOrEmpty(value: unknown): value is string {
+  return value === "" || isDateOnly(value);
+}
+
 function normalizeReschedule(value: unknown): ProjectActionReschedule | null {
   if (!isRecord(value)
-    || typeof value.previousTargetDate !== "string"
-    || (value.previousTargetDate && !isDateOnly(value.previousTargetDate))
-    || !isDateOnly(value.targetDate)
+    || !isDateOnlyOrEmpty(value.previousTargetDate)
+    || !isDateOnlyOrEmpty(value.targetDate)
     || !isDateTime(value.changedAt)
     || value.previousTargetDate === value.targetDate) return null;
+  const note = typeof value.note === "string" ? value.note.trim() : "";
   return {
     previousTargetDate: value.previousTargetDate,
     targetDate: value.targetDate,
     changedAt: value.changedAt,
+    note: note || undefined,
   };
 }
 
@@ -130,7 +135,7 @@ function normalizeAction(value: unknown): ProjectAction | null {
   if (!isRecord(value)
     || typeof value.id !== "string"
     || typeof value.title !== "string"
-    || !isDateOnly(value.targetDate)
+    || !isDateOnlyOrEmpty(value.targetDate)
     || !isDateTime(value.openedAt)
     || !isDateTime(value.updatedAt)) return null;
 
@@ -194,6 +199,19 @@ function normalizeUpdates(value: unknown): ItemUpdates | null {
   }
 
   return updates;
+}
+
+function normalizeProjectActionUpdates(value: unknown): ProjectActionUpdates | null {
+  if (!isRecord(value)
+    || typeof value.title !== "string"
+    || !value.title.trim()
+    || !isDateOnlyOrEmpty(value.targetDate)) return null;
+  if (value.rescheduleNote !== undefined && typeof value.rescheduleNote !== "string") return null;
+  return {
+    title: value.title,
+    targetDate: value.targetDate,
+    rescheduleNote: typeof value.rescheduleNote === "string" ? value.rescheduleNote : undefined,
+  };
 }
 
 export function normalizePersonalDataSnapshot(value: unknown): PersonalDataSnapshot {
@@ -288,18 +306,16 @@ export function normalizePersonalDataMutation(value: unknown): PersonalDataMutat
   }
 
   if (value.type === "update-project-action") {
-    if (!isRecord(value.updates)
-      || typeof value.updates.title !== "string"
-      || !value.updates.title.trim()
-      || !isDateOnly(value.updates.targetDate)) return null;
+    const updates = normalizeProjectActionUpdates(value.updates);
     return typeof value.projectId === "string"
       && typeof value.actionId === "string"
+      && updates
       && isDateTime(value.occurredAt)
       ? {
         type: "update-project-action",
         projectId: value.projectId,
         actionId: value.actionId,
-        updates: { title: value.updates.title, targetDate: value.updates.targetDate },
+        updates,
         occurredAt: value.occurredAt,
       }
       : null;

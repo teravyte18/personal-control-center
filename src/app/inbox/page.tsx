@@ -135,7 +135,7 @@ function InboxItem({ item }: { item: Item }) {
             <label className="block text-sm font-medium text-slate-700">
               First action
               <input className="input mt-2" value={actionTitle} onChange={(event) => setActionTitle(event.target.value)} placeholder="Optional concrete next step" />
-              <span className="mt-2 block text-xs font-normal text-slate-500">Optional. You can create the project first and add actions later.</span>
+              <span className="mt-2 block text-xs font-normal text-slate-500">Optional. Projects without an action start in Waiting and reactivate when you add one.</span>
             </label>
             <label className="block text-sm font-medium text-slate-700">
               Check-in date

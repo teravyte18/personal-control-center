@@ -1,4 +1,4 @@
-import type { Item } from "@/domain/personal-data";
+import type { Item } from "./personal-data";
 
 export type ParsedNoteContent = {
   title: string;

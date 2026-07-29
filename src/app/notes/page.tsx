@@ -6,7 +6,6 @@ import {
   useRef,
   useState,
   type FormEvent,
-  type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import {
@@ -40,9 +39,9 @@ export default function NotesPage() {
   const [creating, setCreating] = useState(false);
   const [openNoteId, setOpenNoteId] = useState<string | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  const draggingIdRef = useRef<string | null>(null);
   const pressRef = useRef<PendingPress | null>(null);
   const pressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const suppressClickRef = useRef(false);
   const openNote = notes.find((note) => note.id === openNoteId);
 
   useEffect(() => {
@@ -109,8 +108,8 @@ export default function NotesPage() {
     pressTimerRef.current = setTimeout(() => {
       const press = pressRef.current;
       if (!press || press.noteId !== noteId) return;
-      suppressClickRef.current = true;
       orderedNotesRef.current = notes;
+      draggingIdRef.current = noteId;
       setDragOrder(notes);
       setDraggingId(noteId);
       press.element.setPointerCapture(press.pointerId);
@@ -121,8 +120,9 @@ export default function NotesPage() {
   function movePress(event: ReactPointerEvent<HTMLButtonElement>) {
     const press = pressRef.current;
     if (!press || press.pointerId !== event.pointerId) return;
+    const activeDraggingId = draggingIdRef.current;
 
-    if (!draggingId) {
+    if (!activeDraggingId) {
       const distance = Math.hypot(event.clientX - press.startX, event.clientY - press.startY);
       if (distance > PRESS_MOVE_TOLERANCE_PX) {
         clearPressTimer();
@@ -137,9 +137,9 @@ export default function NotesPage() {
       ?.closest<HTMLElement>("[data-note-card-id]");
     const targetId = target?.dataset.noteCardId;
 
-    if (targetId && targetId !== draggingId) {
+    if (targetId && targetId !== activeDraggingId) {
       setDragOrder((current) => {
-        const next = reorderNotes(current ?? notes, draggingId, targetId);
+        const next = reorderNotes(current ?? notes, activeDraggingId, targetId);
         orderedNotesRef.current = next;
         return next;
       });
@@ -168,9 +168,10 @@ export default function NotesPage() {
   function finishPress(event: ReactPointerEvent<HTMLButtonElement>) {
     clearPressTimer();
     const press = pressRef.current;
+    const activeDraggingId = draggingIdRef.current;
     pressRef.current = null;
 
-    if (!draggingId || !press || press.pointerId !== event.pointerId) return;
+    if (!activeDraggingId || !press || press.pointerId !== event.pointerId) return;
 
     try {
       press.element.releasePointerCapture(event.pointerId);
@@ -179,19 +180,9 @@ export default function NotesPage() {
     }
 
     persistCurrentOrder();
+    draggingIdRef.current = null;
     setDragOrder(null);
     setDraggingId(null);
-    window.setTimeout(() => {
-      suppressClickRef.current = false;
-    }, 0);
-  }
-
-  function openCard(noteId: string, event: ReactMouseEvent<HTMLButtonElement>) {
-    if (suppressClickRef.current) {
-      event.preventDefault();
-      return;
-    }
-    setOpenNoteId(noteId);
   }
 
   return (
@@ -201,7 +192,7 @@ export default function NotesPage() {
           <p className="text-sm text-slate-500">Mutable reference space</p>
           <h2 className="mt-1 text-3xl font-semibold tracking-tight">Notes</h2>
           <p className="mt-3 text-sm leading-6 text-slate-500">
-            The first line is the title. Long-press a card and drag it to reorder the grid.
+            The first line is the title. Long-press the grip and drag to reorder the grid.
           </p>
         </div>
         <button
@@ -232,28 +223,49 @@ export default function NotesPage() {
           {orderedNotes.map((note) => {
             const dragging = draggingId === note.id;
             return (
-              <button
+              <article
                 key={note.id}
-                type="button"
                 data-note-card-id={note.id}
                 aria-grabbed={dragging}
-                onClick={(event) => openCard(note.id, event)}
-                onPointerDown={(event) => startPress(note.id, event)}
-                onPointerMove={movePress}
-                onPointerUp={finishPress}
-                onPointerCancel={finishPress}
-                onContextMenu={(event) => event.preventDefault()}
-                style={{ touchAction: dragging ? "none" : "pan-y" }}
-                className={`min-h-16 rounded-2xl border bg-white p-3 text-left shadow-sm transition sm:min-h-20 sm:p-4 ${
+                className={`flex min-h-16 overflow-hidden rounded-2xl border bg-white shadow-sm transition sm:min-h-20 ${
                   dragging
-                    ? "z-10 scale-[1.03] cursor-grabbing border-slate-500 opacity-80 shadow-lg"
-                    : "cursor-grab border-slate-200 hover:border-slate-400 active:scale-[0.99]"
+                    ? "z-10 scale-[1.03] border-slate-500 opacity-80 shadow-lg"
+                    : "border-slate-200 hover:border-slate-400"
                 }`}
               >
-                <span className="line-clamp-2 text-sm font-semibold leading-5 text-slate-900 sm:text-base sm:leading-6">
-                  {note.title}
-                </span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setOpenNoteId(note.id)}
+                  className="min-w-0 flex-1 p-3 text-left active:bg-slate-50 sm:p-4"
+                >
+                  <span className="line-clamp-2 text-sm font-semibold leading-5 text-slate-900 sm:text-base sm:leading-6">
+                    {note.title}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  aria-label={`Hold and drag to reorder ${note.title}`}
+                  title="Hold and drag to reorder"
+                  onPointerDown={(event) => startPress(note.id, event)}
+                  onPointerMove={movePress}
+                  onPointerUp={finishPress}
+                  onPointerCancel={finishPress}
+                  onContextMenu={(event) => event.preventDefault()}
+                  style={{ touchAction: "none" }}
+                  className={`flex w-11 shrink-0 cursor-grab items-center justify-center border-l border-slate-100 text-slate-400 active:bg-slate-50 ${
+                    dragging ? "cursor-grabbing text-slate-700" : ""
+                  }`}
+                >
+                  <svg viewBox="0 0 20 20" className="h-5 w-5" fill="currentColor" aria-hidden="true">
+                    <circle cx="7" cy="5" r="1.25" />
+                    <circle cx="13" cy="5" r="1.25" />
+                    <circle cx="7" cy="10" r="1.25" />
+                    <circle cx="13" cy="10" r="1.25" />
+                    <circle cx="7" cy="15" r="1.25" />
+                    <circle cx="13" cy="15" r="1.25" />
+                  </svg>
+                </button>
+              </article>
             );
           })}
         </div>

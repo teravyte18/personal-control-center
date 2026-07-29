@@ -48,12 +48,6 @@ function isActiveItem(item: CalendarItem) {
   return !["completed", "archived"].includes(item.status);
 }
 
-function currentProjectAction(item: CalendarItem) {
-  return [...item.actions]
-    .filter((action) => !action.completedAt)
-    .sort((left, right) => Date.parse(right.openedAt) - Date.parse(left.openedAt))[0];
-}
-
 export function nextDate(date: string) {
   const value = new Date(`${date}T00:00:00.000Z`);
   value.setUTCDate(value.getUTCDate() + 1);
@@ -81,16 +75,16 @@ export function buildGoogleCalendarProjections(snapshot: CalendarSnapshot): Goog
     }
 
     if (item.kind === "project") {
-      const action = currentProjectAction(item);
-      if (!action?.targetDate) continue;
-      projections.push({
-        sourceType: "project-action",
-        sourceId: action.id,
-        itemId: item.id,
-        summary: action.title,
-        description: `Project action from Personal Control Center\n\nProject: ${item.title}`,
-        date: action.targetDate,
-      });
+      for (const action of item.actions.filter((candidate) => !candidate.completedAt && candidate.targetDate)) {
+        projections.push({
+          sourceType: "project-action",
+          sourceId: action.id,
+          itemId: item.id,
+          summary: action.title,
+          description: `Project action from Personal Control Center\n\nProject: ${item.title}`,
+          date: action.targetDate,
+        });
+      }
     }
   }
 

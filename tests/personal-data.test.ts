@@ -97,7 +97,7 @@ test("moving away from completed clears completion metadata", () => {
 test("active projects require a current action while waiting projects do not", () => {
   const activeProject = { ...baseItem, status: "active" as const };
   const waitingProject = { ...baseItem, status: "waiting" as const };
-  const withAction = addProjectAction(activeProject, "Take one concrete step", "2026-07-20", new Date("2026-07-17T10:00:00.000Z"));
+  const withAction = addProjectAction(activeProject, "Take one concrete step", "", new Date("2026-07-17T10:00:00.000Z"));
 
   assert.equal(projectRequiresNextAction(activeProject), true);
   assert.equal(projectHasNextAction(activeProject), false);
@@ -106,18 +106,22 @@ test("active projects require a current action while waiting projects do not", (
   assert.equal(projectHasNextAction(withAction), true);
 });
 
-test("project actions require a title and check-in date", () => {
+test("project actions require a title but their check-in date is optional", () => {
   const activeProject = { ...baseItem, status: "active" as const };
   assert.equal(addProjectAction(activeProject, "", "2026-07-20"), activeProject);
-  assert.equal(addProjectAction(activeProject, "Valid action", ""), activeProject);
+  assert.equal(addProjectAction(activeProject, "Valid action", "not-a-date"), activeProject);
 
-  const updated = addProjectAction(activeProject, "Valid action", "2026-07-20", new Date("2026-07-17T10:00:00.000Z"));
-  assert.equal(updated.actions.length, 1);
-  assert.equal(getCurrentProjectAction(updated)?.title, "Valid action");
-  assert.equal(getCurrentProjectAction(updated)?.targetDate, "2026-07-20");
+  const undated = addProjectAction(activeProject, "Undated action", "", new Date("2026-07-17T10:00:00.000Z"));
+  assert.equal(undated.actions.length, 1);
+  assert.equal(getCurrentProjectAction(undated)?.title, "Undated action");
+  assert.equal(getCurrentProjectAction(undated)?.targetDate, "");
+
+  const dated = addProjectAction(activeProject, "Dated action", "2026-07-20", new Date("2026-07-17T10:00:00.000Z"));
+  assert.equal(dated.actions.length, 1);
+  assert.equal(getCurrentProjectAction(dated)?.targetDate, "2026-07-20");
 });
 
-test("completing an action records a note and opens the next action", () => {
+test("completing an action records a note and opens an undated next action", () => {
   const activeProject = addProjectAction(
     { ...baseItem, status: "active" },
     "First action",
@@ -133,12 +137,13 @@ test("completing an action records a note and opens the next action", () => {
     "Finished with a useful result.",
     "next-action",
     "Second action",
-    "2026-07-25",
+    "",
     new Date("2026-07-17T10:00:00.000Z"),
   );
 
   assert.equal(updated.status, "active");
   assert.equal(getCurrentProjectAction(updated)?.title, "Second action");
+  assert.equal(getCurrentProjectAction(updated)?.targetDate, "");
   assert.equal(getCompletedProjectActions(updated)[0].title, "First action");
   assert.equal(getCompletedProjectActions(updated)[0].completionNote, "Finished with a useful result.");
 });
@@ -160,7 +165,7 @@ test("completing an action can pause or complete the project", () => {
   const anotherProject = addProjectAction(
     { ...baseItem, status: "active" },
     "Final action",
-    "2026-07-18",
+    "",
     new Date("2026-07-14T10:00:00.000Z"),
   );
   const finalAction = getCurrentProjectAction(anotherProject);
@@ -182,6 +187,7 @@ test("weekly action calculations use Monday as the start of the week", () => {
     completionNote: "Done",
   };
   const openAction = { ...action, completedAt: undefined, completionNote: undefined };
+  const undatedAction = { ...openAction, targetDate: "" };
   const completedProject = { ...baseItem, status: "completed" as const, completedAt: "2026-07-14T09:00:00.000Z" };
 
   assert.equal(isCompletedThisWeek(completedProject, reference), true);
@@ -189,6 +195,7 @@ test("weekly action calculations use Monday as the start of the week", () => {
   assert.equal(isProjectActionOpenedThisWeek(action, reference), true);
   assert.equal(isProjectActionCompletedThisWeek(action, reference), true);
   assert.equal(isProjectActionTargetReached(openAction, reference), true);
+  assert.equal(isProjectActionTargetReached(undatedAction, reference), false);
   assert.equal(isProjectActionTargetReached(action, reference), false);
 });
 
@@ -205,6 +212,7 @@ test("a check-in becomes overdue only after its target date", () => {
   assert.equal(isProjectActionPastCheckIn(action, new Date(2026, 6, 16, 12)), false);
   assert.equal(isProjectActionPastCheckIn(action, new Date(2026, 6, 17, 23, 59)), false);
   assert.equal(isProjectActionPastCheckIn(action, new Date(2026, 6, 18, 0, 1)), true);
+  assert.equal(isProjectActionPastCheckIn({ ...action, targetDate: "" }, new Date(2026, 6, 18, 0, 1)), false);
   assert.equal(isProjectPastCheckIn(project, new Date(2026, 6, 18)), true);
   assert.equal(isProjectPastCheckIn({ ...project, status: "completed" }, new Date(2026, 6, 18)), false);
   assert.equal(isProjectActionPastCheckIn({ ...action, completedAt: "2026-07-18T08:00:00.000Z" }, new Date(2026, 6, 19)), false);

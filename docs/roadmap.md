@@ -171,6 +171,7 @@ Explicit boundaries:
 No order is selected among the remaining product modules. The next one should be chosen based on the most useful workflow at that time rather than its position in this list:
 
 - **Routines** — recurring responsibilities that should not be represented as one-off tasks;
+- **Notes** — editable free-form notes created either directly in the Notes space or by organising an Inbox item; use the first line as the implicit title, show title-only cards until opened, and prefer a compact responsive two-column card layout over a single vertical list;
 - **Library and media** — begin with books, reading status, progress, notes, and recommendations; potentially expand to movies or other media without committing to one combined data model yet;
 - **Trips** — trip ideas, decisions, budgets, and later supported price monitoring;
 - **Fitness** — imported running activity and weekly trends;
@@ -192,7 +193,8 @@ Books and possibly movies may be the first personal preference considered after 
 
 - Phone use is the primary interface assumption; desktop is a progressive enhancement.
 - Complete one useful workflow before adding breadth.
-- One-off tasks, projects, thoughts, recurring routines, and future time-specific events remain distinct concepts.
+- One-off tasks, projects, thoughts, editable notes, recurring routines, and future time-specific events remain distinct concepts.
+- Notes are mutable reference content, while Thoughts remain immutable observations or reflections.
 - Personal-data operations and browser queues must always be scoped by authenticated user identity.
 - Device-local pending data must be visibly distinguished from canonical server data.
 - Backups are only trusted after a representative restore succeeds.

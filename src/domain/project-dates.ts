@@ -22,6 +22,6 @@ export function isProjectActionPastCheckIn(action: ProjectActionWithDates, refer
 }
 
 export function isProjectPastCheckIn(item: ProjectWithActions, reference = new Date()) {
-  if (item.kind !== "project" || ["completed", "archived"].includes(item.status)) return false;
+  if (item.kind !== "project" || ["waiting", "completed", "archived"].includes(item.status)) return false;
   return item.actions.some((action) => isProjectActionPastCheckIn(action, reference));
 }

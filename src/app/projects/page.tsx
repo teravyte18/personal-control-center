@@ -3,11 +3,10 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ExpandButton, ProjectDetail, formatDateOnly } from "@/components/project-detail";
-import { isProjectPastCheckIn } from "@/domain/project-dates";
+import { isProjectActionPastCheckIn, isProjectPastCheckIn } from "@/domain/project-dates";
 import {
   areaLabels,
-  getCurrentProjectAction,
-  projectRequiresNextAction,
+  getOpenProjectActions,
   type AreaId,
   type Item,
   type ItemStatus,
@@ -49,10 +48,10 @@ export default function ProjectsPage() {
   return (
     <section>
       <div className="max-w-3xl">
-        <p className="text-sm text-slate-500">Finite outcomes that move through dated action points</p>
+        <p className="text-sm text-slate-500">Finite outcomes that move through concrete actions</p>
         <h2 className="mt-1 text-3xl font-semibold tracking-tight">Projects across your life.</h2>
         <p className="mt-3 text-sm leading-6 text-slate-500">
-          Cards stay focused on what happens next. Expand one project to see its timeline and record progress.
+          Projects with open actions are Active. Projects without one wait quietly until you add the next step or complete the outcome.
         </p>
       </div>
 
@@ -93,12 +92,9 @@ function EmptyProjects() {
     <div className="mt-6 rounded-[2rem] border border-dashed border-slate-300 bg-white p-8 text-center">
       <h3 className="text-lg font-semibold">No active projects yet.</h3>
       <p className="mt-2 text-sm leading-6 text-slate-500">
-        Capture an idea, then classify it as a project with its first action point.
+        Capture an idea, classify it as a project, and add actions whenever they become clear.
       </p>
-      <Link
-        href="/inbox"
-        className="mt-5 inline-flex min-h-11 items-center rounded-xl bg-slate-950 px-5 text-sm font-semibold text-white"
-      >
+      <Link href="/inbox" className="mt-5 inline-flex min-h-11 items-center rounded-xl bg-slate-950 px-5 text-sm font-semibold text-white">
         Open inbox
       </Link>
     </div>
@@ -107,29 +103,16 @@ function EmptyProjects() {
 
 function ProjectCard({ project }: { project: Item }) {
   const [expanded, setExpanded] = useState(false);
-  const currentAction = getCurrentProjectAction(project);
+  const openActions = getOpenProjectActions(project);
+  const primaryAction = openActions[0];
+  const additionalActions = Math.max(0, openActions.length - 1);
   const overdue = isProjectPastCheckIn(project);
+  const primaryOverdue = Boolean(primaryAction && isProjectActionPastCheckIn(primaryAction));
   const waiting = project.status === "waiting";
-  const needsAction = projectRequiresNextAction(project) && !currentAction;
-  const needsDate = Boolean(currentAction && !currentAction.targetDate);
   const statusLabel = projectStatuses.find((option) => option.value === project.status)?.label ?? project.status;
-  const cardTone = overdue
-    ? "border-rose-300 bg-white"
-    : waiting
-      ? "border-amber-200 bg-amber-50/70"
-      : "border-slate-200 bg-white";
-  const attentionTone = overdue
-    ? "border border-rose-300 bg-rose-50"
-    : waiting
-      ? "border border-amber-200 bg-amber-100/70"
-      : needsAction || needsDate
-        ? "border border-amber-200 bg-amber-50"
-        : "bg-slate-50";
-  const labelTone = overdue
-    ? "text-rose-700"
-    : waiting || needsAction || needsDate
-      ? "text-amber-700"
-      : "text-slate-400";
+  const cardTone = overdue ? "border-rose-300 bg-white" : waiting ? "border-amber-200 bg-amber-50/70" : "border-slate-200 bg-white";
+  const attentionTone = overdue ? "border border-rose-300 bg-rose-50" : waiting ? "border border-amber-200 bg-amber-100/70" : "bg-slate-50";
+  const labelTone = overdue ? "text-rose-700" : waiting ? "text-amber-700" : "text-slate-400";
 
   return (
     <>
@@ -137,9 +120,7 @@ function ProjectCard({ project }: { project: Item }) {
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
-              <span>{areaLabels[project.area]}</span>
-              <span aria-hidden="true">·</span>
-              <span className={waiting ? "text-amber-700" : ""}>{statusLabel}</span>
+              <span>{areaLabels[project.area]}</span><span aria-hidden="true">·</span><span className={waiting ? "text-amber-700" : ""}>{statusLabel}</span>
             </div>
             <h3 className="mt-2 text-xl font-semibold tracking-tight text-slate-950">{project.title}</h3>
           </div>
@@ -148,24 +129,19 @@ function ProjectCard({ project }: { project: Item }) {
 
         <div className={`mt-4 rounded-2xl p-4 ${attentionTone}`}>
           <p className={`text-xs font-semibold uppercase tracking-[0.14em] ${labelTone}`}>
-            {overdue ? "Check-in overdue" : waiting ? "Waiting" : "Current action"}
+            {overdue ? "Open action overdue" : waiting ? "Waiting" : "Next open action"}
           </p>
-          {currentAction ? (
+          {primaryAction ? (
             <>
-              <p className="mt-2 text-sm font-medium leading-6 text-slate-900">{currentAction.title}</p>
-              <p className={`mt-2 text-xs ${overdue ? "font-semibold text-rose-700" : needsDate ? "font-semibold text-amber-800" : "text-slate-500"}`}>
-                {currentAction.targetDate
-                  ? `${overdue ? "Check-in passed" : "Check in"} ${formatDateOnly(currentAction.targetDate)}`
-                  : "Choose a check-in date."}
+              <p className="mt-2 text-sm font-medium leading-6 text-slate-900">{primaryAction.title}</p>
+              <p className={`mt-2 text-xs ${primaryOverdue ? "font-semibold text-rose-700" : "text-slate-500"}`}>
+                {primaryAction.targetDate ? `${primaryOverdue ? "Check-in passed" : "Check in"} ${formatDateOnly(primaryAction.targetDate)}` : "No check-in date"}
               </p>
+              {additionalActions > 0 ? <p className="mt-2 text-xs font-semibold text-slate-500">+{additionalActions} other open {additionalActions === 1 ? "action" : "actions"}</p> : null}
             </>
           ) : (
-            <p className={`mt-2 text-sm leading-6 ${waiting ? "font-medium text-amber-900" : needsAction ? "font-medium text-amber-900" : "text-slate-600"}`}>
-              {waiting
-                ? "Paused until something external changes."
-                : needsAction
-                  ? "This project needs a dated action point."
-                  : "No current action while this project is paused."}
+            <p className="mt-2 text-sm font-medium leading-6 text-amber-900">
+              No open action. Add one to reactivate the project, or complete the project if the outcome is finished.
             </p>
           )}
         </div>

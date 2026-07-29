@@ -2,7 +2,6 @@ import {
   areaIds,
   archiveItem,
   emptyReview,
-  getCurrentProjectAction,
   itemKinds,
   itemStatuses,
   normalizeItem,
@@ -19,6 +18,8 @@ import {
   type Item,
   type ItemStatus,
   type ProjectAction,
+  type ProjectActionReschedule,
+  type ProjectActionUpdates,
   type ReviewDraft,
   type ReviewEntry,
 } from "@/domain/personal-data";
@@ -40,7 +41,6 @@ export type PersonalDataExport = {
 };
 
 type ItemUpdates = Partial<Omit<Item, "id" | "createdAt">>;
-type ProjectActionUpdates = Pick<ProjectAction, "title" | "targetDate">;
 
 export type PersonalDataMutation =
   | { type: "add-item"; item: Item }
@@ -112,11 +112,30 @@ function isDateOnly(value: unknown): value is string {
     && !Number.isNaN(Date.parse(`${value}T00:00:00`));
 }
 
+function isDateOnlyOrEmpty(value: unknown): value is string {
+  return value === "" || isDateOnly(value);
+}
+
+function normalizeReschedule(value: unknown): ProjectActionReschedule | null {
+  if (!isRecord(value)
+    || !isDateOnlyOrEmpty(value.previousTargetDate)
+    || !isDateOnlyOrEmpty(value.targetDate)
+    || !isDateTime(value.changedAt)
+    || value.previousTargetDate === value.targetDate) return null;
+  const note = typeof value.note === "string" ? value.note.trim() : "";
+  return {
+    previousTargetDate: value.previousTargetDate,
+    targetDate: value.targetDate,
+    changedAt: value.changedAt,
+    note: note || undefined,
+  };
+}
+
 function normalizeAction(value: unknown): ProjectAction | null {
   if (!isRecord(value)
     || typeof value.id !== "string"
     || typeof value.title !== "string"
-    || !isDateOnly(value.targetDate)
+    || !isDateOnlyOrEmpty(value.targetDate)
     || !isDateTime(value.openedAt)
     || !isDateTime(value.updatedAt)) return null;
 
@@ -127,6 +146,12 @@ function normalizeAction(value: unknown): ProjectAction | null {
     ? undefined
     : isDateTime(value.completedAt) ? value.completedAt : null;
   if (completedAt === null) return null;
+  const reschedules = Array.isArray(value.reschedules)
+    ? value.reschedules.flatMap((candidate): ProjectActionReschedule[] => {
+      const reschedule = normalizeReschedule(candidate);
+      return reschedule ? [reschedule] : [];
+    })
+    : [];
 
   return {
     id: value.id,
@@ -138,6 +163,7 @@ function normalizeAction(value: unknown): ProjectAction | null {
     completionNote: completedAt && typeof value.completionNote === "string"
       ? value.completionNote
       : undefined,
+    reschedules: reschedules.length ? reschedules : undefined,
   };
 }
 
@@ -171,8 +197,27 @@ function normalizeUpdates(value: unknown): ItemUpdates | null {
     if (value.checkInDate && !normalized) return null;
     updates.checkInDate = normalized || undefined;
   }
+  if ("projectTakeaways" in value) {
+    if (value.projectTakeaways !== undefined && typeof value.projectTakeaways !== "string") return null;
+    updates.projectTakeaways = typeof value.projectTakeaways === "string"
+      ? value.projectTakeaways.trim() || undefined
+      : undefined;
+  }
 
   return updates;
+}
+
+function normalizeProjectActionUpdates(value: unknown): ProjectActionUpdates | null {
+  if (!isRecord(value)
+    || typeof value.title !== "string"
+    || !value.title.trim()
+    || !isDateOnlyOrEmpty(value.targetDate)) return null;
+  if (value.rescheduleNote !== undefined && typeof value.rescheduleNote !== "string") return null;
+  return {
+    title: value.title,
+    targetDate: value.targetDate,
+    rescheduleNote: typeof value.rescheduleNote === "string" ? value.rescheduleNote : undefined,
+  };
 }
 
 export function normalizePersonalDataSnapshot(value: unknown): PersonalDataSnapshot {
@@ -267,25 +312,23 @@ export function normalizePersonalDataMutation(value: unknown): PersonalDataMutat
   }
 
   if (value.type === "update-project-action") {
-    if (!isRecord(value.updates)
-      || typeof value.updates.title !== "string"
-      || !value.updates.title.trim()
-      || !isDateOnly(value.updates.targetDate)) return null;
+    const updates = normalizeProjectActionUpdates(value.updates);
     return typeof value.projectId === "string"
       && typeof value.actionId === "string"
+      && updates
       && isDateTime(value.occurredAt)
       ? {
         type: "update-project-action",
         projectId: value.projectId,
         actionId: value.actionId,
-        updates: { title: value.updates.title, targetDate: value.updates.targetDate },
+        updates,
         occurredAt: value.occurredAt,
       }
       : null;
   }
 
   if (value.type === "complete-project-action") {
-    const resolutions: ActionCompletionResolution[] = ["next-action", "waiting", "complete-project"];
+    const resolutions: ActionCompletionResolution[] = ["keep-active", "next-action", "waiting", "complete-project"];
     if (typeof value.projectId !== "string"
       || typeof value.actionId !== "string"
       || typeof value.completionNote !== "string"
@@ -362,8 +405,13 @@ export function applyPersonalDataMutation(
     if (mutation.type === "restore-archived-item") return [restoreArchivedItem(item, now)];
 
     if (mutation.type === "add-project-action") {
-      if (item.kind !== "project" || getCurrentProjectAction(item)) return [item];
-      return [{ ...item, actions: [mutation.action, ...item.actions], updatedAt: mutation.action.openedAt }];
+      if (item.kind !== "project") return [item];
+      return [{
+        ...item,
+        actions: [mutation.action, ...item.actions],
+        status: item.status === "waiting" ? "active" : item.status,
+        updatedAt: mutation.action.openedAt,
+      }];
     }
 
     if (mutation.type === "update-project-action") {
@@ -371,10 +419,14 @@ export function applyPersonalDataMutation(
     }
 
     if (mutation.type === "complete-project-action") {
-      let found = false;
+      const targetAction = item.actions.find((action) => action.id === mutation.actionId && !action.completedAt);
+      if (!targetAction) return [item];
+      const hasOtherOpenActions = item.actions.some((action) => action.id !== mutation.actionId && !action.completedAt);
+      if (mutation.resolution === "keep-active" && !hasOtherOpenActions) return [item];
+      if (["waiting", "complete-project"].includes(mutation.resolution) && hasOtherOpenActions) return [item];
+
       const actions = item.actions.map((action) => {
-        if (action.id !== mutation.actionId || action.completedAt) return action;
-        found = true;
+        if (action.id !== mutation.actionId) return action;
         return {
           ...action,
           completionNote: mutation.completionNote.trim(),
@@ -382,11 +434,12 @@ export function applyPersonalDataMutation(
           updatedAt: mutation.occurredAt,
         };
       });
-      if (!found) return [item];
 
       let updatedItem: Item = { ...item, actions, updatedAt: mutation.occurredAt };
       if (mutation.resolution === "next-action" && mutation.nextAction) {
-        updatedItem = { ...updatedItem, actions: [mutation.nextAction, ...actions] };
+        updatedItem = transitionItemStatus({ ...updatedItem, actions: [mutation.nextAction, ...actions] }, "active", now);
+      } else if (mutation.resolution === "keep-active") {
+        updatedItem = transitionItemStatus(updatedItem, "active", now);
       } else if (mutation.resolution === "waiting") {
         updatedItem = transitionItemStatus(updatedItem, "waiting", now);
       } else if (mutation.resolution === "complete-project") {

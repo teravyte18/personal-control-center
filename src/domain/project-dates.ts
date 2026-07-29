@@ -22,9 +22,6 @@ export function isProjectActionPastCheckIn(action: ProjectActionWithDates, refer
 }
 
 export function isProjectPastCheckIn(item: ProjectWithActions, reference = new Date()) {
-  if (item.kind !== "project" || ["completed", "archived"].includes(item.status)) return false;
-  const currentAction = [...item.actions]
-    .filter((action) => !action.completedAt)
-    .sort((a, b) => Date.parse(b.openedAt) - Date.parse(a.openedAt))[0];
-  return Boolean(currentAction && isProjectActionPastCheckIn(currentAction, reference));
+  if (item.kind !== "project" || ["waiting", "completed", "archived"].includes(item.status)) return false;
+  return item.actions.some((action) => isProjectActionPastCheckIn(action, reference));
 }

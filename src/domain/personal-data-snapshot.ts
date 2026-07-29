@@ -2,7 +2,6 @@ import {
   areaIds,
   archiveItem,
   emptyReview,
-  getCurrentProjectAction,
   itemKinds,
   itemStatuses,
   normalizeItem,
@@ -19,6 +18,7 @@ import {
   type Item,
   type ItemStatus,
   type ProjectAction,
+  type ProjectActionReschedule,
   type ReviewDraft,
   type ReviewEntry,
 } from "@/domain/personal-data";
@@ -112,6 +112,20 @@ function isDateOnly(value: unknown): value is string {
     && !Number.isNaN(Date.parse(`${value}T00:00:00`));
 }
 
+function normalizeReschedule(value: unknown): ProjectActionReschedule | null {
+  if (!isRecord(value)
+    || typeof value.previousTargetDate !== "string"
+    || (value.previousTargetDate && !isDateOnly(value.previousTargetDate))
+    || !isDateOnly(value.targetDate)
+    || !isDateTime(value.changedAt)
+    || value.previousTargetDate === value.targetDate) return null;
+  return {
+    previousTargetDate: value.previousTargetDate,
+    targetDate: value.targetDate,
+    changedAt: value.changedAt,
+  };
+}
+
 function normalizeAction(value: unknown): ProjectAction | null {
   if (!isRecord(value)
     || typeof value.id !== "string"
@@ -127,6 +141,12 @@ function normalizeAction(value: unknown): ProjectAction | null {
     ? undefined
     : isDateTime(value.completedAt) ? value.completedAt : null;
   if (completedAt === null) return null;
+  const reschedules = Array.isArray(value.reschedules)
+    ? value.reschedules.flatMap((candidate): ProjectActionReschedule[] => {
+      const reschedule = normalizeReschedule(candidate);
+      return reschedule ? [reschedule] : [];
+    })
+    : [];
 
   return {
     id: value.id,
@@ -138,6 +158,7 @@ function normalizeAction(value: unknown): ProjectAction | null {
     completionNote: completedAt && typeof value.completionNote === "string"
       ? value.completionNote
       : undefined,
+    reschedules: reschedules.length ? reschedules : undefined,
   };
 }
 
@@ -285,7 +306,7 @@ export function normalizePersonalDataMutation(value: unknown): PersonalDataMutat
   }
 
   if (value.type === "complete-project-action") {
-    const resolutions: ActionCompletionResolution[] = ["next-action", "waiting", "complete-project"];
+    const resolutions: ActionCompletionResolution[] = ["keep-active", "next-action", "waiting", "complete-project"];
     if (typeof value.projectId !== "string"
       || typeof value.actionId !== "string"
       || typeof value.completionNote !== "string"
@@ -362,7 +383,7 @@ export function applyPersonalDataMutation(
     if (mutation.type === "restore-archived-item") return [restoreArchivedItem(item, now)];
 
     if (mutation.type === "add-project-action") {
-      if (item.kind !== "project" || getCurrentProjectAction(item)) return [item];
+      if (item.kind !== "project") return [item];
       return [{ ...item, actions: [mutation.action, ...item.actions], updatedAt: mutation.action.openedAt }];
     }
 
@@ -371,10 +392,14 @@ export function applyPersonalDataMutation(
     }
 
     if (mutation.type === "complete-project-action") {
-      let found = false;
+      const targetAction = item.actions.find((action) => action.id === mutation.actionId && !action.completedAt);
+      if (!targetAction) return [item];
+      const hasOtherOpenActions = item.actions.some((action) => action.id !== mutation.actionId && !action.completedAt);
+      if (mutation.resolution === "keep-active" && !hasOtherOpenActions) return [item];
+      if (["waiting", "complete-project"].includes(mutation.resolution) && hasOtherOpenActions) return [item];
+
       const actions = item.actions.map((action) => {
-        if (action.id !== mutation.actionId || action.completedAt) return action;
-        found = true;
+        if (action.id !== mutation.actionId) return action;
         return {
           ...action,
           completionNote: mutation.completionNote.trim(),
@@ -382,7 +407,6 @@ export function applyPersonalDataMutation(
           updatedAt: mutation.occurredAt,
         };
       });
-      if (!found) return [item];
 
       let updatedItem: Item = { ...item, actions, updatedAt: mutation.occurredAt };
       if (mutation.resolution === "next-action" && mutation.nextAction) {

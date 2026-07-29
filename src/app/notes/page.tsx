@@ -34,7 +34,8 @@ type PendingPress = {
 export default function NotesPage() {
   const { items, addItem, updateItem, deleteItem } = usePersonalData();
   const notes = useMemo(() => getNotes(items), [items]);
-  const [orderedNotes, setOrderedNotes] = useState(notes);
+  const [dragOrder, setDragOrder] = useState<Item[] | null>(null);
+  const orderedNotes = dragOrder ?? notes;
   const orderedNotesRef = useRef(notes);
   const [creating, setCreating] = useState(false);
   const [openNoteId, setOpenNoteId] = useState<string | null>(null);
@@ -43,12 +44,6 @@ export default function NotesPage() {
   const pressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const suppressClickRef = useRef(false);
   const openNote = notes.find((note) => note.id === openNoteId);
-
-  useEffect(() => {
-    if (draggingId) return;
-    orderedNotesRef.current = notes;
-    setOrderedNotes(notes);
-  }, [draggingId, notes]);
 
   useEffect(() => {
     if (!draggingId) return;
@@ -115,6 +110,8 @@ export default function NotesPage() {
       const press = pressRef.current;
       if (!press || press.noteId !== noteId) return;
       suppressClickRef.current = true;
+      orderedNotesRef.current = notes;
+      setDragOrder(notes);
       setDraggingId(noteId);
       press.element.setPointerCapture(press.pointerId);
       if (typeof navigator.vibrate === "function") navigator.vibrate(15);
@@ -141,8 +138,8 @@ export default function NotesPage() {
     const targetId = target?.dataset.noteCardId;
 
     if (targetId && targetId !== draggingId) {
-      setOrderedNotes((current) => {
-        const next = reorderNotes(current, draggingId, targetId);
+      setDragOrder((current) => {
+        const next = reorderNotes(current ?? notes, draggingId, targetId);
         orderedNotesRef.current = next;
         return next;
       });
@@ -182,6 +179,7 @@ export default function NotesPage() {
     }
 
     persistCurrentOrder();
+    setDragOrder(null);
     setDraggingId(null);
     window.setTimeout(() => {
       suppressClickRef.current = false;

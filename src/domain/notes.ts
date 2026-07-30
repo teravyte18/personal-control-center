@@ -1,3 +1,4 @@
+import { isBookItem } from "./library";
 import type { Item } from "./personal-data";
 
 export const NOTE_ORDER_METADATA_TITLE = "__pcc_note_order_v1__";
@@ -60,7 +61,7 @@ export function getNotes(items: readonly Item[]) {
   const orderIndexes = new Map(order.map((id, index) => [id, index]));
 
   return items
-    .filter((item) => item.kind === "note" && item.status === "active")
+    .filter((item) => item.kind === "note" && item.status === "active" && !isBookItem(item))
     .sort((left, right) => {
       const leftIndex = orderIndexes.get(left.id);
       const rightIndex = orderIndexes.get(right.id);

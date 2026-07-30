@@ -1,3 +1,4 @@
+import { dateWithinPeriod, getBooks, isBookItem } from "@/domain/library";
 import { getOpenProjectActions, isOpenTask, isProjectActionTargetReached, projectRequiresNextAction, type Item } from "@/domain/personal-data";
 import { formatLocalDate, isTimestampInReviewPeriod, type ReviewPeriod } from "@/domain/weekly-review";
 
@@ -30,6 +31,22 @@ export function buildReviewContext(items: Item[], period: ReviewPeriod) {
     }
   }
 
+  const books = getBooks(items);
+  const startedBooks: ReviewLine[] = books
+    .filter((book) => dateWithinPeriod(book.details.startDate, period.start, period.end))
+    .map((book) => ({
+      id: `${book.item.id}-started`,
+      text: book.item.title,
+      detail: book.details.author || undefined,
+    }));
+  const finishedBooks: ReviewLine[] = books
+    .filter((book) => dateWithinPeriod(book.details.finishDate, period.start, period.end))
+    .map((book) => ({
+      id: `${book.item.id}-finished`,
+      text: book.item.title,
+      detail: book.details.author || undefined,
+    }));
+
   return {
     attention,
     openedActions,
@@ -37,7 +54,9 @@ export function buildReviewContext(items: Item[], period: ReviewPeriod) {
     completedProjects: items.filter((item) => item.kind === "project" && isTimestampInReviewPeriod(item.completedAt, period)),
     openTasks: items.filter((item) => isOpenTask(item) && formatLocalDate(new Date(item.createdAt)) <= period.end),
     completedTasks: items.filter((item) => item.kind === "task" && isTimestampInReviewPeriod(item.completedAt, period)),
-    thoughts: items.filter((item) => ["thought", "note"].includes(item.kind) && item.status !== "archived" && isTimestampInReviewPeriod(item.createdAt, period)),
+    thoughts: items.filter((item) => ["thought", "note"].includes(item.kind) && !isBookItem(item) && item.status !== "archived" && isTimestampInReviewPeriod(item.createdAt, period)),
+    startedBooks,
+    finishedBooks,
   };
 }
 

@@ -31,11 +31,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       <div className="md:pl-24">
-        <Link href="/spaces" className={`fixed right-4 top-4 z-20 flex h-11 w-11 items-center justify-center rounded-2xl border shadow-sm md:hidden ${spacesActive ? "border-slate-950 bg-slate-950 text-white" : "border-slate-200 bg-white/95 text-slate-600 backdrop-blur"}`} aria-label="Open all spaces" aria-current={spacesActive ? "page" : undefined}>
-          <Icon name="spaces" />
-        </Link>
-
-        <main className="mx-auto min-h-screen max-w-6xl px-4 pb-32 pt-20 sm:px-6 md:px-8 md:pb-10 md:pt-8">
+        <main className="mx-auto min-h-screen max-w-6xl px-4 pb-32 pt-[calc(env(safe-area-inset-top)+1rem)] sm:px-6 md:px-8 md:pb-10 md:pt-8">
           <DataStatusBanner />
           <ReviewReminderController />
           {children}
@@ -45,9 +41,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <nav className="mobile-dock fixed z-30 grid grid-cols-5 items-end rounded-[1.6rem] border border-slate-200 bg-white/95 px-2 pb-2 pt-1 shadow-xl shadow-slate-900/10 backdrop-blur md:hidden" aria-label="Primary navigation">
         <DockLink destination={mobileDestinations[0]} active={isDestinationActive(pathname, mobileDestinations[0].href)} />
         <DockLink destination={mobileDestinations[1]} active={isDestinationActive(pathname, mobileDestinations[1].href)} />
-        <Link href="/" className="relative -top-5 mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-slate-950 text-white shadow-lg shadow-slate-900/25" aria-label="Capture a thought" aria-current={pathname === "/" ? "page" : undefined}>
-          <Icon name="capture" className="h-7 w-7" />
-        </Link>
+        <div className="relative mx-auto flex min-h-14 w-16 items-end justify-center">
+          <Link href="/" className="absolute -top-5 left-1/2 flex h-14 w-14 -translate-x-1/2 items-center justify-center rounded-full bg-slate-950 text-white shadow-lg shadow-slate-900/25" aria-label="Capture a thought" aria-current={pathname === "/" ? "page" : undefined}>
+            <Icon name="capture" className="h-7 w-7" />
+          </Link>
+          <Link
+            href="/spaces"
+            className={`absolute bottom-0 left-1/2 flex h-5 w-10 -translate-x-1/2 items-center justify-center rounded-full transition ${spacesActive ? "bg-slate-100 text-slate-700" : "text-slate-300 hover:text-slate-500"}`}
+            aria-label="Open all spaces"
+            aria-current={spacesActive ? "page" : undefined}
+          >
+            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="m6 14 6-6 6 6" />
+            </svg>
+          </Link>
+        </div>
         <DockLink destination={mobileDestinations[2]} active={isDestinationActive(pathname, mobileDestinations[2].href)} />
         <DockLink destination={mobileDestinations[3]} active={isDestinationActive(pathname, mobileDestinations[3].href)} />
       </nav>

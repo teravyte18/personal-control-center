@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { Icon } from "@/components/icon";
 import type { ThemeId } from "@/lib/theme";
 
@@ -11,10 +12,12 @@ export function ThemeCaptureIcon({ theme, className = "h-7 w-7" }: ThemeCaptureI
 
   if (theme === "hollow-knight") {
     return (
-      <img
+      <Image
         src="/theme-icons/hollow-knight.png"
         alt=""
         aria-hidden="true"
+        width={256}
+        height={256}
         className={`${className} object-contain`}
       />
     );

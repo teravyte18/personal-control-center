@@ -35,10 +35,9 @@ export function ThemeSettings() {
                   style={{
                     backgroundColor: candidate.preview[2],
                     borderColor: candidate.preview[1],
-                    color: candidate.id === "pokemon" || candidate.id === "silksong" || candidate.id === "stardew-valley" ? "#fffaf8" : "#f8fafc",
                   }}
                 >
-                  <ThemeCaptureIcon theme={candidate.id} className="h-5 w-5" />
+                  <ThemeCaptureIcon theme={candidate.id} className="h-7 w-7" />
                 </span>
                 <span className={`text-lg ${selected ? "text-slate-950" : "text-transparent"}`} aria-hidden="true">✓</span>
               </div>

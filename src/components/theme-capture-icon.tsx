@@ -50,7 +50,7 @@ export function ThemeCaptureIcon({ theme, className = "h-7 w-7" }: ThemeCaptureI
       aria-hidden="true"
       className={`${className} block shrink-0 bg-no-repeat`}
       style={{
-        backgroundImage: 'url("/theme-icons/theme-sprite.png")',
+        backgroundImage: 'url("/theme-icons/theme-artwork-source.png")',
         backgroundPosition,
         backgroundSize: "300% 300%",
       }}

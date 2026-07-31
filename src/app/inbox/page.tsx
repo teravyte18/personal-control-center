@@ -21,11 +21,8 @@ export default function InboxPage() {
 
   return (
     <section className="mx-auto max-w-3xl">
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          <p className="text-sm text-slate-500">Unprocessed captures</p>
-          <h2 className="mt-1 text-3xl font-semibold tracking-tight">Decide what each item is.</h2>
-        </div>
+      <div className="flex items-center justify-between gap-4">
+        <h2 className="text-3xl font-semibold tracking-tight">Inbox</h2>
         <span className="rounded-full bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm">{inbox.length}</span>
       </div>
 

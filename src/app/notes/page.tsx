@@ -187,14 +187,8 @@ export default function NotesPage() {
 
   return (
     <section className="mx-auto max-w-4xl">
-      <div className="flex items-end justify-between gap-4">
-        <div className="max-w-2xl">
-          <p className="text-sm text-slate-500">Mutable reference space</p>
-          <h2 className="mt-1 text-3xl font-semibold tracking-tight">Notes</h2>
-          <p className="mt-3 text-sm leading-6 text-slate-500">
-            The first line is the title. Long-press the grip and drag to reorder the grid.
-          </p>
-        </div>
+      <div className="flex items-center justify-between gap-4">
+        <h2 className="text-3xl font-semibold tracking-tight">Notes</h2>
         <button
           type="button"
           onClick={() => setCreating(true)}
@@ -219,7 +213,7 @@ export default function NotesPage() {
           </button>
         </div>
       ) : (
-        <div className="mt-7 grid grid-cols-2 gap-3 sm:gap-4">
+        <div className="mt-6 grid grid-cols-2 gap-3 sm:gap-4">
           {orderedNotes.map((note) => {
             const dragging = draggingId === note.id;
             return (

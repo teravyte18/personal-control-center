@@ -174,6 +174,21 @@ Additional themes may receive equivalent symbols during implementation. The icon
 
 The first theme pass does not require theme-specific typography, animation systems, page layouts, sound, large background art, or extensive decorative motifs. Those remain optional future additions only after the palette-and-icon model proves worthwhile.
 
+### Advanced art-direction themes — later
+
+A later theme may go beyond palette and centre-icon changes when the source has a particularly distinctive visual language. For example, a **Clair Obscur: Expedition 33** theme could echo its painterly direction through restrained brush-stroke borders, textured separators, or a hand-painted treatment around the mobile navigation shell.
+
+Rules for this later tier:
+
+- preserve the same layout, navigation meaning, hit areas, and workflows;
+- express the art direction through surface treatment, borders, separators, background texture, or similarly non-semantic decoration;
+- keep the result readable and calm enough for everyday use;
+- do not allow decorative brushwork, texture, or irregular edges to obscure controls or semantic states;
+- build these effects as optional theme tokens or decorative layers rather than one-off page rewrites;
+- validate the simpler palette-and-icon system first before prioritising advanced art-direction themes.
+
+This is a future improvement, not part of the initial theme implementation.
+
 ## 6. Implementation order
 
 The interface-personality slice should proceed in this order:

@@ -5,19 +5,22 @@ import { usePathname } from "next/navigation";
 import { DataStatusBanner } from "@/components/data-status-banner";
 import { Icon } from "@/components/icon";
 import { ReviewReminderController } from "@/components/review-reminder";
+import { ThemeCaptureIcon } from "@/components/theme-capture-icon";
 import { isDestinationActive, primaryDestinations, type Destination } from "@/lib/navigation";
 import { useMobileQuickAccess } from "@/lib/navigation-preferences";
+import { useThemePreference } from "@/lib/theme-preferences";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const spacesActive = pathname === "/spaces" || pathname.startsWith("/spaces/");
   const { destinations: mobileDestinations } = useMobileQuickAccess();
+  const { theme } = useThemePreference();
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-950">
+    <div className="theme-shell min-h-screen bg-slate-50 text-slate-950">
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-24 flex-col items-center border-r border-slate-200 bg-white px-3 py-5 md:flex">
-        <Link href="/" className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-950 text-white" aria-label="Capture a thought">
-          <Icon name="capture" className="h-6 w-6" />
+        <Link href="/" className="theme-home-button flex h-12 w-12 items-center justify-center rounded-2xl shadow-lg" aria-label="Capture a thought">
+          <ThemeCaptureIcon theme={theme} className="h-8 w-8" />
         </Link>
         <nav className="mt-8 flex w-full flex-1 flex-col gap-2 overflow-y-auto" aria-label="Primary navigation">
           {primaryDestinations.map((destination) => (
@@ -38,12 +41,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </main>
       </div>
 
-      <nav className="mobile-dock fixed z-30 grid grid-cols-5 items-end rounded-[1.6rem] border border-slate-200 bg-white/95 px-2 pb-2 pt-1 shadow-xl shadow-slate-900/10 backdrop-blur md:hidden" aria-label="Primary navigation">
+      <nav className="mobile-dock theme-dock fixed z-30 grid grid-cols-5 items-end rounded-[1.6rem] border border-slate-200 bg-white/95 px-2 pb-2 pt-1 shadow-xl shadow-slate-900/10 backdrop-blur md:hidden" aria-label="Primary navigation">
         <DockLink destination={mobileDestinations[0]} active={isDestinationActive(pathname, mobileDestinations[0].href)} />
         <DockLink destination={mobileDestinations[1]} active={isDestinationActive(pathname, mobileDestinations[1].href)} />
         <div className="relative mx-auto flex min-h-14 w-16 items-end justify-center">
-          <Link href="/" className="absolute -top-5 left-1/2 flex h-14 w-14 -translate-x-1/2 items-center justify-center rounded-full bg-slate-950 text-white shadow-lg shadow-slate-900/25" aria-label="Capture a thought" aria-current={pathname === "/" ? "page" : undefined}>
-            <Icon name="capture" className="h-7 w-7" />
+          <Link href="/" className="theme-home-button absolute -top-5 left-1/2 flex h-14 w-14 -translate-x-1/2 items-center justify-center rounded-full shadow-lg" aria-label="Capture a thought" aria-current={pathname === "/" ? "page" : undefined}>
+            <ThemeCaptureIcon theme={theme} className="h-9 w-9" />
           </Link>
           <Link
             href="/spaces"

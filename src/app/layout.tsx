@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { AppFrame } from "@/components/app-frame";
 import { ServiceWorkerRegistration } from "@/components/service-worker-registration";
+import { themeIds } from "@/lib/theme";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -34,9 +35,22 @@ export const viewport: Viewport = {
   themeColor: "#f8fafc",
 };
 
+const themeBootScript = `(() => {
+  const allowed = ${JSON.stringify(themeIds)};
+  let theme = "default";
+  try {
+    const stored = window.localStorage.getItem("pcc-theme-v1");
+    if (stored && allowed.includes(stored)) theme = stored;
+  } catch {}
+  document.documentElement.dataset.theme = theme;
+})();`;
+
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
+    <html lang="en" data-theme="default" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
+      </head>
       <body>
         <ServiceWorkerRegistration />
         <AppFrame>{children}</AppFrame>

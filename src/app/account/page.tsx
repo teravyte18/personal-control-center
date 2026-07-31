@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { GoogleCalendarSettings } from "@/components/google-calendar-settings";
+import { ThemeSettings } from "@/components/theme-settings";
 
 type SessionUser = {
   id: string;
@@ -135,7 +136,7 @@ export default function AccountPage() {
       setNotice(`${user.email} can no longer sign in. Their existing sessions were closed.`);
       await refreshAccounts();
     } catch (revokeError) {
-      setError(revokeError instanceof Error ? revokeError.message : "Could not revoke the account." );
+      setError(revokeError instanceof Error ? revokeError.message : "Could not revoke the account.");
     }
   }
 
@@ -182,6 +183,7 @@ export default function AccountPage() {
         </div>
       </div>
 
+      <ThemeSettings />
       <GoogleCalendarSettings />
 
       {currentUser?.role === "owner" ? (

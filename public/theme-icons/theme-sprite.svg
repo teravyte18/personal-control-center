@@ -8,7 +8,7 @@
     </clipPath>
   </defs>
 
-  <image href="/theme-icons/theme-artwork-source.png" width="288" height="288" clip-path="url(#artwork-cells)" />
+  <image href="theme-artwork-source.png" width="288" height="288" clip-path="url(#artwork-cells)" />
 
   <g clip-path="url(#pokeball-circle)">
     <rect width="96" height="96" fill="#fff" />

@@ -1,10 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { isProjectPastCheckIn } from "@/domain/project-dates";
 import { isTaskDueToday, isTaskOverdue, usePersonalData } from "@/lib/personal-data";
 import { useOfflineCapture } from "@/providers/offline-capture-provider";
+
+const HOME_GREETINGS = [
+  "What's going on?",
+  "What's next?",
+  "Anything on your mind?",
+  "What matters today?",
+  "Ready when you are.",
+  "Where are we?",
+] as const;
+const HOME_GREETING_KEY = "pcc-home-greeting";
+
+type HomeGreeting = (typeof HOME_GREETINGS)[number];
 
 export default function CapturePage() {
   const { items } = usePersonalData();
@@ -19,6 +31,7 @@ export default function CapturePage() {
   const [capture, setCapture] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [notice, setNotice] = useState("");
+  const [greeting, setGreeting] = useState<HomeGreeting>(HOME_GREETINGS[0]);
   const pendingNotInSnapshot = useMemo(
     () => pending.filter((record) => !items.some((item) => item.id === record.id)),
     [items, pending],
@@ -30,6 +43,22 @@ export default function CapturePage() {
   const overdueProjects = useMemo(() => items.filter((item) => isProjectPastCheckIn(item)), [items]);
   const overdueTasks = useMemo(() => items.filter((item) => isTaskOverdue(item)), [items]);
   const dueTasks = useMemo(() => items.filter((item) => isTaskDueToday(item)), [items]);
+
+  useEffect(() => {
+    try {
+      const stored = window.sessionStorage.getItem(HOME_GREETING_KEY);
+      if (stored && HOME_GREETINGS.includes(stored as HomeGreeting)) {
+        setGreeting(stored as HomeGreeting);
+        return;
+      }
+
+      const next = HOME_GREETINGS[Math.floor(Math.random() * HOME_GREETINGS.length)];
+      window.sessionStorage.setItem(HOME_GREETING_KEY, next);
+      setGreeting(next);
+    } catch {
+      // The default greeting remains available when browser storage is blocked.
+    }
+  }, []);
 
   async function submitCapture(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -86,17 +115,15 @@ export default function CapturePage() {
 
       <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
         <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-sm font-medium text-slate-500">Quick capture</p>
-            <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">What is on your mind?</h2>
-          </div>
-          <span className={`mt-1 shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold ${online ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-800"}`}>
-            {online ? "Online" : "Offline"}
-          </span>
+          <h2 className="text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">{greeting}</h2>
+          {!online ? (
+            <span className="mt-1 shrink-0 rounded-full bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800">
+              Offline
+            </span>
+          ) : null}
         </div>
-        <p className="mt-3 max-w-xl text-sm leading-6 text-slate-500">Write it down now. You can decide what it means later.</p>
 
-        <form onSubmit={submitCapture} className="mt-7">
+        <form onSubmit={submitCapture} className="mt-5">
           <textarea
             value={capture}
             onChange={(event) => setCapture(event.target.value)}

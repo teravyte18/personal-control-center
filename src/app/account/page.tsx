@@ -135,7 +135,7 @@ export default function AccountPage() {
       setNotice(`${user.email} can no longer sign in. Their existing sessions were closed.`);
       await refreshAccounts();
     } catch (revokeError) {
-      setError(revokeError instanceof Error ? revokeError.message : "Could not revoke the account.");
+      setError(revokeError instanceof Error ? revokeError.message : "Could not revoke the account." );
     }
   }
 
@@ -163,16 +163,12 @@ export default function AccountPage() {
 
   return (
     <section className="mx-auto max-w-4xl">
-      <div className="max-w-2xl">
-        <p className="text-sm text-slate-500">Account & access</p>
-        <h2 className="mt-1 text-3xl font-semibold tracking-tight">Private data, explicit access.</h2>
-        <p className="mt-3 text-sm leading-6 text-slate-500">Each account has a separate dataset inside the same PostgreSQL installation. There is no public registration.</p>
-      </div>
+      <h2 className="text-3xl font-semibold tracking-tight">Account & access</h2>
 
-      {error ? <p className="mt-6 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p> : null}
-      {notice ? <p className="mt-6 rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{notice}</p> : null}
+      {error ? <p className="mt-5 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p> : null}
+      {notice ? <p className="mt-5 rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{notice}</p> : null}
 
-      <div className="mt-7 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+      <div className="mt-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm text-slate-500">Signed in as</p>

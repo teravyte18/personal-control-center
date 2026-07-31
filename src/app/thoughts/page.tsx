@@ -38,12 +38,9 @@ export default function ThoughtsPage() {
 
   return (
     <section className="mx-auto max-w-4xl">
-      <div className="max-w-2xl">
-        <p className="text-sm text-slate-500">Ideas and observations without forced action</p>
-        <h2 className="mt-1 text-3xl font-semibold tracking-tight">Some things only need to be remembered.</h2>
-      </div>
+      <h2 className="text-3xl font-semibold tracking-tight">Thoughts</h2>
 
-      <form onSubmit={submitThought} className="mt-6 rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+      <form onSubmit={submitThought} className="mt-5 rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
         <textarea className="input min-h-24 resize-none" value={thought} onChange={(event) => setThought(event.target.value)} placeholder="Write a thought directly here…" required />
         <div className="mt-3 flex justify-end">
           <button type="submit" className="min-h-11 rounded-xl bg-slate-950 px-5 text-sm font-semibold text-white active:scale-[0.99]">Save thought</button>

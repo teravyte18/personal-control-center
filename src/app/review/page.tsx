@@ -48,11 +48,10 @@ export default function ReviewPage() {
 
   return (
     <section>
-      <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-        <div className="max-w-2xl">
-          <p className="text-sm text-slate-500">Saturday reflection ritual</p>
-          <h2 className="mt-1 text-3xl font-semibold tracking-tight">Review one fixed week at a time.</h2>
-          <p className="mt-2 text-sm leading-6 text-slate-500">Current period: {formatReviewPeriod(period)}. An unfinished draft remains open through Friday and is replaced next Saturday.</p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h2 className="text-3xl font-semibold tracking-tight">Review</h2>
+          <p className="mt-2 text-sm text-slate-500">Current period: {formatReviewPeriod(period)}</p>
         </div>
         <div className="flex rounded-2xl bg-slate-200 p-1">
           <TabButton active={tab === "current"} onClick={() => setTab("current")}>Current</TabButton>

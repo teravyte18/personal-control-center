@@ -47,15 +47,9 @@ export default function ProjectsPage() {
 
   return (
     <section>
-      <div className="max-w-3xl">
-        <p className="text-sm text-slate-500">Finite outcomes that move through concrete actions</p>
-        <h2 className="mt-1 text-3xl font-semibold tracking-tight">Projects across your life.</h2>
-        <p className="mt-3 text-sm leading-6 text-slate-500">
-          Projects with open actions are Active. Projects without one wait quietly until you add the next step or complete the outcome.
-        </p>
-      </div>
+      <h2 className="text-3xl font-semibold tracking-tight">Projects</h2>
 
-      <div className="-mx-4 mt-6 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">
+      <div className="-mx-4 mt-5 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">
         <div className="flex w-max gap-2">
           {filters.map((option) => (
             <button

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 288 288">
+  <defs>
+    <clipPath id="artwork-cells" clipPathUnits="userSpaceOnUse">
+      <path d="M96 0h192v96H96zM0 96h288v192H0z" />
+    </clipPath>
+    <clipPath id="pokeball-circle">
+      <circle cx="48" cy="48" r="42" />
+    </clipPath>
+  </defs>
+
+  <image href="/theme-icons/theme-artwork-source.png" width="288" height="288" clip-path="url(#artwork-cells)" />
+
+  <g clip-path="url(#pokeball-circle)">
+    <rect width="96" height="96" fill="#fff" />
+    <path d="M0 0h96v46H0z" fill="#ff1f25" />
+    <path d="M53 0c23 7 38 24 41 46H74C71 26 64 11 53 0z" fill="#e7191e" />
+    <path d="M74 54h20C90 76 75 91 53 96c12-11 19-25 21-42z" fill="#dedede" />
+    <rect y="42" width="96" height="12" fill="#050505" />
+  </g>
+  <circle cx="48" cy="48" r="42" fill="none" stroke="#050505" stroke-width="2" />
+  <circle cx="48" cy="48" r="14" fill="#050505" />
+  <circle cx="48" cy="48" r="8" fill="#fff" />
+</svg>

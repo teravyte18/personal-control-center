@@ -19,8 +19,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="theme-shell min-h-screen bg-slate-50 text-slate-950">
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-24 flex-col items-center border-r border-slate-200 bg-white px-3 py-5 md:flex">
-        <Link href="/" className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-950 text-white" aria-label="Capture a thought">
-          <Icon name="capture" className="h-6 w-6" />
+        <Link href="/" className="theme-home-button flex h-12 w-12 items-center justify-center rounded-2xl shadow-lg" aria-label="Capture a thought">
+          <ThemeCaptureIcon theme={theme} className="h-6 w-6" />
         </Link>
         <nav className="mt-8 flex w-full flex-1 flex-col gap-2 overflow-y-auto" aria-label="Primary navigation">
           {primaryDestinations.map((destination) => (

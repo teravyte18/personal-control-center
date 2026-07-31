@@ -24,13 +24,7 @@ export default function ArchivePage() {
 
   return (
     <section className="mx-auto max-w-4xl">
-      <div className="max-w-2xl">
-        <p className="text-sm text-slate-500">Recoverable project storage</p>
-        <h2 className="mt-1 text-3xl font-semibold tracking-tight">Archive.</h2>
-        <p className="mt-3 text-sm leading-6 text-slate-500">
-          Archived projects leave active views without losing their action timeline, notes, or previous status.
-        </p>
-      </div>
+      <h2 className="text-3xl font-semibold tracking-tight">Archive</h2>
 
       {projects.length === 0 ? (
         <div className="mt-7 rounded-[2rem] border border-dashed border-slate-300 bg-white p-8 text-center">

@@ -92,7 +92,5 @@ export function ThemeCaptureIcon({ theme, className = "h-7 w-7" }: ThemeCaptureI
           <path d="M8 21h8" />
         </svg>
       );
-    case "hollow-knight":
-      return null;
   }
 }

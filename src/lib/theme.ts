@@ -22,15 +22,15 @@ export type ThemeDefinition = {
 
 export const themes: readonly ThemeDefinition[] = [
   { id: "default", label: "Default", preview: ["#f8fafc", "#ffffff", "#0f172a"], themeColor: "#f8fafc" },
-  { id: "pokemon", label: "Pokémon", preview: ["#f7f2f1", "#fffaf8", "#9f5b60"], themeColor: "#f7f2f1" },
-  { id: "hades", label: "Hades", preview: ["#171416", "#211b1d", "#a56a5c"], themeColor: "#171416" },
-  { id: "hades-ii", label: "Hades II", preview: ["#151821", "#1d2230", "#817b9f"], themeColor: "#151821" },
-  { id: "hollow-knight", label: "Hollow Knight", preview: ["#151a20", "#1e252d", "#7d91a4"], themeColor: "#151a20" },
-  { id: "silksong", label: "Silksong", preview: ["#f6f0ed", "#fff9f6", "#a45d66"], themeColor: "#f6f0ed" },
-  { id: "elden-ring", label: "Elden Ring", preview: ["#1b1b18", "#25251f", "#99845d"], themeColor: "#1b1b18" },
-  { id: "cyberpunk-2077", label: "Cyberpunk 2077", preview: ["#1b1c20", "#25262b", "#b1a15e"], themeColor: "#1b1c20" },
-  { id: "the-witcher-3", label: "The Witcher 3", preview: ["#181b1b", "#232727", "#805a57"], themeColor: "#181b1b" },
-  { id: "stardew-valley", label: "Stardew Valley", preview: ["#f4f0df", "#fffaf0", "#6f8b6c"], themeColor: "#f4f0df" },
+  { id: "pokemon", label: "Pokémon", preview: ["#f6efed", "#fffaf7", "#a95d62"], themeColor: "#f6efed" },
+  { id: "hades", label: "Hades", preview: ["#211718", "#302122", "#a65343"], themeColor: "#211718" },
+  { id: "hades-ii", label: "Hades II", preview: ["#14201f", "#1d2d2b", "#4f9f91"], themeColor: "#14201f" },
+  { id: "hollow-knight", label: "Hollow Knight", preview: ["#161e27", "#202c38", "#6f879c"], themeColor: "#161e27" },
+  { id: "silksong", label: "Silksong", preview: ["#f5ece9", "#fff8f4", "#a75561"], themeColor: "#f5ece9" },
+  { id: "elden-ring", label: "Elden Ring", preview: ["#211c17", "#2d261f", "#94733b"], themeColor: "#211c17" },
+  { id: "cyberpunk-2077", label: "Cyberpunk 2077", preview: ["#0e0f12", "#191a1f", "#df3f45"], themeColor: "#0e0f12" },
+  { id: "the-witcher-3", label: "The Witcher 3", preview: ["#151a18", "#202823", "#78494a"], themeColor: "#151a18" },
+  { id: "stardew-valley", label: "Stardew Valley", preview: ["#e5eed9", "#f8f3df", "#a85e35"], themeColor: "#e5eed9" },
 ] as const;
 
 const themeIdSet = new Set<string>(themeIds);

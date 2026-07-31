@@ -9,6 +9,17 @@ type ThemeCaptureIconProps = {
 export function ThemeCaptureIcon({ theme, className = "h-7 w-7" }: ThemeCaptureIconProps) {
   if (theme === "default") return <Icon name="capture" className={className} />;
 
+  if (theme === "hollow-knight") {
+    return (
+      <img
+        src="/theme-icons/hollow-knight.png"
+        alt=""
+        aria-hidden="true"
+        className={`${className} object-contain`}
+      />
+    );
+  }
+
   const common = {
     className,
     viewBox: "0 0 24 24",
@@ -41,13 +52,6 @@ export function ThemeCaptureIcon({ theme, className = "h-7 w-7" }: ThemeCaptureI
         <svg {...common}>
           <path d="M14.8 4.3A7.4 7.4 0 1 0 19.7 15 6.2 6.2 0 1 1 14.8 4.3Z" />
           <path d="M12 8v8M9.5 10.5h5M10 18.5l2-2 2 2" />
-        </svg>
-      );
-    case "hollow-knight":
-      return (
-        <svg {...common}>
-          <path d="M8 8 5 3M16 8l3-5M8 8c-1.8 1.1-3 3.1-3 5.4C5 17.6 8.1 21 12 21s7-3.4 7-7.6c0-2.3-1.2-4.3-3-5.4" />
-          <path d="M9.5 13h.1M14.4 13h.1M9 17c2 1 4 1 6 0" />
         </svg>
       );
     case "silksong":
@@ -88,5 +92,7 @@ export function ThemeCaptureIcon({ theme, className = "h-7 w-7" }: ThemeCaptureI
           <path d="M8 21h8" />
         </svg>
       );
+    case "hollow-knight":
+      return null;
   }
 }

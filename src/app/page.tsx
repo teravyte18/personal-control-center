@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useMemo, useState, useSyncExternalStore } from "react";
 import { isProjectPastCheckIn } from "@/domain/project-dates";
 import { isTaskDueToday, isTaskOverdue, usePersonalData } from "@/lib/personal-data";
 import { useOfflineCapture } from "@/providers/offline-capture-provider";
@@ -18,6 +18,35 @@ const HOME_GREETING_KEY = "pcc-home-greeting";
 
 type HomeGreeting = (typeof HOME_GREETINGS)[number];
 
+let cachedHomeGreeting: HomeGreeting | null = null;
+
+function subscribeToHomeGreeting() {
+  return () => {};
+}
+
+function getServerHomeGreeting(): HomeGreeting {
+  return HOME_GREETINGS[0];
+}
+
+function getBrowserHomeGreeting(): HomeGreeting {
+  if (cachedHomeGreeting) return cachedHomeGreeting;
+
+  try {
+    const stored = window.sessionStorage.getItem(HOME_GREETING_KEY);
+    if (stored && HOME_GREETINGS.includes(stored as HomeGreeting)) {
+      cachedHomeGreeting = stored as HomeGreeting;
+      return cachedHomeGreeting;
+    }
+
+    cachedHomeGreeting = HOME_GREETINGS[Math.floor(Math.random() * HOME_GREETINGS.length)];
+    window.sessionStorage.setItem(HOME_GREETING_KEY, cachedHomeGreeting);
+    return cachedHomeGreeting;
+  } catch {
+    cachedHomeGreeting = HOME_GREETINGS[0];
+    return cachedHomeGreeting;
+  }
+}
+
 export default function CapturePage() {
   const { items } = usePersonalData();
   const {
@@ -31,7 +60,11 @@ export default function CapturePage() {
   const [capture, setCapture] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [notice, setNotice] = useState("");
-  const [greeting, setGreeting] = useState<HomeGreeting>(HOME_GREETINGS[0]);
+  const greeting = useSyncExternalStore(
+    subscribeToHomeGreeting,
+    getBrowserHomeGreeting,
+    getServerHomeGreeting,
+  );
   const pendingNotInSnapshot = useMemo(
     () => pending.filter((record) => !items.some((item) => item.id === record.id)),
     [items, pending],
@@ -43,22 +76,6 @@ export default function CapturePage() {
   const overdueProjects = useMemo(() => items.filter((item) => isProjectPastCheckIn(item)), [items]);
   const overdueTasks = useMemo(() => items.filter((item) => isTaskOverdue(item)), [items]);
   const dueTasks = useMemo(() => items.filter((item) => isTaskDueToday(item)), [items]);
-
-  useEffect(() => {
-    try {
-      const stored = window.sessionStorage.getItem(HOME_GREETING_KEY);
-      if (stored && HOME_GREETINGS.includes(stored as HomeGreeting)) {
-        setGreeting(stored as HomeGreeting);
-        return;
-      }
-
-      const next = HOME_GREETINGS[Math.floor(Math.random() * HOME_GREETINGS.length)];
-      window.sessionStorage.setItem(HOME_GREETING_KEY, next);
-      setGreeting(next);
-    } catch {
-      // The default greeting remains available when browser storage is blocked.
-    }
-  }, []);
 
   async function submitCapture(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

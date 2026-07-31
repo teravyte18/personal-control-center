@@ -54,7 +54,7 @@ const priorityLabels: Record<BookPriority, string> = {
 
 const shelves: { id: BookShelfId; label: string }[] = [
   { id: "all", label: "All books" },
-  { id: "reading", label: "Reading" },
+  { id: "reading", label: "Currently reading" },
   { id: "up-next", label: "Up next" },
   { id: "owned-unread", label: "Owned unread" },
   { id: "wishlist", label: "Wishlist" },
@@ -69,6 +69,7 @@ export default function LibraryPage() {
   const books = useMemo(() => getBooks(items), [items]);
   const [shelf, setShelf] = useState<BookShelfId>("all");
   const [query, setQuery] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [readingFilter, setReadingFilter] = useState<BookReadingState | "">("");
   const [ownershipFilter, setOwnershipFilter] = useState<BookOwnershipState | "">("");
   const [priorityFilter, setPriorityFilter] = useState<BookPriority | "">("");
@@ -136,7 +137,15 @@ export default function LibraryPage() {
     }
   }
 
+  function clearFilters() {
+    setReadingFilter("");
+    setOwnershipFilter("");
+    setPriorityFilter("");
+    setMinimumRating("");
+  }
+
   const filterCount = [readingFilter, ownershipFilter, priorityFilter, minimumRating].filter(Boolean).length;
+  const currentShelf = shelves.find((candidate) => candidate.id === shelf) ?? shelves[0];
 
   return (
     <section className="mx-auto max-w-6xl">
@@ -150,58 +159,70 @@ export default function LibraryPage() {
         </button>
       </div>
 
-      <div className="mt-6 overflow-x-auto pb-2">
-        <div className="flex min-w-max gap-2">
-          {shelves.map((candidate) => {
-            const count = sortBooksForShelf(books, candidate.id).length;
-            return (
-              <button
-                key={candidate.id}
-                type="button"
-                onClick={() => setShelf(candidate.id)}
-                className={`min-h-10 rounded-full px-4 text-sm font-semibold transition ${shelf === candidate.id ? "bg-slate-950 text-white" : "border border-slate-200 bg-white text-slate-600"}`}
-              >
-                {candidate.label} <span className="ml-1 opacity-70">{count}</span>
-              </button>
-            );
-          })}
-        </div>
+      <div className="mt-5 grid grid-cols-[minmax(0,1fr)_auto] gap-2 sm:grid-cols-[minmax(0,1fr)_13rem_auto]">
+        <label className="col-span-2 sm:col-span-1">
+          <span className="sr-only">Search books</span>
+          <input
+            type="search"
+            className="input"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search title or author"
+          />
+        </label>
+        <label>
+          <span className="sr-only">Library view</span>
+          <select className="input" value={shelf} onChange={(event) => setShelf(event.target.value as BookShelfId)}>
+            {shelves.map((candidate) => (
+              <option key={candidate.id} value={candidate.id}>
+                {candidate.label} ({sortBooksForShelf(books, candidate.id).length})
+              </option>
+            ))}
+          </select>
+        </label>
+        <button
+          type="button"
+          onClick={() => setFiltersOpen((current) => !current)}
+          aria-expanded={filtersOpen}
+          aria-controls="library-filters"
+          className={`min-h-11 rounded-xl border px-4 text-sm font-semibold transition ${
+            filtersOpen || filterCount > 0
+              ? "border-slate-950 bg-slate-950 text-white"
+              : "border-slate-300 bg-white text-slate-700"
+          }`}
+        >
+          Filters{filterCount > 0 ? ` · ${filterCount}` : ""}
+        </button>
       </div>
 
-      <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="grid gap-3 lg:grid-cols-[minmax(15rem,1fr)_repeat(4,minmax(8.5rem,auto))]">
-          <label className="text-sm font-medium text-slate-700">
-            <span className="sr-only">Search books</span>
-            <input className="input" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search title or author" />
-          </label>
-          <FilterSelect label="Reading state" value={readingFilter} onChange={(value) => setReadingFilter(value as BookReadingState | "")}>
-            {bookReadingStates.map((value) => <option key={value} value={value}>{readingLabels[value]}</option>)}
-          </FilterSelect>
-          <FilterSelect label="Ownership" value={ownershipFilter} onChange={(value) => setOwnershipFilter(value as BookOwnershipState | "")}>
-            {bookOwnershipStates.map((value) => <option key={value} value={value}>{ownershipLabels[value]}</option>)}
-          </FilterSelect>
-          <FilterSelect label="Priority" value={priorityFilter} onChange={(value) => setPriorityFilter(value as BookPriority | "")}>
-            {bookPriorities.map((value) => <option key={value} value={value}>{priorityLabels[value]}</option>)}
-          </FilterSelect>
-          <FilterSelect label="Minimum score" value={minimumRating} onChange={setMinimumRating}>
-            {[1, 2, 3, 4, 5].map((value) => <option key={value} value={value}>{value}+</option>)}
-          </FilterSelect>
+      {filtersOpen ? (
+        <div id="library-filters" className="mt-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <FilterSelect label="Reading state" value={readingFilter} onChange={(value) => setReadingFilter(value as BookReadingState | "")}>
+              {bookReadingStates.map((value) => <option key={value} value={value}>{readingLabels[value]}</option>)}
+            </FilterSelect>
+            <FilterSelect label="Ownership" value={ownershipFilter} onChange={(value) => setOwnershipFilter(value as BookOwnershipState | "")}>
+              {bookOwnershipStates.map((value) => <option key={value} value={value}>{ownershipLabels[value]}</option>)}
+            </FilterSelect>
+            <FilterSelect label="Priority" value={priorityFilter} onChange={(value) => setPriorityFilter(value as BookPriority | "")}>
+              {bookPriorities.map((value) => <option key={value} value={value}>{priorityLabels[value]}</option>)}
+            </FilterSelect>
+            <FilterSelect label="Minimum score" value={minimumRating} onChange={setMinimumRating}>
+              {[1, 2, 3, 4, 5].map((value) => <option key={value} value={value}>{value}+</option>)}
+            </FilterSelect>
+          </div>
+          <div className="mt-3 flex items-center justify-between gap-3">
+            <p className="text-xs text-slate-500">
+              {filterCount > 0 ? `${filterCount} ${filterCount === 1 ? "filter" : "filters"} active` : "No detailed filters active"}
+            </p>
+            {filterCount > 0 ? (
+              <button type="button" onClick={clearFilters} className="min-h-10 rounded-xl px-3 text-xs font-semibold text-slate-600 underline decoration-slate-300 underline-offset-4">
+                Clear filters
+              </button>
+            ) : null}
+          </div>
         </div>
-        {filterCount > 0 ? (
-          <button
-            type="button"
-            onClick={() => {
-              setReadingFilter("");
-              setOwnershipFilter("");
-              setPriorityFilter("");
-              setMinimumRating("");
-            }}
-            className="mt-3 text-xs font-semibold text-slate-500 underline decoration-slate-300 underline-offset-4"
-          >
-            Clear {filterCount} {filterCount === 1 ? "filter" : "filters"}
-          </button>
-        ) : null}
-      </div>
+      ) : null}
 
       {books.length === 0 ? (
         <div className="mt-8 rounded-[2rem] border border-dashed border-slate-300 bg-white p-8 text-center">
@@ -213,22 +234,28 @@ export default function LibraryPage() {
       ) : visibleBooks.length === 0 ? (
         <div className="mt-8 rounded-[2rem] border border-dashed border-slate-300 bg-white p-8 text-center">
           <h3 className="text-lg font-semibold">No books match this view.</h3>
-          <p className="mt-2 text-sm leading-6 text-slate-500">Change the shelf, search, or filters.</p>
+          <p className="mt-2 text-sm leading-6 text-slate-500">Change the view, search, or detailed filters.</p>
         </div>
       ) : (
-        <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-          {visibleBooks.map((book, index) => (
-            <BookCard
-              key={book.item.id}
-              book={book}
-              showQueueControls={shelf === "up-next"}
-              canMoveUp={index > 0}
-              canMoveDown={index < visibleBooks.length - 1}
-              onOpen={() => setOpenBookId(book.item.id)}
-              onMove={(direction) => moveBook(book.item.id, direction)}
-            />
-          ))}
-        </div>
+        <>
+          <div className="mt-5 flex items-center justify-between gap-3">
+            <h3 className="text-sm font-semibold text-slate-700">{currentShelf.label}</h3>
+            <p className="text-xs text-slate-500">{visibleBooks.length} shown</p>
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            {visibleBooks.map((book, index) => (
+              <BookCard
+                key={book.item.id}
+                book={book}
+                showQueueControls={shelf === "up-next"}
+                canMoveUp={index > 0}
+                canMoveDown={index < visibleBooks.length - 1}
+                onOpen={() => setOpenBookId(book.item.id)}
+                onMove={(direction) => moveBook(book.item.id, direction)}
+              />
+            ))}
+          </div>
+        </>
       )}
 
       {creating ? <BookEditor key="new-book" onCancel={() => setCreating(false)} onSave={(title, details) => saveBook(undefined, title, details)} /> : null}
@@ -508,7 +535,7 @@ function Field({ label, wide = false, children }: { label: string; wide?: boolea
 }
 
 function FilterSelect({ label, value, onChange, children }: { label: string; value: string; onChange: (value: string) => void; children: ReactNode }) {
-  return <label className="text-sm font-medium text-slate-700"><span className="sr-only">{label}</span><select className="input" value={value} onChange={(event) => onChange(event.target.value)}><option value="">{label}</option>{children}</select></label>;
+  return <label className="text-sm font-medium text-slate-700"><span className="mb-2 block">{label}</span><select className="input" value={value} onChange={(event) => onChange(event.target.value)}><option value="">Any</option>{children}</select></label>;
 }
 
 function RatingField({ label, value, onChange }: { label: string; value: number | undefined; onChange: (value: number | undefined) => void }) {

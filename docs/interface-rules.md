@@ -1,6 +1,6 @@
 # Interface Rules
 
-These rules define the structural baseline for the interface-personality slice. They should be applied before introducing broader palettes, decorative motifs, or theme-specific styling.
+These rules define the structural baseline for the interface-personality slice. They should be applied before introducing broader palettes or theme-specific styling.
 
 The guiding principle is:
 
@@ -86,7 +86,7 @@ These copy rules apply on both phone and desktop. Desktop width is not a reason 
 - Keep offline mode visibly distinct because it changes capture and synchronisation behavior.
 - Replace generic introductory copy with one short greeting.
 - Select the greeting once per app session or once per day so it does not change during normal rerenders.
-- Keep greetings original, calm, and brief rather than building the identity from recognisable copyrighted catchphrases.
+- Keep greetings calm and brief.
 - A greeting should normally contain approximately two to five words.
 
 Suitable initial examples include:
@@ -117,16 +117,28 @@ Before themes are introduced, the neutral interface should use shared rules for:
 
 A palette must not be used to hide inconsistent hierarchy or spacing. Structural consistency comes first.
 
-## 5. Theme boundaries
+## 5. Theme scope
 
-Themes may later change neutral presentation tokens such as:
+Themes are intentionally small. Their first implementation should mainly change two things:
 
-- application and page backgrounds;
-- card and elevated surfaces;
-- primary and muted text;
-- neutral borders and shadows;
-- navigation, buttons, links, focus rings, and selected controls;
-- restrained decorative accents and motifs.
+1. the application color palette;
+2. the centre Home/Capture icon in the mobile navigation dock.
+
+Do not turn each theme into a separate redesign. Layout, typography, spacing, information hierarchy, component behavior, semantic icons, and workflows should remain consistent across themes.
+
+### Default theme
+
+- Keep a **Default** theme using the current neutral colors.
+- Keep the current centre Home/Capture icon in the Default theme.
+- Default remains the reliable fallback when a theme is missing, removed, or malformed.
+
+### Color direction
+
+- Prefer faint, muted, pastel, dusty, or otherwise low-saturation colors.
+- A theme may use moderately richer accents where needed for identity, but should avoid highly saturated, striking, fluorescent, or visually exhausting surfaces.
+- Stronger accents should be concentrated in selected navigation, the centre action, primary buttons, focus states, and small details rather than filling normal reading surfaces.
+- The initial palette choices may be selected during implementation and then tweaked or removed after phone testing.
+- Theme support should be implemented through shared tokens or CSS variables rather than page-specific overrides.
 
 Themes must not redefine semantic meaning:
 
@@ -136,7 +148,31 @@ Themes must not redefine semantic meaning:
 - contrast remains readable on phone and desktop;
 - themed surfaces must not make semantic indicators ambiguous.
 
-Decorative personality must remain subordinate to the content. Themes should make the app enjoyable, not noisier.
+### Theme names
+
+Use the actual game names as the user-facing theme names rather than invented substitutes. The application is a small personal project, and direct naming is preferred over disguised references.
+
+Keep **Default** alongside the game themes.
+
+### Centre navigation icon
+
+Each game theme may replace only the centre Home/Capture icon with one simple, recognisable game symbol. The replacement should remain icon-like rather than becoming detailed artwork.
+
+Agreed examples:
+
+- **Pokémon** — Poké Ball;
+- **The Witcher 3** — simplified wolf medallion/head symbol;
+- **Hades** — simplified skull symbol associated with the cover identity.
+
+Additional themes may receive equivalent symbols during implementation. The icon should:
+
+- remain readable at the existing dock-button size;
+- preserve the same tap target and Home/Capture action;
+- retain an accessible label independent of its visual shape;
+- avoid excessive detail, gradients, or illustration-style rendering;
+- be easy to tweak or remove when the theme is tested on the phone.
+
+The first theme pass does not require theme-specific typography, animation systems, page layouts, sound, large background art, or extensive decorative motifs. Those remain optional future additions only after the palette-and-icon model proves worthwhile.
 
 ## 6. Implementation order
 
@@ -148,8 +184,10 @@ The interface-personality slice should proceed in this order:
 4. compress and standardise the Spaces directory;
 5. remove the Home Online label and add restrained rotating greetings;
 6. consolidate shared spacing, typography, card, control, and icon rules;
-7. define theme tokens and implement theme selection;
-8. add palettes and restrained theme-specific motifs.
+7. define neutral and semantic color tokens;
+8. add theme selection with Default as the fallback;
+9. add muted game-named palettes and their centre navigation icons;
+10. test each theme on a real phone and tweak or remove anything too saturated, noisy, or unclear.
 
 This order keeps usability changes reviewable and prevents palette work from becoming coupled to unresolved layout problems.
 
@@ -166,4 +204,9 @@ This order keeps usability changes reviewable and prevents palette work from bec
 - Account & access is grouped after the working spaces.
 - Online state is silent; offline state remains explicit.
 - Home greetings remain short, stable during a session, and non-pressuring.
-- The neutral theme remains complete and usable before alternate palettes are added.
+- The Default theme retains the current neutral palette and current centre icon.
+- Alternate themes mainly change colors and the centre navigation icon.
+- Theme palettes remain muted enough for sustained everyday use.
+- Game themes use their actual game names.
+- Theme icons remain simple, recognisable, accessible, and functionally equivalent.
+- Semantic state colors remain understandable in every theme.

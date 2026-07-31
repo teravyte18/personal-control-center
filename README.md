@@ -1,39 +1,40 @@
 # Personal Control Center
 
-A phone-first personal planning and reflection system that brings capture, projects, one-off tasks, thoughts, and weekly reviews into one private application.
+A phone-first private planning and reflection system that combines quick capture, projects, one-off tasks, thoughts, editable notes, weekly reviews, and a personal book library in one self-hosted application.
 
-This repository targets a small self-hosted deployment rather than a commercial product. Multiple invite-only accounts may use one application and PostgreSQL database, but each account has completely separate personal data.
+This repository targets a small personal deployment rather than a commercial product. Multiple invite-only accounts may use one application and PostgreSQL database, but each account has completely separate personal data.
 
 ## System principles
 
 - Capture first; organise later.
 - Design for frequent phone use before optimising desktop layouts.
 - Show what matters now instead of everything stored.
-- Keep projects, one-off tasks, thoughts, and future routines distinct.
-- Let future modules grow without crowding primary navigation.
+- Keep projects, one-off tasks, thoughts, notes, books, and future routines conceptually distinct.
+- Let new modules grow through All Spaces without crowding the mobile dock.
+- Keep external services as optional projections or assistants rather than hidden sources of truth.
 - Keep AI suggestions optional and never silently change user data.
-- Remain useful before any external integration is configured.
 - Keep public fixtures and examples neutral.
 
 ## Current functionality
 
-- Quiet Capture and Inbox clarification
-- Projects with dated action points, completion notes, Waiting, Accomplishments, Archive, and Restore
+- Quick Capture and Inbox clarification, including a durable device-local queue and Capture-only fallback during temporary connection loss
+- Projects with multiple open actions, optional dates, completion notes, automatic Active/Waiting transitions, Accomplishments, Archive, and Restore
 - Standalone Tasks with optional check-in dates and due/overdue attention
-- Thoughts that remain non-actionable and editable only through an explicit action
-- Fixed Saturday-to-Friday Weekly Review periods with generated context and history
-- Durable user-scoped review photos
-- Four configurable mobile quick-access slots and an expanded desktop rail
-- Debounced persistence for continuously edited Inbox and Review text
+- Read-only-by-default Thoughts for non-actionable observations
+- Editable plain-text Notes with compact cards and persistent manual ordering
+- Fixed Saturday-to-Friday Weekly Review periods with generated context, draft persistence, durable photos, history, and in-app reminders
+- A books-first Library with search, generated views, independent reading/ownership/priority fields, optional dates, ratings, manual Up next ordering, private covers, and review context
+- Four configurable mobile quick-access slots, a dock-attached Spaces handle, a compact All Spaces directory, and an expanded desktop rail
+- A neutral Default appearance plus Pokémon, Hades, Hades II, Hollow Knight, Silksong, Elden Ring, Cyberpunk 2077, The Witcher 3, and Stardew Valley themes
+- One-way Google Calendar projection for dated open Tasks and every dated open project action
 - PostgreSQL-backed canonical state shared across each user's browsers and devices
 - Invite-only authentication, isolated accounts, owner-controlled access, and revocation
 - Installable PWA assets with Android, maskable, and Apple icon variants
 - Raspberry Pi Docker Compose deployment with Tailscale Funnel HTTPS
-- Validated local PostgreSQL/upload backups
-- Client-side encrypted, deduplicated Cloudflare R2 backups and staged restore preparation
-- CI validation of build, authentication, isolation, photos, PWA assets, and backup readability
+- Validated local PostgreSQL/upload backups and encrypted, deduplicated Cloudflare R2 snapshots
+- CI validation of build, authentication, isolation, uploads, PWA/offline assets, Calendar projection, and backup readability
 
-The application binds to a local host interface. Public phone access is provided only through the Tailscale Funnel container and authenticated application sessions.
+The host publishes the application only on `127.0.0.1:3000`. Public phone access is provided through Tailscale Funnel and authenticated application sessions. PostgreSQL is never published outside the Compose network.
 
 ## Page map
 
@@ -41,19 +42,24 @@ The application binds to a local host interface. Public phone access is provided
 Capture (/)
 Inbox (/inbox)
 Projects (/projects)
-  - Work, Education, Personal, and Uncategorised areas
-  - Active, In progress, Waiting, and Incubating states
 Tasks (/tasks)
 Thoughts (/thoughts)
+Notes (/notes)
 Review (/review)
   - Current
   - History
+Library (/library)
 All Spaces (/spaces)
+  - All available working spaces
   - Accomplishments
   - Archive
-  - Account & access
   - Mobile quick access
+  - Account & access
 ```
+
+## Documentation map
+
+Start with [`docs/README.md`](docs/README.md) for the current documentation index and the distinction between live operational guidance and historical slice plans.
 
 ## Run the full stack locally
 
@@ -95,13 +101,13 @@ Stop without deleting data:
 docker compose down
 ```
 
-Never add `--volumes` during a normal stop, rebuild, or deployment.
+Never add `--volumes` during a normal stop, rebuild, deployment, or rollback.
 
 ## Development modes
 
 ### Full source-based development
 
-Use PostgreSQL when testing authentication, user isolation, uploads, synchronisation, or server persistence:
+Use PostgreSQL when testing authentication, user isolation, uploads, synchronisation, Calendar behaviour, or server persistence:
 
 ```bash
 npm install
@@ -113,7 +119,7 @@ A valid `DATABASE_URL` is required.
 
 ### Browser-only UI development
 
-A temporary local mode is available for UI and domain work without PostgreSQL:
+A temporary mode is available for UI and domain work without PostgreSQL:
 
 ```text
 PCC_LOCAL_DEV_MODE=1
@@ -127,15 +133,17 @@ npm install
 npm run dev:network -- --port 3001
 ```
 
-This mode bypasses authentication only outside production and stores data in that browser's `localStorage`. It does not provide shared phone/desktop state, durable photo uploads, production notification behavior, or server-persistence testing.
+This mode bypasses authentication only outside production and stores data in that browser's `localStorage`. It does not provide shared phone/desktop state, durable uploads, production Calendar behaviour, real notification behaviour, or server-persistence testing.
+
+See [`docs/browser-only-development.md`](docs/browser-only-development.md).
 
 ## Authentication and user isolation
 
 There is no public registration. The configured owner signs in first, then may create one-time activation links from **All Spaces → Account & access**. Invited users choose their own password and receive an empty private dataset. Revoking an account closes its sessions but preserves its data.
 
-Passwords are derived with `scrypt`. Raw session and invitation tokens are not stored in PostgreSQL. The browser receives an HTTP-only `SameSite=Lax` session cookie; production HTTPS additionally sets the cookie's `Secure` flag.
+Passwords are derived with `scrypt`. Raw session and invitation tokens are not stored in PostgreSQL. The browser receives an HTTP-only `SameSite=Lax` session cookie; production HTTPS sets the cookie's `Secure` flag.
 
-`PCC_ALLOW_INSECURE_USER_HEADER` is only for CI and must remain `0` in production. There are no shared workspaces, teams, public registration, or collaboration permissions.
+`PCC_ALLOW_INSECURE_USER_HEADER` is only for CI and deliberate local tests and must remain `0` in production. There are no shared workspaces, teams, public registration, or collaboration permissions.
 
 See [`docs/authentication.md`](docs/authentication.md) and [`docs/security-hardening.md`](docs/security-hardening.md).
 
@@ -162,9 +170,33 @@ The result is a stable `*.ts.net` URL without a custom domain, router port forwa
 
 See [`docs/phone-deployment.md`](docs/phone-deployment.md).
 
+## Offline Quick Capture
+
+The complete authenticated application remains online-first. After one successful online sign-in and service-worker preparation, a cold-started installed PWA can fall back to a dedicated Capture-only screen when the server or network is unavailable.
+
+Pending captures remain device-local until PostgreSQL confirms them. Stable client-generated IDs make retries duplicate-safe. Notes, Library, Inbox organisation, Projects, Tasks, Thoughts, Review, Account, uploads, and Calendar settings remain online-only.
+
+See [`docs/offline-capture.md`](docs/offline-capture.md).
+
+## Google Calendar
+
+Each application account may connect its own Google account. The application creates a separate **Personal Control Center** calendar and projects dated open Tasks plus every dated open project action as all-day events.
+
+The integration is one-way: Personal Control Center remains canonical, and direct Google-side edits are not imported.
+
+See [`docs/google-calendar.md`](docs/google-calendar.md).
+
+## Themes and interface preferences
+
+The theme and four mobile quick-access positions are device/browser preferences stored in `localStorage`. They apply immediately and may differ between a phone and desktop browser for the same account.
+
+The Default theme preserves the neutral interface. Game themes change shared colour tokens, restrained border treatment, and the centre Capture artwork while preserving layout, workflows, touch targets, and semantic status colours.
+
+See [`docs/interface-rules.md`](docs/interface-rules.md).
+
 ## Backups and recovery
 
-The backup service creates a validated PostgreSQL custom-format dump and paired upload archive on startup and every 24 hours by default.
+The backup service creates a validated PostgreSQL custom-format dump and paired upload archive on startup and every 24 hours by default. The upload archive includes review photos and original Library cover uploads.
 
 Create another local backup manually:
 
@@ -181,7 +213,7 @@ sh scripts/manage-offsite-backup.sh backup-now
 sh scripts/manage-offsite-backup.sh restore-latest
 ```
 
-Off-site restore is staged and validated under `data/offsite-restore` before the existing destructive database restore command is run.
+Off-site restore is staged and validated under `data/offsite-restore` before the existing destructive database/upload restore command is run.
 
 See [`docs/offsite-backups.md`](docs/offsite-backups.md) and [`docs/review-photo-storage.md`](docs/review-photo-storage.md).
 
@@ -205,15 +237,15 @@ docker compose config --quiet
 docker compose --profile funnel config --quiet
 ```
 
-CI builds the production Compose stack and validates migrations, authentication, cross-user isolation, PWA assets, review photos, persistence, and backup readability.
+CI builds the production Compose stack and validates migrations, authentication, cross-user isolation, PWA/offline assets, uploads, persistence, and backup readability.
 
 ## Development workflow
 
 1. Start with an issue or clearly defined outcome.
-2. Work on a feature branch and separate development environment.
+2. Work on a focused `agent/<description>` branch and separate development environment.
 3. Open a draft pull request.
 4. Run source and production-stack validation.
 5. Merge into `main` after review.
 6. Deploy `main` through the production deployment script.
 
-See [`docs/product-spec.md`](docs/product-spec.md), [`docs/roadmap.md`](docs/roadmap.md), [`docs/architecture.md`](docs/architecture.md), [`docs/authentication.md`](docs/authentication.md), [`docs/phone-deployment.md`](docs/phone-deployment.md), [`docs/offsite-backups.md`](docs/offsite-backups.md), and [`CONTRIBUTING.md`](CONTRIBUTING.md).
+See [`CONTRIBUTING.md`](CONTRIBUTING.md), [`AGENTS.md`](AGENTS.md), and the documentation index in [`docs/README.md`](docs/README.md).

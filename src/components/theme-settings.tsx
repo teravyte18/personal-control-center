@@ -33,8 +33,8 @@ export function ThemeSettings() {
                 <span
                   className="flex h-10 w-10 items-center justify-center rounded-full border shadow-sm"
                   style={{
-                    backgroundColor: candidate.preview[2],
-                    borderColor: candidate.preview[1],
+                    backgroundColor: candidate.iconBackground,
+                    borderColor: candidate.iconBorder,
                   }}
                 >
                   <ThemeCaptureIcon theme={candidate.id} className="h-7 w-7" />

@@ -456,7 +456,7 @@ No order is selected among these modules. The next one should be chosen from dem
 - **Trips** — trip ideas, decisions, budgets, and later supported price monitoring;
 - **Fitness** — imported running activity and weekly trends;
 - **Events or Appointments** — time-specific commitments with start and end times, locations, and appointment context;
-- **Today / near-term view** — a focused cross-space view of dated standalone Tasks and open project actions, with filters for Today, Tomorrow, and the next two days. Project action dates should be presented as check-ins rather than hard deadlines, while undated work stays out of this view and remains available through Projects, Tasks, and Weekly Review;
+- **Today / near-term view** — a focused cross-space view opened from a prominent Home-screen button rather than listed as a permanent destination in the Spaces directory. It combines dated standalone Tasks and open project actions, with filters for Today, Tomorrow, and the next two days. Project action dates should be presented as check-ins rather than hard deadlines, while undated work stays out of this view and remains available through Projects, Tasks, and Weekly Review;
 - **Media expansion** — movies or other media only after Books usage shows whether a shared Library model is appropriate.
 
 ## Later capabilities

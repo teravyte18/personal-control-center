@@ -49,14 +49,8 @@ export default function TasksPage() {
 
   return (
     <section className="mx-auto max-w-4xl">
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          <p className="text-sm text-slate-500">Concrete one-off actions</p>
-          <h2 className="mt-1 text-3xl font-semibold tracking-tight">Tasks</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-            Keep actions here when they do not need a project timeline. Check-in dates are optional and can be changed freely.
-          </p>
-        </div>
+      <div className="flex items-center justify-between gap-4">
+        <h2 className="text-3xl font-semibold tracking-tight">Tasks</h2>
         {!creating ? (
           <button type="button" onClick={() => setCreating(true)} className="min-h-11 shrink-0 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white active:scale-[0.99]">
             New task
@@ -65,7 +59,7 @@ export default function TasksPage() {
       </div>
 
       {creating ? (
-        <form onSubmit={createTask} className="mt-7 rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+        <form onSubmit={createTask} className="mt-6 rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
           <div className="flex items-center justify-between gap-3">
             <h3 className="text-lg font-semibold">New task</h3>
             <button type="button" onClick={cancelCreation} className="min-h-10 rounded-xl px-3 text-sm font-semibold text-slate-500 hover:bg-slate-100">

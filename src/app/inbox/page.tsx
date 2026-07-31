@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
+import { createBookDetails, serializeBookDetails } from "@/domain/library";
 import { useDebouncedField } from "@/hooks/use-debounced-field";
 import {
   areaLabels,
@@ -11,6 +12,8 @@ import {
   kindLabels,
   usePersonalData,
 } from "@/lib/personal-data";
+
+type InboxClassification = ItemKind | "book";
 
 export default function InboxPage() {
   const { items } = usePersonalData();
@@ -50,6 +53,7 @@ function InboxItem({ item }: { item: Item }) {
     updateProjectAction,
   } = usePersonalData();
   const existingAction = getCurrentProjectAction(item);
+  const [classification, setClassification] = useState<InboxClassification>(item.kind);
   const [actionTitle, setActionTitle] = useState(existingAction?.title ?? "");
   const [targetDate, setTargetDate] = useState(existingAction?.targetDate ?? "");
   const [taskDate, setTaskDate] = useState(item.checkInDate ?? "");
@@ -65,11 +69,21 @@ function InboxItem({ item }: { item: Item }) {
 
   function organiseItem(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!title.value.trim() || item.kind === "unclassified") return;
+    if (!title.value.trim() || classification === "unclassified") return;
     title.flush();
     description.flush();
 
-    if (item.kind === "project" && actionTitle.trim()) {
+    if (classification === "book") {
+      updateItem(item.id, {
+        kind: "note",
+        area: item.area === "uncategorized" ? "personal" : item.area,
+        description: serializeBookDetails(createBookDetails(description.value)),
+      });
+      setItemStatus(item.id, "active");
+      return;
+    }
+
+    if (classification === "project" && actionTitle.trim()) {
       if (existingAction) {
         updateProjectAction(item.id, existingAction.id, { title: actionTitle, targetDate });
       } else {
@@ -77,8 +91,13 @@ function InboxItem({ item }: { item: Item }) {
       }
     }
 
-    if (item.kind === "task") updateItem(item.id, { checkInDate: taskDate });
+    if (classification === "task") updateItem(item.id, { checkInDate: taskDate });
     setItemStatus(item.id, "active");
+  }
+
+  function selectClassification(value: InboxClassification) {
+    setClassification(value);
+    if (value !== "book") updateItem(item.id, { kind: value });
   }
 
   return (
@@ -94,37 +113,23 @@ function InboxItem({ item }: { item: Item }) {
       <form onSubmit={organiseItem} className="border-t border-slate-100 px-4 pb-5 pt-4 sm:px-5">
         <label className="block text-sm font-medium text-slate-700">
           Title
-          <input
-            className="input mt-2"
-            value={title.value}
-            onChange={(event) => title.setValue(event.target.value)}
-            onBlur={title.flush}
-            required
-          />
+          <input className="input mt-2" value={title.value} onChange={(event) => title.setValue(event.target.value)} onBlur={title.flush} required />
         </label>
 
         <label className="mt-4 block text-sm font-medium text-slate-700">
           Extra context
-          <textarea
-            className="input mt-2 min-h-24 resize-y"
-            value={description.value}
-            onChange={(event) => description.setValue(event.target.value)}
-            onBlur={description.flush}
-            placeholder="Optional details, links, or why this matters…"
-          />
-          {item.kind === "note" ? (
-            <span className="mt-2 block text-xs font-normal text-slate-500">
-              The title becomes the note&apos;s first line; this context becomes the editable body below it.
-            </span>
-          ) : null}
+          <textarea className="input mt-2 min-h-24 resize-y" value={description.value} onChange={(event) => description.setValue(event.target.value)} onBlur={description.flush} placeholder="Optional details, links, or why this matters…" />
+          {classification === "note" ? <span className="mt-2 block text-xs font-normal text-slate-500">The title becomes the note&apos;s first line; this context becomes the editable body below it.</span> : null}
+          {classification === "book" ? <span className="mt-2 block text-xs font-normal text-slate-500">This context becomes the book&apos;s initial Thoughts and takeaways. Author, shelves, cover, dates, and ratings can be added from Library.</span> : null}
         </label>
 
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <label className="text-sm font-medium text-slate-700">
             What is it?
-            <select className="input mt-2" value={item.kind === "unclassified" ? "" : item.kind} onChange={(event) => updateItem(item.id, { kind: event.target.value as ItemKind })} required>
+            <select className="input mt-2" value={classification === "unclassified" ? "" : classification} onChange={(event) => selectClassification(event.target.value as InboxClassification)} required>
               <option value="" disabled>Choose a type</option>
               {Object.entries(kindLabels).filter(([value]) => value !== "unclassified").map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+              <option value="book">Book</option>
             </select>
           </label>
           <label className="text-sm font-medium text-slate-700">
@@ -135,7 +140,7 @@ function InboxItem({ item }: { item: Item }) {
           </label>
         </div>
 
-        {item.kind === "project" ? (
+        {classification === "project" ? (
           <div className="mt-4 grid gap-4 sm:grid-cols-[1fr_11rem]">
             <label className="block text-sm font-medium text-slate-700">
               First action
@@ -150,7 +155,7 @@ function InboxItem({ item }: { item: Item }) {
           </div>
         ) : null}
 
-        {item.kind === "task" ? (
+        {classification === "task" ? (
           <label className="mt-4 block max-w-xs text-sm font-medium text-slate-700">
             Check-in date
             <input type="date" className="input mt-2" value={taskDate} onChange={(event) => setTaskDate(event.target.value)} />

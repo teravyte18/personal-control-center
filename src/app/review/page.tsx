@@ -74,7 +74,7 @@ export default function ReviewPage() {
             </div>
           ) : (
             <>
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 <TextPanel title={`Needs attention (${context.attention.length})`} entries={context.attention} />
                 <TextPanel title={`Actions opened (${context.openedActions.length})`} entries={context.openedActions} />
                 <TextPanel title={`Actions completed (${context.completedActions.length})`} entries={context.completedActions} />
@@ -82,18 +82,14 @@ export default function ReviewPage() {
                 <ItemPanel title={`Open tasks (${context.openTasks.length})`} items={context.openTasks} />
                 <ItemPanel title={`Tasks completed (${context.completedTasks.length})`} items={context.completedTasks} />
                 <ItemPanel title={`Thoughts added (${context.thoughts.length})`} items={context.thoughts} />
+                <TextPanel title={`Books started (${context.startedBooks.length})`} entries={context.startedBooks} />
+                <TextPanel title={`Books finished (${context.finishedBooks.length})`} entries={context.finishedBooks} />
               </div>
 
               <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
                 <div className="grid gap-5 md:grid-cols-2">
                   <Field label="Where are you doing this review?">
-                    <input
-                      className="input"
-                      value={location.value}
-                      onChange={(event) => location.setValue(event.target.value)}
-                      onBlur={location.flush}
-                      placeholder="Café, park, library, home…"
-                    />
+                    <input className="input" value={location.value} onChange={(event) => location.setValue(event.target.value)} onBlur={location.flush} placeholder="Café, park, library, home…" />
                   </Field>
                   <Field label="Photo of the place"><ReviewPhotoField photoName={draft.photoName} onChange={(value) => updateDraft("photoName", value)} /></Field>
                 </div>
@@ -125,21 +121,11 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
 }
 
 function TextPanel({ title, entries }: { title: string; entries: ReviewLine[] }) {
-  return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <h3 className="text-sm font-semibold text-slate-800">{title}</h3>
-      {entries.length === 0 ? <Empty /> : <ul className="mt-3 space-y-3">{entries.slice(0, 6).map((entry) => <li key={entry.id} className="text-sm leading-5 text-slate-700"><p className="font-medium">{entry.text}</p>{entry.detail ? <p className="mt-1 text-xs text-slate-500">{entry.detail}</p> : null}</li>)}</ul>}
-    </section>
-  );
+  return <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><h3 className="text-sm font-semibold text-slate-800">{title}</h3>{entries.length === 0 ? <Empty /> : <ul className="mt-3 space-y-3">{entries.slice(0, 6).map((entry) => <li key={entry.id} className="text-sm leading-5 text-slate-700"><p className="font-medium">{entry.text}</p>{entry.detail ? <p className="mt-1 text-xs text-slate-500">{entry.detail}</p> : null}</li>)}</ul>}</section>;
 }
 
 function ItemPanel({ title, items }: { title: string; items: Item[] }) {
-  return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <h3 className="text-sm font-semibold text-slate-800">{title}</h3>
-      {items.length === 0 ? <Empty /> : <ul className="mt-3 space-y-2">{items.slice(0, 8).map((item) => <li key={item.id} className="text-sm leading-5 text-slate-700"><p className="font-medium">{item.title}</p>{item.kind === "task" && item.checkInDate ? <p className="mt-1 text-xs text-slate-500">Check in {formatDate(item.checkInDate)}</p> : null}</li>)}</ul>}
-    </section>
-  );
+  return <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><h3 className="text-sm font-semibold text-slate-800">{title}</h3>{items.length === 0 ? <Empty /> : <ul className="mt-3 space-y-2">{items.slice(0, 8).map((item) => <li key={item.id} className="text-sm leading-5 text-slate-700"><p className="font-medium">{item.title}</p>{item.kind === "task" && item.checkInDate ? <p className="mt-1 text-xs text-slate-500">Check in {formatDate(item.checkInDate)}</p> : null}</li>)}</ul>}</section>;
 }
 
 function Empty() { return <p className="mt-3 text-xs leading-5 text-slate-400">Nothing recorded.</p>; }

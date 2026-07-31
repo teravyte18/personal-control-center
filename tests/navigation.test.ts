@@ -19,6 +19,6 @@ test("mobile quick access preserves a custom order", () => {
 test("mobile quick access removes duplicates and unavailable spaces", () => {
   assert.deepEqual(
     normalizeMobilePinnedDestinationIds(["thoughts", "thoughts", "archive", "library", "tasks"]),
-    ["thoughts", "tasks", "inbox", "projects"],
+    ["thoughts", "library", "tasks", "inbox"],
   );
 });

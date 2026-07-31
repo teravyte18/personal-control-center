@@ -102,8 +102,8 @@ export const destinations: Destination[] = [
     label: "Library",
     href: "/library",
     icon: "library",
-    description: "Books, reading progress, notes, and recommendations.",
-    available: false,
+    description: "Organise books, reading plans, ratings, and takeaways.",
+    available: true,
     pinnable: true,
   },
   {

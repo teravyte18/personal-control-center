@@ -31,7 +31,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       <div className="md:pl-24">
-        <main className="mx-auto min-h-screen max-w-6xl px-4 pb-32 pt-[calc(env(safe-area-inset-top)_+_1rem)] sm:px-6 md:px-8 md:pb-10 md:pt-8">
+        <main className="mx-auto min-h-screen max-w-6xl px-4 pb-32 pt-[calc(env(safe-area-inset-top)+1.5rem)] sm:px-6 md:px-8 md:pb-10 md:pt-8">
           <DataStatusBanner />
           <ReviewReminderController />
           {children}

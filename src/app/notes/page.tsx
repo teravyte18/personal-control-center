@@ -76,7 +76,7 @@ export default function NotesPage() {
     setCreating(false);
     setOpenNoteId(null);
     return true;
-  }, [deleteItem]);
+  }, [deleteItem, setCreating, setOpenNoteId]);
 
   useEffect(() => {
     if (!draggingId) return;

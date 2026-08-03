@@ -15,6 +15,7 @@ This directory contains current product/operations documentation plus a small am
 - [`book-library.md`](book-library.md) — Library model, ratings, views, covers, caching, and regression checks
 - [`google-calendar.md`](google-calendar.md) — one-way Calendar setup, projection rules, and troubleshooting
 - [`offline-capture.md`](offline-capture.md) — Capture-only offline boundary, device queue, service worker, and recovery tests
+- [`password-keychain.md`](password-keychain.md) — accepted encrypted-vault boundary, threat model, recovery rules, and staged implementation plan
 - [`notifications-observation.md`](notifications-observation.md) — open real-device Weekly Review notification observation tracked in issue #21
 
 ## Production and recovery

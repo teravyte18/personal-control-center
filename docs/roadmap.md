@@ -62,6 +62,8 @@ Current optional infrastructure backlog:
 
 Delivered dated or undated Tasks, fixed Saturday-to-Friday Review periods, generated project/task/thought context, review history, in-app reminders, best-effort browser notifications, configurable mobile quick access, and debounced long-form persistence.
 
+PR #42 later added expandable full Review-history reading plus optimized private photo delivery with browser caching and ETag revalidation.
+
 Real background notification behaviour remains a non-blocking observation in issue #21.
 
 ## Slice 5 — Google Calendar bridge
@@ -96,6 +98,8 @@ Delivered parallel/sequential actions, optional dates and first actions, resched
 
 Delivered direct and Inbox-to-Note creation, implicit first-line titles, compact two-column cards, full-screen editing, persistent phone-safe drag ordering, permanent deletion, and strict separation from Thoughts.
 
+PR #42 later removed the lossy Cancel flow, added debounced autosave and safe Markdown formatting/preview, and kept existing plain-text storage compatible.
+
 ## Slice 7 — Book Library
 
 **Status: complete in PR #32.**
@@ -116,6 +120,8 @@ PR #35 delivered removal of the overlapping mobile Spaces button and wasted top 
 
 PR #36 delivered Default plus Pokémon, Hades, Hades II, Hollow Knight, Silksong, Elden Ring, Cyberpunk 2077, The Witcher 3, and Stardew Valley themes; per-browser/device persistence before first paint; shared palette/surface/accent/line tokens; theme-specific centre Capture artwork on phone and desktop; an optimised artwork sprite plus vector Poké Ball; and preservation of layout, workflows, touch targets, and semantic status meaning.
 
+PR #42 later centralized semantic foreground and divider rules so overdue, Waiting, success, and error cards remain readable across themes.
+
 This UI slice is complete. Future visual work should be selected independently rather than treated as unfinished acceptance criteria.
 
 ## Current selection
@@ -123,6 +129,25 @@ This UI slice is complete. Future visual work should be selected independently r
 **No major product slice is selected.**
 
 The next decision should come from actual use of the current system. The following are candidates, not an ordered queue.
+
+### Encrypted Password Keychain
+
+**Feasibility decision: accepted future candidate; implementation not yet selected.**
+
+The accepted boundary is a client-encrypted personal secrets vault, not plaintext records in the normal personal-data snapshot and not a claim to replace a mature audited password manager. The complete threat model and staged design are recorded in [`password-keychain.md`](password-keychain.md).
+
+Candidate behaviour and constraints:
+
+- separate Keychain master password plus a separately stored recovery key;
+- random per-user vault key wrapped client-side with an Argon2id-derived key;
+- independently authenticated-encrypted records with all labels, usernames, URLs, notes, and secrets hidden from the server;
+- dedicated user-scoped tables and endpoints, excluded from Inbox, Notes, Review, Calendar, normal import/export, logs, and service-worker caching;
+- masked values, deliberate reveal/copy, automatic re-hiding, memory-only unlock state, and fixed inactivity/background locking;
+- backups contain ciphertext only and restore without requiring the server to know the master password;
+- explicit limitation that a compromised browser/device or malicious server code delivered at unlock can still capture decrypted data;
+- three security-focused implementation stages: encrypted foundation, locked phone-first UI, then hardening and independent review before important production use.
+
+Issue #41 tracks the design decision. Implementation should receive new stage-specific issues rather than expanding that evaluation issue into one large feature PR.
 
 ### Today/Home horizon
 

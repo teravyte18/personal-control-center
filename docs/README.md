@@ -11,6 +11,7 @@ This directory contains current product/operations documentation plus a small am
 
 ## Feature guides
 
+- [`notes.md`](notes.md) — Markdown subset, autosave rules, safe preview rendering, and regression checks
 - [`book-library.md`](book-library.md) — Library model, ratings, views, covers, caching, and regression checks
 - [`google-calendar.md`](google-calendar.md) — one-way Calendar setup, projection rules, and troubleshooting
 - [`offline-capture.md`](offline-capture.md) — Capture-only offline boundary, device queue, service worker, and recovery tests

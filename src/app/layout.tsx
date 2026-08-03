@@ -3,6 +3,7 @@ import { AppFrame } from "@/components/app-frame";
 import { ServiceWorkerRegistration } from "@/components/service-worker-registration";
 import { themeIds } from "@/lib/theme";
 import "./globals.css";
+import "./semantic-status.css";
 
 export const metadata: Metadata = {
   title: "Personal Control Center",

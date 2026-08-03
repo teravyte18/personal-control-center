@@ -1,0 +1,73 @@
+:root {
+  --semantic-danger-fg: #881337;
+  --semantic-danger-muted: #9f1239;
+  --semantic-danger-border: #fda4af;
+  --semantic-waiting-fg: #78350f;
+  --semantic-waiting-muted: #92400e;
+  --semantic-waiting-border: #f59e0b;
+  --semantic-success-fg: #064e3b;
+  --semantic-success-muted: #047857;
+  --semantic-success-border: #6ee7b7;
+}
+
+/*
+ * Theme palettes intentionally remap Tailwind's slate scale. Semantic cards keep
+ * their fixed pale backgrounds, so their foregrounds and dividers must be fixed
+ * as well rather than inheriting a dark theme's light slate values.
+ */
+:where(.bg-rose-50, .bg-red-50) {
+  color: var(--semantic-danger-fg);
+}
+
+:where(.bg-rose-50, .bg-red-50):where(.text-slate-950, .text-slate-900, .text-slate-800, .text-slate-700),
+:where(.bg-rose-50, .bg-red-50) :where(.text-slate-950, .text-slate-900, .text-slate-800, .text-slate-700) {
+  color: var(--semantic-danger-fg) !important;
+}
+
+:where(.bg-rose-50, .bg-red-50):where(.text-slate-600, .text-slate-500, .text-slate-400),
+:where(.bg-rose-50, .bg-red-50) :where(.text-slate-600, .text-slate-500, .text-slate-400) {
+  color: var(--semantic-danger-muted) !important;
+}
+
+:where(.bg-rose-50, .bg-red-50):where(.border-slate-100, .border-slate-200, .border-slate-300, .border-slate-400, .border-slate-500, .border-slate-600, .border-slate-700, .border-slate-800, .border-slate-900, .border-slate-950),
+:where(.bg-rose-50, .bg-red-50) :where(.border-slate-100, .border-slate-200, .border-slate-300, .border-slate-400, .border-slate-500, .border-slate-600, .border-slate-700, .border-slate-800, .border-slate-900, .border-slate-950) {
+  border-color: var(--semantic-danger-border) !important;
+}
+
+.bg-amber-50 {
+  color: var(--semantic-waiting-fg);
+}
+
+.bg-amber-50:where(.text-slate-950, .text-slate-900, .text-slate-800, .text-slate-700),
+.bg-amber-50 :where(.text-slate-950, .text-slate-900, .text-slate-800, .text-slate-700) {
+  color: var(--semantic-waiting-fg) !important;
+}
+
+.bg-amber-50:where(.text-slate-600, .text-slate-500, .text-slate-400),
+.bg-amber-50 :where(.text-slate-600, .text-slate-500, .text-slate-400) {
+  color: var(--semantic-waiting-muted) !important;
+}
+
+.bg-amber-50:where(.border-slate-100, .border-slate-200, .border-slate-300, .border-slate-400, .border-slate-500, .border-slate-600, .border-slate-700, .border-slate-800, .border-slate-900, .border-slate-950),
+.bg-amber-50 :where(.border-slate-100, .border-slate-200, .border-slate-300, .border-slate-400, .border-slate-500, .border-slate-600, .border-slate-700, .border-slate-800, .border-slate-900, .border-slate-950) {
+  border-color: var(--semantic-waiting-border) !important;
+}
+
+.bg-emerald-50 {
+  color: var(--semantic-success-fg);
+}
+
+.bg-emerald-50:where(.text-slate-950, .text-slate-900, .text-slate-800, .text-slate-700),
+.bg-emerald-50 :where(.text-slate-950, .text-slate-900, .text-slate-800, .text-slate-700) {
+  color: var(--semantic-success-fg) !important;
+}
+
+.bg-emerald-50:where(.text-slate-600, .text-slate-500, .text-slate-400),
+.bg-emerald-50 :where(.text-slate-600, .text-slate-500, .text-slate-400) {
+  color: var(--semantic-success-muted) !important;
+}
+
+.bg-emerald-50:where(.border-slate-100, .border-slate-200, .border-slate-300, .border-slate-400, .border-slate-500, .border-slate-600, .border-slate-700, .border-slate-800, .border-slate-900, .border-slate-950),
+.bg-emerald-50 :where(.border-slate-100, .border-slate-200, .border-slate-300, .border-slate-400, .border-slate-500, .border-slate-600, .border-slate-700, .border-slate-800, .border-slate-900, .border-slate-950) {
+  border-color: var(--semantic-success-border) !important;
+}

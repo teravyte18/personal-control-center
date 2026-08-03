@@ -28,9 +28,12 @@ Every file operation requires an authenticated session, resolves only inside the
 
 - The review snapshot stores the UUID in the existing `photoName` field.
 - Older filename-only values remain readable as legacy metadata but do not point to a stored file.
-- Reads use `Cache-Control: private, no-store` because these are personal journal images rather than dense repeated card assets.
 
 Selecting a photo uploads it immediately. The draft receives the UUID only after success. Replacing an unfinished photo stores the new file first and then removes the previous draft file. Completing a review moves the reference into history while leaving the file in place.
+
+The original upload remains unchanged for backup and restore. Authenticated history delivery rotates according to metadata, fits inside 1280 × 1280 without enlargement, encodes WebP at quality 84, falls back to the original when optimisation fails, and uses private one-day caching, a seven-day stale-while-revalidate window, and ETag revalidation.
+
+Display variants are generated in memory rather than stored as a second persistent file set. A matching ETag is handled before image conversion, so normal revalidation does not repeat the optimisation work.
 
 ## Library book covers
 

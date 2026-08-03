@@ -141,8 +141,18 @@ test("authentication, same-user sharing, cross-user isolation, and review photos
     headers: { Cookie: ownerCookie },
   });
   assert.equal(ownerPhotoResponse.status, 200);
-  assert.equal(ownerPhotoResponse.headers.get("content-type"), "image/png");
+  assert.equal(ownerPhotoResponse.headers.get("content-type"), "image/webp");
+  assert.match(ownerPhotoResponse.headers.get("cache-control") ?? "", /private/);
+  assert.match(ownerPhotoResponse.headers.get("cache-control") ?? "", /max-age=86400/);
+  const ownerPhotoEtag = ownerPhotoResponse.headers.get("etag");
+  assert.ok(ownerPhotoEtag);
   assert.ok((await ownerPhotoResponse.arrayBuffer()).byteLength > 0);
+
+  const cachedOwnerPhotoResponse = await fetch(`${baseUrl}/api/review-photos/${ownerPhotoId}`, {
+    headers: { Cookie: ownerCookie, "If-None-Match": ownerPhotoEtag },
+  });
+  assert.equal(cachedOwnerPhotoResponse.status, 304);
+  assert.equal(cachedOwnerPhotoResponse.headers.get("etag"), ownerPhotoEtag);
 
   const isolatedPhoto = await request(`/api/review-photos/${ownerPhotoId}`, {}, secondUserEmail);
   assert.equal(isolatedPhoto.response.status, 404);

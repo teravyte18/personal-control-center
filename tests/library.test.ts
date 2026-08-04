@@ -35,13 +35,13 @@ test("serializes and normalizes book details without confusing normal notes", ()
     author: "Author",
     readingState: "finished" as const,
     finishDate: "2026-07-30",
-    ratings: { enjoyment: 4.5, impact: 6, execution: 0 },
+    ratings: { enjoyment: 9.5, impact: 11, execution: 0 },
   };
   const description = serializeBookDetails(details);
   const parsed = parseBookDetails(description);
   assert.ok(parsed);
   assert.equal(parsed.author, "Author");
-  assert.equal(parsed.ratings.enjoyment, 4.5);
+  assert.equal(parsed.ratings.enjoyment, 9.5);
   assert.equal(parsed.ratings.impact, undefined);
   assert.equal(parsed.ratings.execution, 0);
   assert.equal(parseBookDetails("Normal note body"), null);
@@ -49,14 +49,30 @@ test("serializes and normalizes book details without confusing normal notes", ()
   assert.equal(isBookItem(item("note", "Normal note body")), false);
 });
 
+test("migrates legacy five-point ratings to the ten-point scale", () => {
+  const legacyDescription = `__pcc_book_v1__\n${JSON.stringify({
+    ...createBookDetails(),
+    ratings: { enjoyment: 4.5, impact: 2, execution: 0, overallOverride: 5 },
+  })}`;
+  const migrated = parseBookDetails(legacyDescription);
+  assert.ok(migrated);
+  assert.deepEqual(migrated.ratings, {
+    enjoyment: 9,
+    impact: 4,
+    execution: 0,
+    overallOverride: 10,
+  });
+  assert.match(serializeBookDetails(migrated), /^__pcc_book_v2__\n/);
+});
+
 test("keeps zero ratings distinct from unrated and honors an overall override", () => {
   const details = createBookDetails();
   assert.equal(getBookScore(details), undefined);
   details.ratings.enjoyment = 0;
-  details.ratings.impact = 4;
-  assert.equal(getBookScore(details), 2);
-  details.ratings.overallOverride = 5;
-  assert.equal(getBookScore(details), 5);
+  details.ratings.impact = 8;
+  assert.equal(getBookScore(details), 4);
+  details.ratings.overallOverride = 10;
+  assert.equal(getBookScore(details), 10);
 });
 
 test("builds independent generated shelves", () => {

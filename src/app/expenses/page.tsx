@@ -84,6 +84,7 @@ export default function ExpensesPage() {
   const today = localDateOnly();
   const [view, setView] = useState<"month" | "check">("month");
   const [month, setMonth] = useState(today.slice(0, 7));
+  const [entryOpen, setEntryOpen] = useState(false);
 
   return (
     <section className="mx-auto max-w-4xl">
@@ -96,6 +97,15 @@ export default function ExpensesPage() {
           </p>
           <h2 className="mt-1 text-3xl font-semibold tracking-tight">Expenses</h2>
         </div>
+        <button
+          type="button"
+          onClick={() => setEntryOpen((current) => !current)}
+          aria-expanded={entryOpen}
+          aria-label={entryOpen ? "Close transaction form" : "Add transaction"}
+          className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-xl bg-slate-950 px-3 text-2xl font-light leading-none text-white active:scale-[0.98]"
+        >
+          {entryOpen ? "−" : "+"}
+        </button>
       </div>
 
       {error ? (
@@ -104,7 +114,14 @@ export default function ExpensesPage() {
         </div>
       ) : null}
 
-      <QuickEntry onAdd={addTransaction} disabled={!loaded} today={today} />
+      {entryOpen ? (
+        <QuickEntry
+          onAdd={addTransaction}
+          disabled={!loaded}
+          today={today}
+          onAdded={() => setEntryOpen(false)}
+        />
+      ) : null}
 
       <div className="mt-5 grid grid-cols-2 rounded-2xl border border-slate-200 bg-white p-1 shadow-sm">
         <button
@@ -154,6 +171,7 @@ function QuickEntry({
   onAdd,
   disabled,
   today,
+  onAdded,
 }: {
   onAdd: (input: {
     type: ExpenseTransactionType;
@@ -164,6 +182,7 @@ function QuickEntry({
   }) => ExpenseTransaction | null;
   disabled: boolean;
   today: string;
+  onAdded: () => void;
 }) {
   const [type, setType] = useState<ExpenseTransactionType>("expense");
   const [amount, setAmount] = useState("");
@@ -200,6 +219,7 @@ function QuickEntry({
     setAmount("");
     setDescription("");
     setFormError("");
+    onAdded();
   }
 
   return (
@@ -217,7 +237,7 @@ function QuickEntry({
         ))}
       </div>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
         <label>
           <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Amount</span>
           <div className="mt-1 flex min-h-12 items-center rounded-xl border border-slate-300 bg-white px-3 focus-within:border-slate-950">
@@ -553,7 +573,7 @@ function WeeklyCheck({
           </button>
         </div>
         <p className="mt-3 text-sm leading-6 text-slate-500">
-          Compare this period against your bank activity. Add anything missing above, then mark the period checked.
+          Compare this period against your bank activity. Use + to add anything missing, then mark the period checked.
         </p>
       </div>
 

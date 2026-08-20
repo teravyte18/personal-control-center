@@ -280,7 +280,19 @@ export function calculateExpenseMonth(
   };
 }
 
-export function nextExpenseDate(date: string) {
+function localDateOnly(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+export function nextExpenseDate(date: string, now = new Date()) {
+  // Once a reconciliation date is in the past, include that boundary date once
+  // more on the next check. This prevents transactions made later on the day a
+  // check was completed from falling permanently between weekly checks.
+  if (date < localDateOnly(now)) return date;
+
   const value = new Date(`${date}T00:00:00.000Z`);
   value.setUTCDate(value.getUTCDate() + 1);
   return value.toISOString().slice(0, 10);

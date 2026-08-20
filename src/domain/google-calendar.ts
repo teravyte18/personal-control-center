@@ -111,5 +111,13 @@ export function buildGoogleCalendarEventBody(projection: GoogleCalendarProjectio
 }
 
 export function mutationAffectsGoogleCalendar(mutation: MutationLike) {
-  return !["update-review-draft", "complete-review"].includes(mutation.type);
+  return ![
+    "update-review-draft",
+    "complete-review",
+    "add-expense-transaction",
+    "update-expense-transaction",
+    "delete-expense-transaction",
+    "update-expense-settings",
+    "set-expense-reconciled-through",
+  ].includes(mutation.type);
 }

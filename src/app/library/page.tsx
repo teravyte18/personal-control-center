@@ -62,7 +62,7 @@ const shelves: { id: BookShelfId; label: string }[] = [
   { id: "paused", label: "Paused / abandoned" },
 ];
 
-const ratingValues = Array.from({ length: 11 }, (_, index) => index / 2);
+const ratingValues = Array.from({ length: 21 }, (_, index) => index / 2);
 
 export default function LibraryPage() {
   const { items, addItem, updateItem, deleteItem } = usePersonalData();

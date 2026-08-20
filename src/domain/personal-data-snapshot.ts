@@ -253,7 +253,8 @@ function normalizeProjectActionUpdates(value: unknown): ProjectActionUpdates | n
 
 function normalizeExpenseSettingsMutation(value: unknown): ExpenseSettings | null {
   if (!isRecord(value) || value.currency !== "EUR" || !isRecord(value.targets)) return null;
-  const values = expenseBucketIds.map((bucket) => value.targets[bucket]);
+  const targetRecord = value.targets;
+  const values = expenseBucketIds.map((bucket) => targetRecord[bucket]);
   if (values.some((candidate) => typeof candidate !== "number"
     || !Number.isFinite(candidate)
     || candidate < 0

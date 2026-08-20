@@ -26,7 +26,7 @@ Immediate logging is the primary habit, not a requirement for perfect real-time 
 
 The bank transaction history is the checklist. PCC shows its own entries for the unchecked period, grouped by transaction date. The user compares the two lists, adds missing transactions through Quick Add, corrects or deletes entries when needed, and then marks the period checked.
 
-`reconciledThrough` is persisted in the user snapshot. The next check starts on the following date. Before the first reconciliation, the view defaults to the most recent seven calendar days rather than presenting an unbounded historical period.
+`reconciledThrough` is persisted in the user snapshot. Immediately after a check the period is caught up through that date. On a later day, the next check deliberately includes the previous boundary date once more before moving forward. This one-day overlap prevents a transaction made later on the day of the previous check from falling permanently between reconciliation periods. Before the first reconciliation, the view defaults to the most recent seven calendar days rather than presenting an unbounded historical period.
 
 Reconciliation is intentionally manual in V1. There is no claim that PCC knows which bank transactions are missing.
 
@@ -135,6 +135,7 @@ When Expenses changes, verify:
 - 50/30/20 calculations keep Future You separate from ordinary spending;
 - allocation percentages must total 100%;
 - add/update/delete and reconciliation mutations survive normalization and export;
+- later weekly checks overlap the previous boundary date so same-day late transactions are not skipped;
 - expense-only mutations do not trigger Google Calendar reconciliation;
 - Expenses remains pinnable without changing the four default mobile destinations;
 - Quick Capture remains the only advertised offline workflow.

@@ -192,7 +192,10 @@ export function normalizeExpenseSettings(value: unknown): ExpenseSettings {
     return { ...defaultExpenseSettings, targets: { ...defaultExpenseSettings.targets } };
   }
 
-  const targets = Object.fromEntries(expenseBucketIds.map((bucket) => [bucket, value.targets[bucket]])) as Record<ExpenseBucketId, unknown>;
+  const rawTargets = value.targets;
+  const targets = Object.fromEntries(
+    expenseBucketIds.map((bucket) => [bucket, rawTargets[bucket]]),
+  ) as Record<ExpenseBucketId, unknown>;
   if (expenseBucketIds.some((bucket) => typeof targets[bucket] !== "number"
     || !Number.isFinite(targets[bucket] as number)
     || (targets[bucket] as number) < 0

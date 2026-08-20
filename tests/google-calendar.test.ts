@@ -90,9 +90,14 @@ test("builds an all-day Google event with an exclusive next-day end", () => {
   });
 });
 
-test("ignores review-only mutations but reacts to personal item changes", () => {
+test("ignores review and expense mutations but reacts to Calendar-backed item changes", () => {
   assert.equal(mutationAffectsGoogleCalendar({ type: "update-review-draft" }), false);
   assert.equal(mutationAffectsGoogleCalendar({ type: "complete-review" }), false);
+  assert.equal(mutationAffectsGoogleCalendar({ type: "add-expense-transaction" }), false);
+  assert.equal(mutationAffectsGoogleCalendar({ type: "update-expense-transaction" }), false);
+  assert.equal(mutationAffectsGoogleCalendar({ type: "delete-expense-transaction" }), false);
+  assert.equal(mutationAffectsGoogleCalendar({ type: "update-expense-settings" }), false);
+  assert.equal(mutationAffectsGoogleCalendar({ type: "set-expense-reconciled-through" }), false);
   assert.equal(mutationAffectsGoogleCalendar({ type: "update-item" }), true);
   assert.equal(mutationAffectsGoogleCalendar({ type: "complete-project-action" }), true);
 });

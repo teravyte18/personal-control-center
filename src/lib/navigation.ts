@@ -9,6 +9,7 @@ export type IconName =
   | "spaces"
   | "archive"
   | "library"
+  | "expenses"
   | "trips"
   | "fitness"
   | "habits"
@@ -103,6 +104,15 @@ export const destinations: Destination[] = [
     href: "/library",
     icon: "library",
     description: "Organise books, reading plans, ratings, and takeaways.",
+    available: true,
+    pinnable: true,
+  },
+  {
+    id: "expenses",
+    label: "Expenses",
+    href: "/expenses",
+    icon: "expenses",
+    description: "Capture spending, review monthly allocations, and reconcile missed transactions.",
     available: true,
     pinnable: true,
   },

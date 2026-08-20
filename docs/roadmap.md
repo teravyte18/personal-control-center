@@ -16,14 +16,14 @@ graph LR
     EXT["Workflow extensions<br/>projects and Notes<br/>✅ PR #29, #30"]
     S7["Slice 7<br/>Book Library<br/>✅ PR #32"]
     S8["Slice 8<br/>UI and themes<br/>✅ PR #34, #35, #36"]
-    NEXT["Next product slice<br/>Not selected"]
+    S9["Slice 9<br/>Personal Expenses<br/>🚧 in progress"]
 
-    S1 --> S2 --> S3 --> HARDEN --> S4 --> S5 --> S6 --> EXT --> S7 --> S8 --> NEXT
+    S1 --> S2 --> S3 --> HARDEN --> S4 --> S5 --> S6 --> EXT --> S7 --> S8 --> S9
 
     classDef done fill:#ecfdf5,stroke:#10b981,color:#065f46;
     classDef pending fill:#f8fafc,stroke:#94a3b8,color:#334155;
     class S1,S2,S3,HARDEN,S4,S5,S6,EXT,S7,S8 done;
-    class NEXT pending;
+    class S9 pending;
 ```
 
 ## Slice 1 — Phone-first foundation
@@ -124,11 +124,35 @@ PR #42 later centralized semantic foreground and divider rules so overdue, Waiti
 
 This UI slice is complete. Future visual work should be selected independently rather than treated as unfinished acceptance criteria.
 
+## Slice 9 — Personal Expenses
+
+**Status: selected and implementation in progress on `agent/personal-expenses`.**
+
+The feature is based on the useful behavior of the earlier spreadsheet budget workflow rather than a literal spreadsheet recreation. The primary goal is to make manual logging easy enough to happen immediately after spending while preserving a weekly recovery path for transactions that were missed.
+
+Accepted V1 boundary:
+
+- an available and pinnable Expenses space with Quick Add always visible;
+- expense and income records using amount, category, date, and optional description;
+- date defaults to today and repeated entry keeps useful context instead of resetting every field;
+- detailed categories map automatically to Essentials, Fun, or Future You;
+- configurable high-level allocation targets, defaulting to 50/30/20 and required to total 100%;
+- a monthly view with income, ordinary spending, Future You allocation, remaining money, bucket target/actual progress, category totals, and editable transactions;
+- Future You remains part of allocation mathematics but is visually separate from consumption spending;
+- a Weekly check view that compares PCC's chronological entries against the user's bank history and stores a durable checked-through date;
+- manual add/edit/delete during reconciliation rather than automated transaction matching;
+- user-scoped snapshot persistence, normal import/export/backup compatibility, and no unnecessary Calendar reconciliation;
+- EUR and online-only entry for V1.
+
+The detailed behavior and current non-goals are recorded in [`expenses.md`](expenses.md).
+
+Before this slice can be marked complete it still requires normal CI/build/production-stack validation and real phone testing of both immediate entry and the weekly-check flow.
+
 ## Current selection
 
-**No major product slice is selected.**
+**Personal Expenses is the selected major product slice.**
 
-The next decision should come from actual use of the current system. The following are candidates, not an ordered queue.
+Other ideas remain candidates rather than an ordered queue.
 
 ### Encrypted Password Keychain
 

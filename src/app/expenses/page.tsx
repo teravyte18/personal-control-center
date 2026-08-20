@@ -25,6 +25,12 @@ function localDateOnly(date = new Date()) {
   return `${year}-${month}-${day}`;
 }
 
+function shiftLocalDate(date: string, delta: number) {
+  const value = new Date(`${date}T12:00:00`);
+  value.setDate(value.getDate() + delta);
+  return localDateOnly(value);
+}
+
 function shiftMonth(month: string, delta: number) {
   const [year, monthNumber] = month.split("-").map(Number);
   const value = new Date(year, monthNumber - 1 + delta, 1, 12);
@@ -182,6 +188,10 @@ function QuickEntry({
       setFormError("Choose a category.");
       return;
     }
+    if (!occurredOn) {
+      setFormError("Choose a transaction date.");
+      return;
+    }
     const transaction = onAdd({ type, amountCents, categoryId, description, occurredOn });
     if (!transaction) {
       setFormError("This transaction could not be added.");
@@ -263,7 +273,9 @@ function QuickEntry({
         </label>
       </div>
 
-      {formError ? <p className="mt-3 text-sm text-red-700">{formError}</p> : null}
+      {formError ? (
+        <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-800">{formError}</p>
+      ) : null}
       <button
         type="submit"
         disabled={disabled}
@@ -288,9 +300,9 @@ function MonthView({
   onMonthChange: (month: string) => void;
   transactions: ExpenseTransaction[];
   settings: ExpenseSettings;
-  onUpdateTransaction: (id: string, updates: ExpenseTransactionUpdates) => void;
+  onUpdateTransaction: (id: string, updates: ExpenseTransactionUpdates) => boolean;
   onDeleteTransaction: (id: string) => void;
-  onUpdateSettings: (settings: ExpenseSettings) => void;
+  onUpdateSettings: (settings: ExpenseSettings) => boolean;
 }) {
   const monthTransactions = useMemo(() => transactionsForMonth(transactions, month), [transactions, month]);
   const summary = useMemo(() => calculateExpenseMonth(transactions, settings, month), [transactions, settings, month]);
@@ -315,7 +327,7 @@ function MonthView({
         <Metric label="Income" value={formatMoney(summary.incomeCents, settings.currency)} />
         <Metric label="Spent" value={formatMoney(summary.spendingCents, settings.currency)} />
         <Metric label="Future You" value={formatMoney(summary.futureCents, settings.currency)} />
-        <Metric label="Remaining" value={formatMoney(summary.remainingCents, settings.currency)} negative={summary.remainingCents < 0} />
+        <Metric label="Remaining" value={formatMoney(summary.remainingCents, settings.currency)} />
       </div>
 
       <div className="mt-4 grid gap-3 lg:grid-cols-3">
@@ -377,11 +389,11 @@ function MonthView({
   );
 }
 
-function Metric({ label, value, negative = false }: { label: string; value: string; negative?: boolean }) {
+function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
-      <p className={`mt-2 text-xl font-semibold ${negative ? "text-red-700" : "text-slate-950"}`}>{value}</p>
+      <p className="mt-2 text-xl font-semibold text-slate-950">{value}</p>
     </div>
   );
 }
@@ -401,7 +413,9 @@ function BucketProgress({
   targetPercent: number;
   currency: string;
 }) {
-  const progress = targetCents > 0 ? Math.min(100, Math.round(actualCents / targetCents * 100)) : 0;
+  const progress = targetCents > 0
+    ? Math.min(100, Math.round(actualCents / targetCents * 100))
+    : actualCents > 0 ? 100 : 0;
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex items-start justify-between gap-3">
@@ -409,7 +423,7 @@ function BucketProgress({
           <p className="font-semibold">{expenseBucketLabels[bucket]}</p>
           <p className="mt-1 text-xs text-slate-500">{targetPercent}% target</p>
         </div>
-        <span className={`text-xs font-semibold ${remainingCents < 0 ? "text-red-700" : "text-slate-500"}`}>
+        <span className="text-xs font-semibold text-slate-500">
           {remainingCents >= 0 ? `${formatMoney(remainingCents, currency)} left` : `${formatMoney(Math.abs(remainingCents), currency)} over`}
         </span>
       </div>
@@ -424,12 +438,13 @@ function BucketProgress({
   );
 }
 
-function BudgetTargets({ settings, onSave }: { settings: ExpenseSettings; onSave: (settings: ExpenseSettings) => void }) {
+function BudgetTargets({ settings, onSave }: { settings: ExpenseSettings; onSave: (settings: ExpenseSettings) => boolean }) {
   const [targets, setTargets] = useState(settings.targets);
   const [open, setOpen] = useState(false);
 
   useEffect(() => setTargets(settings.targets), [settings]);
   const total = expenseBucketIds.reduce((sum, bucket) => sum + targets[bucket], 0);
+  const targetsValid = Math.abs(total - 100) < 0.001;
 
   return (
     <div className="mt-4 rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -459,10 +474,10 @@ function BudgetTargets({ settings, onSave }: { settings: ExpenseSettings; onSave
             ))}
           </div>
           <div className="mt-3 flex items-center justify-between gap-3">
-            <span className={`text-xs ${Math.abs(total - 100) < 0.001 ? "text-slate-500" : "text-red-700"}`}>Total: {total}%</span>
+            <span className={targetsValid ? "text-xs text-slate-500" : "rounded-lg bg-red-50 px-2 py-1 text-xs text-red-800"}>Total: {total}%</span>
             <button
               type="button"
-              disabled={Math.abs(total - 100) >= 0.001}
+              disabled={!targetsValid}
               onClick={() => onSave({ ...settings, targets })}
               className="min-h-10 rounded-xl bg-slate-950 px-4 text-xs font-semibold text-white disabled:opacity-30"
             >
@@ -488,14 +503,17 @@ function WeeklyCheck({
   settings: ExpenseSettings;
   reconciledThrough: string;
   today: string;
-  onUpdateTransaction: (id: string, updates: ExpenseTransactionUpdates) => void;
+  onUpdateTransaction: (id: string, updates: ExpenseTransactionUpdates) => boolean;
   onDeleteTransaction: (id: string) => void;
-  onSetReconciledThrough: (date: string) => void;
+  onSetReconciledThrough: (date: string) => boolean;
 }) {
-  const initialStart = localDateOnly(new Date(Date.now() - 6 * 86_400_000));
+  const initialStart = shiftLocalDate(today, -6);
   const start = reconciledThrough ? nextExpenseDate(reconciledThrough) : initialStart;
   const uncheckedDays = daysBetweenInclusive(start, today);
-  const uncheckedTransactions = transactions.filter((transaction) => transaction.occurredOn >= start && transaction.occurredOn <= today);
+  const uncheckedTransactions = useMemo(
+    () => transactions.filter((transaction) => transaction.occurredOn >= start && transaction.occurredOn <= today),
+    [transactions, start, today],
+  );
   const groups = useMemo(() => {
     const grouped = new Map<string, ExpenseTransaction[]>();
     for (const transaction of uncheckedTransactions) {
@@ -575,7 +593,7 @@ function TransactionList({
   transactions: ExpenseTransaction[];
   settings: ExpenseSettings;
   showDate?: boolean;
-  onUpdate: (id: string, updates: ExpenseTransactionUpdates) => void;
+  onUpdate: (id: string, updates: ExpenseTransactionUpdates) => boolean;
   onDelete: (id: string) => void;
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -592,8 +610,9 @@ function TransactionList({
           transaction={transaction}
           onCancel={() => setEditingId(null)}
           onSave={(updates) => {
-            onUpdate(transaction.id, updates);
-            setEditingId(null);
+            const saved = onUpdate(transaction.id, updates);
+            if (saved) setEditingId(null);
+            return saved;
           }}
           onDelete={() => {
             if (!window.confirm("Delete this transaction? This cannot be undone.")) return;
@@ -616,7 +635,7 @@ function TransactionList({
               {showDate ? ` · ${formatDate(transaction.occurredOn)}` : ""}
             </p>
           </div>
-          <span className={`shrink-0 text-sm font-semibold ${transaction.type === "income" ? "text-emerald-700" : "text-slate-950"}`}>
+          <span className="shrink-0 text-sm font-semibold text-slate-950">
             {transaction.type === "income" ? "+" : "−"}{formatMoney(transaction.amountCents, settings.currency)}
           </span>
         </button>
@@ -634,7 +653,7 @@ function TransactionEditor({
 }: {
   transaction: ExpenseTransaction;
   onCancel: () => void;
-  onSave: (updates: ExpenseTransactionUpdates) => void;
+  onSave: (updates: ExpenseTransactionUpdates) => boolean;
   onDelete: () => void;
   className?: string;
 }) {
@@ -644,6 +663,7 @@ function TransactionEditor({
   const [description, setDescription] = useState(transaction.description);
   const [occurredOn, setOccurredOn] = useState(transaction.occurredOn);
   const [formError, setFormError] = useState("");
+  const today = localDateOnly();
 
   function changeType(nextType: ExpenseTransactionType) {
     setType(nextType);
@@ -652,11 +672,16 @@ function TransactionEditor({
 
   function save() {
     const amountCents = parseAmountToCents(amount);
-    if (!amountCents || !categoryId) {
-      setFormError("Enter a valid amount and category.");
+    if (!amountCents || !categoryId || !occurredOn) {
+      setFormError("Enter a valid amount, category, and date.");
       return;
     }
-    onSave({ type, amountCents, categoryId, description, occurredOn });
+    const saved = onSave({ type, amountCents, categoryId, description, occurredOn });
+    if (!saved) {
+      setFormError("This transaction could not be saved.");
+      return;
+    }
+    setFormError("");
   }
 
   return (
@@ -673,14 +698,16 @@ function TransactionEditor({
         </select>
         <input className="input" value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Description" aria-label="Transaction description" />
         <div className="flex min-h-11 w-full min-w-0 rounded-xl border border-slate-300 bg-white px-3 py-2">
-          <input type="date" value={occurredOn} onChange={(event) => setOccurredOn(event.target.value)} className="block w-full min-w-0 border-0 bg-transparent p-0 text-base outline-none" aria-label="Transaction date" />
+          <input type="date" value={occurredOn} max={today} onChange={(event) => setOccurredOn(event.target.value)} className="block w-full min-w-0 border-0 bg-transparent p-0 text-base outline-none" aria-label="Transaction date" />
         </div>
       </div>
-      {formError ? <p className="mt-2 text-xs text-red-700">{formError}</p> : null}
+      {formError ? (
+        <p className="mt-2 rounded-xl bg-red-50 px-3 py-2 text-xs text-red-800">{formError}</p>
+      ) : null}
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <button type="button" onClick={save} className="min-h-10 rounded-xl bg-slate-950 px-4 text-xs font-semibold text-white">Save</button>
         <button type="button" onClick={onCancel} className="min-h-10 rounded-xl border border-slate-300 px-4 text-xs font-semibold text-slate-600">Cancel</button>
-        <button type="button" onClick={onDelete} className="ml-auto min-h-10 rounded-xl px-3 text-xs font-semibold text-red-700">Delete</button>
+        <button type="button" onClick={onDelete} className="ml-auto min-h-10 rounded-xl bg-red-50 px-3 text-xs font-semibold text-red-800">Delete</button>
       </div>
     </div>
   );

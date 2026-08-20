@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   calculateExpenseMonth,
   defaultExpenseSettings,
+  nextExpenseDate,
   normalizeExpenseTransaction,
   parseAmountToCents,
   type ExpenseTransaction,
@@ -57,6 +58,14 @@ test("monthly summary keeps Future You separate from ordinary spending", () => {
   assert.equal(summary.buckets.essentials.targetCents, 100_000);
   assert.equal(summary.buckets.fun.targetCents, 60_000);
   assert.equal(summary.buckets.future.targetCents, 40_000);
+});
+
+test("weekly reconciliation overlaps an older boundary date to avoid same-day blind spots", () => {
+  const duringCheck = new Date(2026, 7, 20, 18, 0, 0);
+  const nextDay = new Date(2026, 7, 21, 9, 0, 0);
+
+  assert.equal(nextExpenseDate("2026-08-20", duringCheck), "2026-08-21");
+  assert.equal(nextExpenseDate("2026-08-20", nextDay), "2026-08-20");
 });
 
 test("older snapshots gain empty expense state and default targets", () => {

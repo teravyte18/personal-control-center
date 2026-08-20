@@ -4,16 +4,13 @@ import {
   calculateExpenseMonth,
   defaultExpenseSettings,
   nextExpenseDate,
+  normalizeExpenseReconciliation,
+  normalizeExpenseSettings,
   normalizeExpenseTransaction,
+  normalizeExpenseTransactionUpdates,
   parseAmountToCents,
   type ExpenseTransaction,
 } from "../src/domain/expenses.ts";
-import {
-  applyPersonalDataMutation,
-  hasPersonalData,
-  normalizePersonalDataMutation,
-  normalizePersonalDataSnapshot,
-} from "../src/domain/personal-data-snapshot.ts";
 
 function transaction(overrides: Partial<ExpenseTransaction> = {}): ExpenseTransaction {
   return {
@@ -42,6 +39,23 @@ test("transactions require a category matching their type", () => {
   assert.ok(normalizeExpenseTransaction(transaction({ type: "income", categoryId: "paycheck" })));
 });
 
+test("transaction updates validate amount, category, and date", () => {
+  assert.ok(normalizeExpenseTransactionUpdates({
+    type: "expense",
+    amountCents: 450,
+    categoryId: "going-out",
+    description: "Beer",
+    occurredOn: "2026-08-19",
+  }));
+  assert.equal(normalizeExpenseTransactionUpdates({
+    type: "income",
+    amountCents: 450,
+    categoryId: "going-out",
+    description: "Wrong type",
+    occurredOn: "2026-08-19",
+  }), null);
+});
+
 test("monthly summary keeps Future You separate from ordinary spending", () => {
   const transactions = [
     transaction({ id: "income", type: "income", categoryId: "paycheck", amountCents: 200_000 }),
@@ -61,85 +75,37 @@ test("monthly summary keeps Future You separate from ordinary spending", () => {
   assert.equal(summary.buckets.future.targetCents, 40_000);
 });
 
+test("budget targets default safely and custom targets must sum to one hundred percent", () => {
+  assert.deepEqual(
+    normalizeExpenseSettings(undefined),
+    defaultExpenseSettings,
+  );
+  assert.deepEqual(
+    normalizeExpenseSettings({ currency: "EUR", targets: { essentials: 45, fun: 30, future: 25 } }),
+    { currency: "EUR", targets: { essentials: 45, fun: 30, future: 25 } },
+  );
+  assert.deepEqual(
+    normalizeExpenseSettings({ currency: "EUR", targets: { essentials: 50, fun: 40, future: 20 } }),
+    defaultExpenseSettings,
+  );
+});
+
+test("reconciliation accepts an empty or valid date and rejects malformed values", () => {
+  assert.deepEqual(normalizeExpenseReconciliation(undefined), { reconciledThrough: "" });
+  assert.deepEqual(
+    normalizeExpenseReconciliation({ reconciledThrough: "2026-08-20" }),
+    { reconciledThrough: "2026-08-20" },
+  );
+  assert.deepEqual(
+    normalizeExpenseReconciliation({ reconciledThrough: "not-a-date" }),
+    { reconciledThrough: "" },
+  );
+});
+
 test("weekly reconciliation overlaps an older boundary date to avoid same-day blind spots", () => {
   const duringCheck = new Date(2026, 7, 20, 18, 0, 0);
   const nextDay = new Date(2026, 7, 21, 9, 0, 0);
 
   assert.equal(nextExpenseDate("2026-08-20", duringCheck), "2026-08-21");
   assert.equal(nextExpenseDate("2026-08-20", nextDay), "2026-08-20");
-});
-
-test("older snapshots gain empty expense state and default targets", () => {
-  const snapshot = normalizePersonalDataSnapshot({ items: [], draft: {}, history: [] });
-  assert.deepEqual(snapshot.expenseTransactions, []);
-  assert.deepEqual(snapshot.expenseSettings.targets, { essentials: 50, fun: 30, future: 20 });
-  assert.equal(snapshot.expenseReconciliation.reconciledThrough, "");
-  assert.equal(hasPersonalData(snapshot), false);
-});
-
-test("expense history and finance preferences make a snapshot non-empty", () => {
-  const withTransaction = normalizePersonalDataSnapshot({
-    expenseTransactions: [transaction({ id: "expense-only" })],
-  });
-  assert.equal(hasPersonalData(withTransaction), true);
-
-  const withTargets = normalizePersonalDataSnapshot({
-    expenseSettings: { currency: "EUR", targets: { essentials: 45, fun: 30, future: 25 } },
-  });
-  assert.equal(hasPersonalData(withTargets), true);
-
-  const withReconciliation = normalizePersonalDataSnapshot({
-    expenseReconciliation: { reconciledThrough: "2026-08-20" },
-  });
-  assert.equal(hasPersonalData(withReconciliation), true);
-});
-
-test("expense mutations add, update, reconcile, and delete transactions", () => {
-  const original = normalizePersonalDataSnapshot({});
-  const added = transaction({ id: "tx-1", amountCents: 450, categoryId: "going-out", description: "Drink" });
-
-  const addMutation = normalizePersonalDataMutation({ type: "add-expense-transaction", transaction: added });
-  assert.ok(addMutation);
-  const withTransaction = applyPersonalDataMutation(original, addMutation);
-  assert.equal(withTransaction.expenseTransactions.length, 1);
-
-  const updateMutation = normalizePersonalDataMutation({
-    type: "update-expense-transaction",
-    id: "tx-1",
-    occurredAt: "2026-08-20T13:00:00.000Z",
-    updates: {
-      type: "expense",
-      amountCents: 500,
-      categoryId: "going-out",
-      description: "Beer",
-      occurredOn: "2026-08-19",
-    },
-  });
-  assert.ok(updateMutation);
-  const updated = applyPersonalDataMutation(withTransaction, updateMutation);
-  assert.equal(updated.expenseTransactions[0].amountCents, 500);
-  assert.equal(updated.expenseTransactions[0].description, "Beer");
-  assert.equal(updated.expenseTransactions[0].occurredOn, "2026-08-19");
-
-  const reconcileMutation = normalizePersonalDataMutation({ type: "set-expense-reconciled-through", date: "2026-08-20" });
-  assert.ok(reconcileMutation);
-  const reconciled = applyPersonalDataMutation(updated, reconcileMutation);
-  assert.equal(reconciled.expenseReconciliation.reconciledThrough, "2026-08-20");
-
-  const deleteMutation = normalizePersonalDataMutation({ type: "delete-expense-transaction", id: "tx-1" });
-  assert.ok(deleteMutation);
-  const deleted = applyPersonalDataMutation(reconciled, deleteMutation);
-  assert.equal(deleted.expenseTransactions.length, 0);
-});
-
-test("budget target mutations must sum to one hundred percent", () => {
-  assert.equal(normalizePersonalDataMutation({
-    type: "update-expense-settings",
-    settings: { currency: "EUR", targets: { essentials: 50, fun: 40, future: 20 } },
-  }), null);
-
-  assert.ok(normalizePersonalDataMutation({
-    type: "update-expense-settings",
-    settings: { currency: "EUR", targets: { essentials: 45, fun: 30, future: 25 } },
-  }));
 });

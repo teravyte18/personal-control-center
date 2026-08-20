@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   categoriesForType,
+  validExpenseDate,
   type ExpenseSettings,
   type ExpenseTransaction,
   type ExpenseTransactionType,
@@ -53,6 +54,14 @@ function createTransaction(input: NewExpenseTransaction): ExpenseTransaction {
     createdAt: now,
     updatedAt: now,
   };
+}
+
+function validTransactionInput(input: NewExpenseTransaction | ExpenseTransactionUpdates) {
+  const category = categoriesForType(input.type).find((candidate) => candidate.id === input.categoryId);
+  return Boolean(category)
+    && Number.isSafeInteger(input.amountCents)
+    && input.amountCents > 0
+    && validExpenseDate(input.occurredOn);
 }
 
 export function useExpenses() {
@@ -135,20 +144,21 @@ export function useExpenses() {
   }, [refresh]);
 
   const addTransaction = useCallback((input: NewExpenseTransaction) => {
-    const category = categoriesForType(input.type).find((candidate) => candidate.id === input.categoryId);
-    if (!category || input.amountCents <= 0) return null;
+    if (!validTransactionInput(input)) return null;
     const transaction = createTransaction(input);
     commitMutation({ type: "add-expense-transaction", transaction });
     return transaction;
   }, [commitMutation]);
 
   const updateTransaction = useCallback((id: string, updates: ExpenseTransactionUpdates) => {
+    if (!validTransactionInput(updates)) return false;
     commitMutation({
       type: "update-expense-transaction",
       id,
       updates,
       occurredAt: new Date().toISOString(),
     });
+    return true;
   }, [commitMutation]);
 
   const deleteTransaction = useCallback((id: string) => {

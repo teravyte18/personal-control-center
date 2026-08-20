@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import {
   calculateExpenseMonth,
   categoriesForType,
@@ -439,16 +439,19 @@ function BucketProgress({
 }
 
 function BudgetTargets({ settings, onSave }: { settings: ExpenseSettings; onSave: (settings: ExpenseSettings) => boolean }) {
-  const [targets, setTargets] = useState(settings.targets);
+  const [targets, setTargets] = useState(() => ({ ...settings.targets }));
   const [open, setOpen] = useState(false);
-
-  useEffect(() => setTargets(settings.targets), [settings]);
   const total = expenseBucketIds.reduce((sum, bucket) => sum + targets[bucket], 0);
   const targetsValid = Math.abs(total - 100) < 0.001;
 
+  function toggleOpen() {
+    if (!open) setTargets({ ...settings.targets });
+    setOpen(!open);
+  }
+
   return (
     <div className="mt-4 rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <button type="button" onClick={() => setOpen((current) => !current)} className="flex min-h-12 w-full items-center justify-between gap-4 px-4 text-left text-sm font-semibold" aria-expanded={open}>
+      <button type="button" onClick={toggleOpen} className="flex min-h-12 w-full items-center justify-between gap-4 px-4 text-left text-sm font-semibold" aria-expanded={open}>
         <span>Budget targets · {settings.targets.essentials}/{settings.targets.fun}/{settings.targets.future}</span>
         <span className="text-slate-400">{open ? "−" : "+"}</span>
       </button>

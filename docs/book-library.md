@@ -14,7 +14,7 @@ Three independent classifications generate useful views:
 - ownership: Unspecified, Owned, Borrowed, or Wishlist;
 - priority: None, Up next, Soon, or Later.
 
-Ratings are optional half-step values from 0 to 5 for Enjoyment, Impact, and Execution. The aggregate uses whichever dimensions are filled; an optional overall override preserves the dimensions. Zero remains distinct from Unrated.
+Ratings are optional half-step values from 0 to 10 for Enjoyment, Impact, and Execution. The aggregate uses whichever dimensions are filled; an optional overall override preserves the dimensions. Zero remains distinct from Unrated. Legacy 0-to-5 ratings are read at twice their stored value and written to the version 2 Library payload on the book's next save.
 
 Dates are optional historical context. Selecting Finished supplies today only when the finish date is empty, and the value can be changed or cleared.
 

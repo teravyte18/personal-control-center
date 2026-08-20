@@ -1,6 +1,7 @@
 import type { Item } from "./personal-data";
 
-export const BOOK_DESCRIPTION_PREFIX = "__pcc_book_v1__\n";
+export const BOOK_DESCRIPTION_PREFIX = "__pcc_book_v2__\n";
+const LEGACY_BOOK_DESCRIPTION_PREFIX = "__pcc_book_v1__\n";
 
 export const bookReadingStates = ["unread", "reading", "finished", "paused", "abandoned"] as const;
 export type BookReadingState = (typeof bookReadingStates)[number];
@@ -53,9 +54,11 @@ function validDateOnlyOrEmpty(value: unknown) {
   return Number.isNaN(Date.parse(`${value}T00:00:00`)) ? "" : value;
 }
 
-function normalizeRating(value: unknown): number | undefined {
-  if (typeof value !== "number" || !Number.isFinite(value) || value < 0 || value > 5) return undefined;
-  return Math.round(value * 2) / 2;
+function normalizeRating(value: unknown, scale = 1): number | undefined {
+  if (typeof value !== "number" || !Number.isFinite(value)) return undefined;
+  const scaled = value * scale;
+  if (scaled < 0 || scaled > 10) return undefined;
+  return Math.round(scaled * 2) / 2;
 }
 
 function isReadingState(value: unknown): value is BookReadingState {
@@ -86,7 +89,7 @@ export function createBookDetails(thoughts = ""): BookDetails {
   };
 }
 
-export function normalizeBookDetails(value: unknown): BookDetails {
+export function normalizeBookDetails(value: unknown, ratingScale = 1): BookDetails {
   const defaults = createBookDetails();
   if (!isRecord(value)) return defaults;
   const ratings = isRecord(value.ratings) ? value.ratings : {};
@@ -106,10 +109,10 @@ export function normalizeBookDetails(value: unknown): BookDetails {
     coverId: stringOrEmpty(value.coverId).trim(),
     upNextOrder,
     ratings: {
-      enjoyment: normalizeRating(ratings.enjoyment),
-      impact: normalizeRating(ratings.impact),
-      execution: normalizeRating(ratings.execution),
-      overallOverride: normalizeRating(ratings.overallOverride),
+      enjoyment: normalizeRating(ratings.enjoyment, ratingScale),
+      impact: normalizeRating(ratings.impact, ratingScale),
+      execution: normalizeRating(ratings.execution, ratingScale),
+      overallOverride: normalizeRating(ratings.overallOverride, ratingScale),
     },
   };
 }
@@ -119,9 +122,11 @@ export function serializeBookDetails(details: BookDetails) {
 }
 
 export function parseBookDetails(description: string): BookDetails | null {
-  if (!description.startsWith(BOOK_DESCRIPTION_PREFIX)) return null;
+  const legacy = description.startsWith(LEGACY_BOOK_DESCRIPTION_PREFIX);
+  const prefix = legacy ? LEGACY_BOOK_DESCRIPTION_PREFIX : BOOK_DESCRIPTION_PREFIX;
+  if (!description.startsWith(prefix)) return null;
   try {
-    return normalizeBookDetails(JSON.parse(description.slice(BOOK_DESCRIPTION_PREFIX.length)) as unknown);
+    return normalizeBookDetails(JSON.parse(description.slice(prefix.length)) as unknown, legacy ? 2 : 1);
   } catch {
     return null;
   }

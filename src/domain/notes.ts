@@ -1,7 +1,10 @@
 import type { Item } from "./personal-data";
 
 export const NOTE_ORDER_METADATA_TITLE = "__pcc_note_order_v1__";
-const BOOK_DESCRIPTION_PREFIX = "__pcc_book_v1__\n";
+const BOOK_DESCRIPTION_PREFIXES = [
+  "__pcc_book_v1__\n",
+  "__pcc_book_v2__\n",
+];
 
 export type ParsedNoteContent = {
   title: string;
@@ -64,7 +67,7 @@ export function getNotes(items: readonly Item[]) {
     .filter((item) => (
       item.kind === "note"
       && item.status === "active"
-      && !item.description.startsWith(BOOK_DESCRIPTION_PREFIX)
+      && !BOOK_DESCRIPTION_PREFIXES.some((prefix) => item.description.startsWith(prefix))
     ))
     .sort((left, right) => {
       const leftIndex = orderIndexes.get(left.id);

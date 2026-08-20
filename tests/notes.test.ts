@@ -61,6 +61,8 @@ test("shows only organised active notes and initially orders them by last edit",
     item({ id: "inbox", title: "Still in Inbox", status: "inbox" }),
     item({ id: "thought", title: "Thought", kind: "thought" }),
     item({ id: "archived", title: "Archived", status: "archived" }),
+    item({ id: "legacy-book", title: "Legacy book", description: "__pcc_book_v1__\n{}" }),
+    item({ id: "current-book", title: "Current book", description: "__pcc_book_v2__\n{}" }),
   ]);
 
   assert.deepEqual(notes.map((note) => note.id), ["newer", "older"]);

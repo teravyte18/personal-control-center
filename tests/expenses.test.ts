@@ -10,6 +10,7 @@ import {
 } from "../src/domain/expenses.ts";
 import {
   applyPersonalDataMutation,
+  hasPersonalData,
   normalizePersonalDataMutation,
   normalizePersonalDataSnapshot,
 } from "../src/domain/personal-data-snapshot.ts";
@@ -73,6 +74,24 @@ test("older snapshots gain empty expense state and default targets", () => {
   assert.deepEqual(snapshot.expenseTransactions, []);
   assert.deepEqual(snapshot.expenseSettings.targets, { essentials: 50, fun: 30, future: 20 });
   assert.equal(snapshot.expenseReconciliation.reconciledThrough, "");
+  assert.equal(hasPersonalData(snapshot), false);
+});
+
+test("expense history and finance preferences make a snapshot non-empty", () => {
+  const withTransaction = normalizePersonalDataSnapshot({
+    expenseTransactions: [transaction({ id: "expense-only" })],
+  });
+  assert.equal(hasPersonalData(withTransaction), true);
+
+  const withTargets = normalizePersonalDataSnapshot({
+    expenseSettings: { currency: "EUR", targets: { essentials: 45, fun: 30, future: 25 } },
+  });
+  assert.equal(hasPersonalData(withTargets), true);
+
+  const withReconciliation = normalizePersonalDataSnapshot({
+    expenseReconciliation: { reconciledThrough: "2026-08-20" },
+  });
+  assert.equal(hasPersonalData(withReconciliation), true);
 });
 
 test("expense mutations add, update, reconcile, and delete transactions", () => {

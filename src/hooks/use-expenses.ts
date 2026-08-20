@@ -138,11 +138,13 @@ export function useExpenses() {
         setError("");
       })
       .catch(async (saveError) => {
-        setError(saveError instanceof Error ? saveError.message : "Expense changes could not be saved.");
+        const message = saveError instanceof Error ? saveError.message : "Expense changes could not be saved.";
+        setError(message);
         try {
           await refresh();
+          setError(message);
         } catch {
-          // Keep the optimistic copy visible until the next successful refresh.
+          // Keep the optimistic copy and the visible failure until a later successful save or refresh.
         }
       })
       .finally(() => {
@@ -159,7 +161,10 @@ export function useExpenses() {
   }, [commitMutation]);
 
   const updateTransaction = useCallback((id: string, updates: ExpenseTransactionUpdates) => {
-    if (!validTransactionInput(updates)) return false;
+    if (!validTransactionInput(updates)) {
+      setError("Enter a valid amount, category, and date before saving the transaction.");
+      return false;
+    }
     commitMutation({
       type: "update-expense-transaction",
       id,

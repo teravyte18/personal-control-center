@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   categoriesForType,
+  expenseBucketIds,
   validExpenseDate,
   type ExpenseSettings,
   type ExpenseTransaction,
@@ -62,6 +63,13 @@ function validTransactionInput(input: NewExpenseTransaction | ExpenseTransaction
     && Number.isSafeInteger(input.amountCents)
     && input.amountCents > 0
     && validExpenseDate(input.occurredOn);
+}
+
+function validSettings(settings: ExpenseSettings) {
+  const values = expenseBucketIds.map((bucket) => settings.targets[bucket]);
+  return settings.currency === "EUR"
+    && values.every((value) => Number.isFinite(value) && value >= 0 && value <= 100)
+    && Math.abs(values.reduce((sum, value) => sum + value, 0) - 100) < 0.001;
 }
 
 export function useExpenses() {
@@ -166,11 +174,18 @@ export function useExpenses() {
   }, [commitMutation]);
 
   const updateSettings = useCallback((settings: ExpenseSettings) => {
+    if (!validSettings(settings)) {
+      setError("Budget targets must be valid percentages totaling 100%.");
+      return false;
+    }
     commitMutation({ type: "update-expense-settings", settings });
+    return true;
   }, [commitMutation]);
 
   const setReconciledThrough = useCallback((date: string) => {
+    if (date && !validExpenseDate(date)) return false;
     commitMutation({ type: "set-expense-reconciled-through", date });
+    return true;
   }, [commitMutation]);
 
   return {

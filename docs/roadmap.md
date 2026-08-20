@@ -16,7 +16,7 @@ graph LR
     EXT["Workflow extensions<br/>projects and Notes<br/>✅ PR #29, #30"]
     S7["Slice 7<br/>Book Library<br/>✅ PR #32"]
     S8["Slice 8<br/>UI and themes<br/>✅ PR #34, #35, #36"]
-    NEXT["Next product slice<br/>Not selected"]
+    NEXT["Next product slice<br/>Personal Expenses Tracker<br/>Selected"]
 
     S1 --> S2 --> S3 --> HARDEN --> S4 --> S5 --> S6 --> EXT --> S7 --> S8 --> NEXT
 
@@ -126,9 +126,19 @@ This UI slice is complete. Future visual work should be selected independently r
 
 ## Current selection
 
-**No major product slice is selected.**
+**Next major product slice: Personal Expenses Tracker.**
 
-The next decision should come from actual use of the current system. The following are candidates, not an ordered queue.
+The goal is to restore useful personal expense tracking with substantially less friction than the previous spreadsheet workflow, rather than reproduce the spreadsheet inside the app. The existing Excel sheet should be reviewed before the data model or UI is locked down.
+
+Current principles:
+
+- phone-first, low-friction manual expense capture;
+- keep only fields that prove useful after reviewing the previous spreadsheet;
+- prefer clear monthly spending visibility and category breakdowns before advanced budgeting or finance features;
+- use the spreadsheet as a reference for possible historical import/migration, not as a constraint on the new UX;
+- decide the exact treatment of categories, recurring expenses, income, budgets, charts, and import/export after the spreadsheet is available.
+
+The following remain future candidates, not an ordered queue.
 
 ### Encrypted Password Keychain
 

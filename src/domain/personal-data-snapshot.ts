@@ -1,4 +1,19 @@
 import {
+  defaultExpenseSettings,
+  emptyExpenseReconciliation,
+  expenseBucketIds,
+  normalizeExpenseReconciliation,
+  normalizeExpenseSettings,
+  normalizeExpenseTransaction,
+  normalizeExpenseTransactions,
+  normalizeExpenseTransactionUpdates,
+  validExpenseDate,
+  type ExpenseReconciliation,
+  type ExpenseSettings,
+  type ExpenseTransaction,
+  type ExpenseTransactionUpdates,
+} from "@/domain/expenses";
+import {
   areaIds,
   archiveItem,
   emptyReview,
@@ -31,6 +46,9 @@ export type PersonalDataSnapshot = {
   items: Item[];
   draft: ReviewDraft;
   history: ReviewEntry[];
+  expenseTransactions: ExpenseTransaction[];
+  expenseSettings: ExpenseSettings;
+  expenseReconciliation: ExpenseReconciliation;
 };
 
 export type PersonalDataExport = {
@@ -68,12 +86,25 @@ export type PersonalDataMutation =
     nextAction?: ProjectAction;
   }
   | { type: "update-review-draft"; field: keyof ReviewDraft; value: string }
-  | { type: "complete-review"; entry: ReviewEntry };
+  | { type: "complete-review"; entry: ReviewEntry }
+  | { type: "add-expense-transaction"; transaction: ExpenseTransaction }
+  | {
+    type: "update-expense-transaction";
+    id: string;
+    updates: ExpenseTransactionUpdates;
+    occurredAt: string;
+  }
+  | { type: "delete-expense-transaction"; id: string }
+  | { type: "update-expense-settings"; settings: ExpenseSettings }
+  | { type: "set-expense-reconciled-through"; date: string };
 
 export const emptyPersonalDataSnapshot: PersonalDataSnapshot = {
   items: [],
   draft: { ...emptyReview },
   history: [],
+  expenseTransactions: [],
+  expenseSettings: { ...defaultExpenseSettings, targets: { ...defaultExpenseSettings.targets } },
+  expenseReconciliation: { ...emptyExpenseReconciliation },
 };
 
 const reviewFields = [
@@ -220,18 +251,44 @@ function normalizeProjectActionUpdates(value: unknown): ProjectActionUpdates | n
   };
 }
 
+function normalizeExpenseSettingsMutation(value: unknown): ExpenseSettings | null {
+  if (!isRecord(value) || value.currency !== "EUR" || !isRecord(value.targets)) return null;
+  const values = expenseBucketIds.map((bucket) => value.targets[bucket]);
+  if (values.some((candidate) => typeof candidate !== "number"
+    || !Number.isFinite(candidate)
+    || candidate < 0
+    || candidate > 100)) return null;
+  const total = values.reduce<number>((sum, candidate) => sum + (candidate as number), 0);
+  if (Math.abs(total - 100) > 0.001) return null;
+  return normalizeExpenseSettings(value);
+}
+
 export function normalizePersonalDataSnapshot(value: unknown): PersonalDataSnapshot {
-  if (!isRecord(value)) return { ...emptyPersonalDataSnapshot, draft: { ...emptyReview } };
+  if (!isRecord(value)) return {
+    ...emptyPersonalDataSnapshot,
+    draft: { ...emptyReview },
+    expenseSettings: { ...defaultExpenseSettings, targets: { ...defaultExpenseSettings.targets } },
+    expenseReconciliation: { ...emptyExpenseReconciliation },
+  };
   return {
     items: normalizeItems(value.items),
     draft: normalizeReviewDraft(value.draft),
     history: normalizeReviewHistory(value.history),
+    expenseTransactions: normalizeExpenseTransactions(value.expenseTransactions),
+    expenseSettings: normalizeExpenseSettings(value.expenseSettings),
+    expenseReconciliation: normalizeExpenseReconciliation(value.expenseReconciliation),
   };
 }
 
 export function hasPersonalData(snapshot: PersonalDataSnapshot) {
+  const customizedExpenseTargets = expenseBucketIds.some(
+    (bucket) => snapshot.expenseSettings.targets[bucket] !== defaultExpenseSettings.targets[bucket],
+  );
   return snapshot.items.length > 0
     || snapshot.history.length > 0
+    || snapshot.expenseTransactions.length > 0
+    || snapshot.expenseReconciliation.reconciledThrough.length > 0
+    || customizedExpenseTargets
     || reviewContentFields.some((field) => snapshot.draft[field].trim().length > 0);
 }
 
@@ -363,6 +420,33 @@ export function normalizePersonalDataMutation(value: unknown): PersonalDataMutat
     return entry ? { type: "complete-review", entry } : null;
   }
 
+  if (value.type === "add-expense-transaction") {
+    const transaction = normalizeExpenseTransaction(value.transaction);
+    return transaction ? { type: "add-expense-transaction", transaction } : null;
+  }
+
+  if (value.type === "update-expense-transaction") {
+    const updates = normalizeExpenseTransactionUpdates(value.updates);
+    return typeof value.id === "string" && updates && isDateTime(value.occurredAt)
+      ? { type: "update-expense-transaction", id: value.id, updates, occurredAt: value.occurredAt }
+      : null;
+  }
+
+  if (value.type === "delete-expense-transaction") {
+    return typeof value.id === "string" ? { type: "delete-expense-transaction", id: value.id } : null;
+  }
+
+  if (value.type === "update-expense-settings") {
+    const settings = normalizeExpenseSettingsMutation(value.settings);
+    return settings ? { type: "update-expense-settings", settings } : null;
+  }
+
+  if (value.type === "set-expense-reconciled-through") {
+    return typeof value.date === "string" && (value.date === "" || validExpenseDate(value.date))
+      ? { type: "set-expense-reconciled-through", date: value.date }
+      : null;
+  }
+
   return null;
 }
 
@@ -388,6 +472,47 @@ export function applyPersonalDataMutation(
         draft: { ...emptyReview },
         history: [mutation.entry, ...snapshot.history],
       };
+  }
+
+  if (mutation.type === "add-expense-transaction") {
+    return snapshot.expenseTransactions.some((transaction) => transaction.id === mutation.transaction.id)
+      ? snapshot
+      : {
+        ...snapshot,
+        expenseTransactions: normalizeExpenseTransactions([
+          mutation.transaction,
+          ...snapshot.expenseTransactions,
+        ]),
+      };
+  }
+
+  if (mutation.type === "update-expense-transaction") {
+    return {
+      ...snapshot,
+      expenseTransactions: normalizeExpenseTransactions(snapshot.expenseTransactions.map((transaction) => (
+        transaction.id === mutation.id
+          ? { ...transaction, ...mutation.updates, updatedAt: mutation.occurredAt }
+          : transaction
+      ))),
+    };
+  }
+
+  if (mutation.type === "delete-expense-transaction") {
+    return {
+      ...snapshot,
+      expenseTransactions: snapshot.expenseTransactions.filter((transaction) => transaction.id !== mutation.id),
+    };
+  }
+
+  if (mutation.type === "update-expense-settings") {
+    return { ...snapshot, expenseSettings: mutation.settings };
+  }
+
+  if (mutation.type === "set-expense-reconciled-through") {
+    return {
+      ...snapshot,
+      expenseReconciliation: { reconciledThrough: mutation.date },
+    };
   }
 
   const items = snapshot.items.flatMap((item): Item[] => {

@@ -277,7 +277,7 @@ export function calculateExpenseMonth(
 
   const buckets = Object.fromEntries(expenseBucketIds.map((bucket) => {
     const actualCents = actuals[bucket];
-    const targetCents = Math.round(totalOutflowCents * expenseAllocationTargets[bucket] / 100);
+    const targetCents = Math.round(incomeCents * expenseAllocationTargets[bucket] / 100);
     const actualPercent = totalOutflowCents > 0 ? actualCents / totalOutflowCents * 100 : 0;
     return [bucket, {
       bucket,

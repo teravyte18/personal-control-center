@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   calculateExpenseMonth,
   defaultExpenseSettings,
+  expenseAllocationTargets,
   nextExpenseDate,
   normalizeExpenseReconciliation,
   normalizeExpenseSettings,
@@ -56,26 +57,46 @@ test("transaction updates validate amount, category, and date", () => {
   }), null);
 });
 
-test("monthly summary keeps Future You separate from ordinary spending", () => {
+test("monthly allocation compares bucket shares against total outflows rather than income", () => {
   const transactions = [
-    transaction({ id: "income", type: "income", categoryId: "paycheck", amountCents: 200_000 }),
+    transaction({ id: "income", type: "income", categoryId: "paycheck", amountCents: 20_000 }),
     transaction({ id: "groceries", amountCents: 50_000, categoryId: "groceries" }),
     transaction({ id: "fun", amountCents: 20_000, categoryId: "games" }),
     transaction({ id: "future", amountCents: 40_000, categoryId: "investments" }),
   ];
 
-  const summary = calculateExpenseMonth(transactions, defaultExpenseSettings, "2026-08");
-  assert.equal(summary.incomeCents, 200_000);
+  const summary = calculateExpenseMonth(transactions, "2026-08");
+  assert.equal(summary.incomeCents, 20_000);
   assert.equal(summary.spendingCents, 70_000);
   assert.equal(summary.futureCents, 40_000);
   assert.equal(summary.totalOutflowCents, 110_000);
-  assert.equal(summary.remainingCents, 90_000);
-  assert.equal(summary.buckets.essentials.targetCents, 100_000);
-  assert.equal(summary.buckets.fun.targetCents, 60_000);
-  assert.equal(summary.buckets.future.targetCents, 40_000);
+  assert.equal(summary.remainingCents, -90_000);
+  assert.equal(summary.buckets.essentials.targetCents, 55_000);
+  assert.equal(summary.buckets.fun.targetCents, 33_000);
+  assert.equal(summary.buckets.future.targetCents, 22_000);
+  assert.ok(Math.abs(summary.buckets.essentials.actualPercent - 45.4545) < 0.001);
+  assert.ok(Math.abs(summary.buckets.fun.actualPercent - 18.1818) < 0.001);
+  assert.ok(Math.abs(summary.buckets.future.actualPercent - 36.3636) < 0.001);
 });
 
-test("budget targets default safely and custom targets must sum to one hundred percent", () => {
+test("allocation shares remain meaningful with no monthly income", () => {
+  const transactions = [
+    transaction({ id: "essential", amountCents: 5_000, categoryId: "groceries" }),
+    transaction({ id: "fun", amountCents: 3_000, categoryId: "games" }),
+    transaction({ id: "future", amountCents: 2_000, categoryId: "investments" }),
+  ];
+
+  const summary = calculateExpenseMonth(transactions, "2026-08");
+  assert.equal(summary.incomeCents, 0);
+  assert.equal(summary.totalOutflowCents, 10_000);
+  assert.equal(summary.buckets.essentials.actualPercent, 50);
+  assert.equal(summary.buckets.fun.actualPercent, 30);
+  assert.equal(summary.buckets.future.actualPercent, 20);
+  assert.equal(summary.buckets.essentials.targetCents, 5_000);
+  assert.deepEqual(expenseAllocationTargets, { essentials: 50, fun: 30, future: 20 });
+});
+
+test("legacy stored budget targets still normalize safely", () => {
   assert.deepEqual(
     normalizeExpenseSettings(undefined),
     defaultExpenseSettings,

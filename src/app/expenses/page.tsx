@@ -3,10 +3,12 @@
 import { useMemo, useState, type FormEvent } from "react";
 import {
   calculateExpenseMonth,
+  calculateFunFund,
   categoriesForType,
   expenseAllocationTargets,
   expenseBucketIds,
   expenseBucketLabels,
+  funFundStartDate,
   getExpenseCategory,
   nextExpenseDate,
   parseAmountToCents,
@@ -327,6 +329,7 @@ function MonthView({
 }) {
   const monthTransactions = useMemo(() => transactionsForMonth(transactions, month), [transactions, month]);
   const summary = useMemo(() => calculateExpenseMonth(transactions, month), [transactions, month]);
+  const funFund = useMemo(() => calculateFunFund(transactions, month), [transactions, month]);
   const categoryTotals = useMemo(() => {
     const totals = new Map<string, number>();
     for (const transaction of monthTransactions) {
@@ -348,7 +351,19 @@ function MonthView({
         <Metric label="Income" value={formatMoney(summary.incomeCents, settings.currency)} />
         <Metric label="Spent" value={formatMoney(summary.spendingCents, settings.currency)} />
         <Metric label="Future You" value={formatMoney(summary.futureCents, settings.currency)} />
-        <Metric label="Remaining" value={formatMoney(summary.remainingCents, settings.currency)} />
+        <Metric label="Net cash flow" value={formatMoney(summary.remainingCents, settings.currency)} />
+      </div>
+
+      <div className="mt-3 flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Fun Fund</p>
+          <p className="mt-1 text-xs leading-5 text-slate-500">
+            {funFund.active
+              ? `30% of income rolls forward from ${formatDate(funFundStartDate)}. Fun spending draws it down, never below €0.`
+              : `Starts at €0 on ${formatDate(funFundStartDate)}; earlier history is intentionally ignored.`}
+          </p>
+        </div>
+        <p className="shrink-0 text-xl font-semibold text-slate-950">{formatMoney(funFund.balanceCents, settings.currency)}</p>
       </div>
 
       <div className="mt-4 grid gap-3 lg:grid-cols-3">

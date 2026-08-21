@@ -8,7 +8,6 @@ import {
   expenseAllocationTargets,
   expenseBucketIds,
   expenseBucketLabels,
-  funFundStartDate,
   getExpenseCategory,
   nextExpenseDate,
   parseAmountToCents,
@@ -354,18 +353,6 @@ function MonthView({
         <Metric label="Net cash flow" value={formatMoney(summary.remainingCents, settings.currency)} />
       </div>
 
-      <div className="mt-3 flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Fun Fund</p>
-          <p className="mt-1 text-xs leading-5 text-slate-500">
-            {funFund.active
-              ? `30% of income rolls forward from ${formatDate(funFundStartDate)}. Fun spending draws it down, never below €0.`
-              : `Starts at €0 on ${formatDate(funFundStartDate)}; earlier history is intentionally ignored.`}
-          </p>
-        </div>
-        <p className="shrink-0 text-xl font-semibold text-slate-950">{formatMoney(funFund.balanceCents, settings.currency)}</p>
-      </div>
-
       <div className="mt-4 grid gap-3 lg:grid-cols-3">
         {expenseBucketIds.map((bucket) => (
           <BucketProgress
@@ -373,7 +360,10 @@ function MonthView({
             bucket={bucket}
             actualCents={summary.buckets[bucket].actualCents}
             actualPercent={summary.buckets[bucket].actualPercent}
+            targetCents={summary.buckets[bucket].targetCents}
+            remainingCents={summary.buckets[bucket].remainingCents}
             targetPercent={expenseAllocationTargets[bucket]}
+            funFundCents={bucket === "fun" && funFund.active ? funFund.balanceCents : undefined}
             currency={settings.currency}
           />
         ))}
@@ -435,32 +425,48 @@ function BucketProgress({
   bucket,
   actualCents,
   actualPercent,
+  targetCents,
+  remainingCents,
   targetPercent,
+  funFundCents,
   currency,
 }: {
   bucket: ExpenseBucketId;
   actualCents: number;
   actualPercent: number;
+  targetCents: number;
+  remainingCents: number;
   targetPercent: number;
+  funFundCents?: number;
   currency: string;
 }) {
-  const difference = actualPercent - targetPercent;
   const progress = Math.min(100, Math.max(0, actualPercent));
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="font-semibold">{expenseBucketLabels[bucket]}</p>
-          <p className="mt-1 text-xs text-slate-500">{targetPercent}% guide</p>
+          <p className="mt-1 text-xs text-slate-500">
+            {targetPercent}% of income · {formatMoney(targetCents, currency)} target
+          </p>
         </div>
-        <span className="text-sm font-semibold text-slate-950">{formatPercent(actualPercent)}</span>
+        <div className="shrink-0 text-right">
+          <p className="text-sm font-semibold text-slate-950">{formatPercent(actualPercent)}</p>
+          {funFundCents !== undefined ? (
+            <p className="mt-1 text-xs font-semibold text-slate-500">Fund {formatMoney(funFundCents, currency)}</p>
+          ) : null}
+        </div>
       </div>
       <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-slate-100">
         <div className="h-full rounded-full bg-slate-950" style={{ width: `${progress}%` }} />
       </div>
       <div className="mt-2 flex items-center justify-between gap-3 text-xs text-slate-500">
-        <span>{formatMoney(actualCents, currency)}</span>
-        <span>{Math.abs(difference).toFixed(1)} pp {difference > 0.05 ? "over" : difference < -0.05 ? "under" : "on guide"}</span>
+        <span>{formatMoney(actualCents, currency)} spent</span>
+        <span>
+          {remainingCents >= 0
+            ? `${formatMoney(remainingCents, currency)} left`
+            : `${formatMoney(Math.abs(remainingCents), currency)} over`}
+        </span>
       </div>
     </div>
   );

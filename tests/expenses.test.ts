@@ -2,8 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   calculateExpenseMonth,
+  calculateFunFund,
   defaultExpenseSettings,
   expenseAllocationTargets,
+  funFundStartDate,
   nextExpenseDate,
   normalizeExpenseReconciliation,
   normalizeExpenseSettings,
@@ -94,6 +96,62 @@ test("allocation shares remain meaningful with no monthly income", () => {
   assert.equal(summary.buckets.future.actualPercent, 20);
   assert.equal(summary.buckets.essentials.targetCents, 5_000);
   assert.deepEqual(expenseAllocationTargets, { essentials: 50, fun: 30, future: 20 });
+});
+
+test("Fun Fund starts fresh, rolls unused allowance forward, and never carries debt", () => {
+  const transactions = [
+    transaction({
+      id: "old-income",
+      type: "income",
+      categoryId: "paycheck",
+      amountCents: 300_000,
+      occurredOn: "2026-08-20",
+    }),
+    transaction({
+      id: "aug-fun",
+      categoryId: "games",
+      amountCents: 20_000,
+      occurredOn: "2026-08-22",
+    }),
+    transaction({
+      id: "sep-income",
+      type: "income",
+      categoryId: "paycheck",
+      amountCents: 200_000,
+      occurredOn: "2026-09-01",
+    }),
+    transaction({
+      id: "sep-fun",
+      categoryId: "travel",
+      amountCents: 10_000,
+      occurredOn: "2026-09-12",
+    }),
+    transaction({
+      id: "oct-fun",
+      categoryId: "electronics",
+      amountCents: 80_000,
+      occurredOn: "2026-10-03",
+    }),
+    transaction({
+      id: "nov-income",
+      type: "income",
+      categoryId: "other-income",
+      amountCents: 100_000,
+      occurredOn: "2026-11-02",
+    }),
+  ];
+
+  assert.equal(funFundStartDate, "2026-08-21");
+  assert.deepEqual(calculateFunFund(transactions, "2026-07"), {
+    active: false,
+    balanceCents: 0,
+    allowanceCents: 0,
+    funSpentCents: 0,
+  });
+  assert.equal(calculateFunFund(transactions, "2026-08").balanceCents, 0);
+  assert.equal(calculateFunFund(transactions, "2026-09").balanceCents, 50_000);
+  assert.equal(calculateFunFund(transactions, "2026-10").balanceCents, 0);
+  assert.equal(calculateFunFund(transactions, "2026-11").balanceCents, 30_000);
 });
 
 test("legacy stored budget targets still normalize safely", () => {

@@ -60,7 +60,7 @@ Initial categories include Investments, Savings / funds, Education, and Self-dev
 
 Future You is presented separately from ordinary spending in the monthly headline. Moving money toward savings or investments should not look identical to consuming that money.
 
-Income initially supports Paycheck and Other income. Income remains useful cash-flow context, but it does not determine the allocation percentages.
+Income initially supports Paycheck and Other income. Income remains useful cash-flow context and determines the absolute 50/30/20 target amounts, but it does not determine the actual allocation percentages.
 
 ## Monthly view
 
@@ -72,7 +72,12 @@ The fixed reference allocation in code is:
 
 There is no in-app editor for these percentages. If the intended reference changes, it should be changed deliberately in the code rather than becoming another routine setting to manage.
 
-The three bucket percentages are calculated over **total monthly outflows**, not monthly income. Total outflows are Essentials + Fun + Future You, so the three actual shares describe 100% of what left the spending system that month even when income is zero or unusually low.
+The monthly cards use a hybrid model:
+
+- **actual percentages** are calculated over total monthly outflows, so Essentials + Fun + Future You describe 100% of what actually went out that month;
+- **absolute target amounts** remain percentages of recorded monthly income, preserving the familiar 50/30/20 euro reference.
+
+This means low- or zero-income months can still show a meaningful spending mix without pretending that the percentage shares themselves are an income-budget utilization metric. The income-based euro targets may still be exceeded during those months, which is intentional and shown as an absolute over/under amount rather than a percentage above 100%.
 
 For the selected month the page derives:
 
@@ -80,12 +85,11 @@ For the selected month the page derives:
 - ordinary spending, defined as Essentials plus Fun;
 - Future You allocation;
 - net cash flow after all three buckets;
-- each bucket's actual share of monthly outflows versus the fixed 50/30/20 guide;
-- the rolling Fun Fund balance;
+- each bucket's share of total monthly outflows;
+- each bucket's fixed 50/30/20 euro target derived from monthly income;
+- the rolling Fun Fund balance, shown compactly in the Fun card;
 - category totals;
 - editable transaction history.
-
-The bucket cards show the actual percentage directly and the percentage-point difference from the guide. They do not present an income-derived budget or imply that low income makes ordinary spending mathematically over 100%.
 
 ### Fun Fund
 
@@ -103,7 +107,7 @@ The floor at zero is important: excess Fun spending never creates debt against f
 
 The Fun Fund therefore answers a different question from the allocation cards:
 
-- allocation cards: "Where did this month's outflows go?"
+- allocation cards: "Where did this month's outflows go, and how does the euro amount compare with the income-based guide?"
 - Fun Fund: "How much deliberately accumulated discretionary room is available?"
 
 ## Navigation
@@ -141,8 +145,8 @@ When Expenses changes, verify:
 - amount/date/category validation rejects malformed mutations;
 - income categories cannot be used for expenses and vice versa;
 - Essentials + Fun + Future You actual percentages use total monthly outflows and sum to 100% when outflows exist;
-- the fixed reference remains 50/30/20 unless deliberately changed in code;
-- a month with no income still produces meaningful allocation shares;
+- absolute bucket targets use the fixed 50/30/20 percentages of monthly income;
+- a month with no income still produces meaningful allocation shares while euro targets are zero;
 - Fun Fund ignores transactions before its reset date, rolls unused 30% income allowance forward, and never carries a negative balance;
 - add/update/delete and reconciliation mutations survive normalization and export;
 - later weekly checks overlap the previous boundary date so same-day late transactions are not skipped;

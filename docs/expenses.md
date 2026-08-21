@@ -79,12 +79,32 @@ For the selected month the page derives:
 - total income;
 - ordinary spending, defined as Essentials plus Fun;
 - Future You allocation;
-- remaining cash flow after all three buckets;
+- net cash flow after all three buckets;
 - each bucket's actual share of monthly outflows versus the fixed 50/30/20 guide;
+- the rolling Fun Fund balance;
 - category totals;
 - editable transaction history.
 
 The bucket cards show the actual percentage directly and the percentage-point difference from the guide. They do not present an income-derived budget or imply that low income makes ordinary spending mathematically over 100%.
+
+### Fun Fund
+
+The Fun Fund is deliberately separate from the monthly allocation percentages. Its purpose is to let unused discretionary allowance roll forward so a larger later purchase can be made from accumulated room rather than making one month look arbitrarily bad.
+
+The fund starts fresh at **€0 on 21 August 2026**. Earlier history is intentionally ignored rather than inventing an opening balance from incomplete records.
+
+For each month from that point onward:
+
+```text
+Fun Fund = max(€0, previous Fun Fund + 30% of recorded income - Fun spending)
+```
+
+The floor at zero is important: excess Fun spending never creates debt against future months. If the balance is zero during a low-income period, it simply remains zero. A later source of recorded income starts building the fund again without first repaying past discretionary spending.
+
+The Fun Fund therefore answers a different question from the allocation cards:
+
+- allocation cards: "Where did this month's outflows go?"
+- Fun Fund: "How much deliberately accumulated discretionary room is available?"
 
 ## Navigation
 
@@ -123,6 +143,7 @@ When Expenses changes, verify:
 - Essentials + Fun + Future You actual percentages use total monthly outflows and sum to 100% when outflows exist;
 - the fixed reference remains 50/30/20 unless deliberately changed in code;
 - a month with no income still produces meaningful allocation shares;
+- Fun Fund ignores transactions before its reset date, rolls unused 30% income allowance forward, and never carries a negative balance;
 - add/update/delete and reconciliation mutations survive normalization and export;
 - later weekly checks overlap the previous boundary date so same-day late transactions are not skipped;
 - expense-only mutations do not trigger Google Calendar reconciliation;

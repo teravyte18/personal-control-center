@@ -59,7 +59,7 @@ test("transaction updates validate amount, category, and date", () => {
   }), null);
 });
 
-test("monthly allocation compares bucket shares against total outflows rather than income", () => {
+test("monthly allocation uses outflows for actual shares and income for absolute targets", () => {
   const transactions = [
     transaction({ id: "income", type: "income", categoryId: "paycheck", amountCents: 20_000 }),
     transaction({ id: "groceries", amountCents: 50_000, categoryId: "groceries" }),
@@ -73,15 +73,15 @@ test("monthly allocation compares bucket shares against total outflows rather th
   assert.equal(summary.futureCents, 40_000);
   assert.equal(summary.totalOutflowCents, 110_000);
   assert.equal(summary.remainingCents, -90_000);
-  assert.equal(summary.buckets.essentials.targetCents, 55_000);
-  assert.equal(summary.buckets.fun.targetCents, 33_000);
-  assert.equal(summary.buckets.future.targetCents, 22_000);
+  assert.equal(summary.buckets.essentials.targetCents, 10_000);
+  assert.equal(summary.buckets.fun.targetCents, 6_000);
+  assert.equal(summary.buckets.future.targetCents, 4_000);
   assert.ok(Math.abs(summary.buckets.essentials.actualPercent - 45.4545) < 0.001);
   assert.ok(Math.abs(summary.buckets.fun.actualPercent - 18.1818) < 0.001);
   assert.ok(Math.abs(summary.buckets.future.actualPercent - 36.3636) < 0.001);
 });
 
-test("allocation shares remain meaningful with no monthly income", () => {
+test("allocation shares remain meaningful with no monthly income while absolute targets are zero", () => {
   const transactions = [
     transaction({ id: "essential", amountCents: 5_000, categoryId: "groceries" }),
     transaction({ id: "fun", amountCents: 3_000, categoryId: "games" }),
@@ -94,7 +94,9 @@ test("allocation shares remain meaningful with no monthly income", () => {
   assert.equal(summary.buckets.essentials.actualPercent, 50);
   assert.equal(summary.buckets.fun.actualPercent, 30);
   assert.equal(summary.buckets.future.actualPercent, 20);
-  assert.equal(summary.buckets.essentials.targetCents, 5_000);
+  assert.equal(summary.buckets.essentials.targetCents, 0);
+  assert.equal(summary.buckets.fun.targetCents, 0);
+  assert.equal(summary.buckets.future.targetCents, 0);
   assert.deepEqual(expenseAllocationTargets, { essentials: 50, fun: 30, future: 20 });
 });
 

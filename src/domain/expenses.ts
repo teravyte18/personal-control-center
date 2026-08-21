@@ -43,6 +43,12 @@ export const expenseBucketLabels: Record<ExpenseBucketId, string> = {
   future: "Future You",
 };
 
+export const expenseAllocationTargets: Record<ExpenseBucketId, number> = {
+  essentials: 50,
+  fun: 30,
+  future: 20,
+};
+
 export type ExpenseTransaction = {
   id: string;
   type: ExpenseTransactionType;
@@ -70,11 +76,7 @@ export type ExpenseReconciliation = {
 
 export const defaultExpenseSettings: ExpenseSettings = {
   currency: "EUR",
-  targets: {
-    essentials: 50,
-    fun: 30,
-    future: 20,
-  },
+  targets: { ...expenseAllocationTargets },
 };
 
 export const emptyExpenseReconciliation: ExpenseReconciliation = {
@@ -84,6 +86,7 @@ export const emptyExpenseReconciliation: ExpenseReconciliation = {
 export type ExpenseBucketSummary = {
   bucket: ExpenseBucketId;
   actualCents: number;
+  actualPercent: number;
   targetCents: number;
   remainingCents: number;
 };
@@ -238,7 +241,6 @@ export function transactionsForMonth(transactions: ExpenseTransaction[], month: 
 
 export function calculateExpenseMonth(
   transactions: ExpenseTransaction[],
-  settings: ExpenseSettings,
   month: string,
 ): ExpenseMonthSummary {
   const monthTransactions = transactionsForMonth(transactions, month);
@@ -258,20 +260,22 @@ export function calculateExpenseMonth(
     if (category?.bucket) actuals[category.bucket] += transaction.amountCents;
   }
 
+  const spendingCents = actuals.essentials + actuals.fun;
+  const futureCents = actuals.future;
+  const totalOutflowCents = spendingCents + futureCents;
+
   const buckets = Object.fromEntries(expenseBucketIds.map((bucket) => {
-    const targetCents = Math.round(incomeCents * settings.targets[bucket] / 100);
     const actualCents = actuals[bucket];
+    const targetCents = Math.round(totalOutflowCents * expenseAllocationTargets[bucket] / 100);
+    const actualPercent = totalOutflowCents > 0 ? actualCents / totalOutflowCents * 100 : 0;
     return [bucket, {
       bucket,
       actualCents,
+      actualPercent,
       targetCents,
       remainingCents: targetCents - actualCents,
     } satisfies ExpenseBucketSummary];
   })) as Record<ExpenseBucketId, ExpenseBucketSummary>;
-
-  const spendingCents = actuals.essentials + actuals.fun;
-  const futureCents = actuals.future;
-  const totalOutflowCents = spendingCents + futureCents;
 
   return {
     incomeCents,

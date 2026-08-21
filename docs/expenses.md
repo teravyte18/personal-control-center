@@ -4,11 +4,11 @@ Personal Expenses is a phone-first manual spending tracker. Its purpose is to ma
 
 The feature deliberately does not depend on bank APIs, Open Banking, CSV imports, notifications, or AI. Personal Control Center remains the canonical record of categorized transactions.
 
-## V1 workflow
+## Workflow
 
 ### Immediate capture
 
-The Expenses space keeps Quick Add at the top of the page.
+The Expenses space opens on the monthly data rather than an entry form. A compact `+` action expands Quick Add only when a transaction needs to be recorded.
 
 An expense requires only:
 
@@ -16,47 +16,35 @@ An expense requires only:
 - category;
 - date, defaulting to today.
 
-Description is optional. After a successful entry, amount and description clear while the chosen type, category, and date remain available, which supports both one-off phone capture and several entries from the same day.
-
-Income uses the same form through an Expense / Income toggle. Income is required for percentage targets to produce meaningful monthly target amounts.
+Description is optional. The form collapses after a successful entry. Income uses the same form through an Expense / Income toggle.
 
 ### Weekly check
 
 Immediate logging is the primary habit, not a requirement for perfect real-time capture. Weekly check exists to recover from missed transactions without reconstructing the week from memory.
 
-The bank transaction history is the checklist. PCC shows its own entries for the unchecked period, grouped by transaction date. The user compares the two lists, adds missing transactions through Quick Add, corrects or deletes entries when needed, and then marks the period checked.
+The bank transaction history is the checklist. PCC shows its own entries for the unchecked period, grouped by transaction date. The user compares the two lists, adds missing transactions through `+`, corrects or deletes entries when needed, and then marks the period checked.
 
 `reconciledThrough` is persisted in the user snapshot. Immediately after a check the period is caught up through that date. On a later day, the next check deliberately includes the previous boundary date once more before moving forward. This one-day overlap prevents a transaction made later on the day of the previous check from falling permanently between reconciliation periods. Before the first reconciliation, the view defaults to the most recent seven calendar days rather than presenting an unbounded historical period.
 
-Reconciliation is intentionally manual in V1. There is no claim that PCC knows which bank transactions are missing.
+Reconciliation is intentionally manual. There is no claim that PCC knows which bank transactions are missing.
 
 ## Data model
 
 Expense state lives in the existing authenticated, revisioned personal-data snapshot rather than a separate finance database.
 
-The snapshot adds:
+The snapshot contains:
 
 - `expenseTransactions` — user-scoped income and expense entries;
-- `expenseSettings` — currency and high-level allocation targets;
+- `expenseSettings` — retained currency/settings data for snapshot compatibility;
 - `expenseReconciliation` — the last checked-through date.
 
-A transaction stores:
+A transaction stores a stable ID, expense/income type, positive integer amount in cents, category ID, optional description, calendar date, and created/updated timestamps.
 
-- stable ID;
-- `expense` or `income` type;
-- positive integer amount in cents;
-- category ID;
-- optional description;
-- calendar date;
-- created and updated timestamps.
-
-Storing integer cents avoids floating-point currency arithmetic. Old snapshots normalize to empty expense history, EUR, 50/30/20 targets, and no reconciliation marker, so no PostgreSQL schema migration is required.
-
-Expense mutations use the same authenticated `/api/personal-data/mutations` boundary and row-locking transaction as the rest of personal state. They are excluded from Google Calendar reconciliation because they have no Calendar projection.
+Storing integer cents avoids floating-point currency arithmetic. Expense mutations use the same authenticated `/api/personal-data/mutations` boundary and row-locking transaction as the rest of personal state. They are excluded from Google Calendar reconciliation because they have no Calendar projection.
 
 ## Categories and allocation buckets
 
-Expense categories are mapped internally to one of three high-level buckets so entry never asks the user to choose both a detailed category and a broad category.
+Expense categories map internally to one of three high-level buckets so entry never asks for both a detailed category and a broad category.
 
 ### Essentials
 
@@ -70,33 +58,57 @@ Initial categories include Going out, Clothing, Games, Books, Hobbies, Subscript
 
 Initial categories include Investments, Savings / funds, Education, and Self-development.
 
-Future You uses the same allocation mathematics as the other buckets but is presented separately from ordinary spending in the monthly headline. Moving money toward savings or investments should not look identical to consuming that money.
+Future You is presented separately from ordinary spending in the monthly headline. Moving money toward savings or investments should not look identical to consuming that money.
 
-Income initially supports Paycheck and Other income.
-
-The category list is intentionally small and stable in V1. Transaction descriptions retain purchase-specific detail without turning every merchant, game, book, or event into a reporting category.
+Income initially supports Paycheck and Other income. Income remains useful cash-flow context and determines the absolute 50/30/20 target amounts, but it does not determine the actual allocation percentages.
 
 ## Monthly view
 
-The default allocation is:
+The fixed reference allocation in code is:
 
 - Essentials — 50%;
 - Fun — 30%;
 - Future You — 20%.
 
-The three percentages are user-configurable but must total 100%.
+There is no in-app editor for these percentages. If the intended reference changes, it should be changed deliberately in the code rather than becoming another routine setting to manage.
+
+The monthly cards use a hybrid model:
+
+- **actual percentages** are calculated over total monthly outflows, so Essentials + Fun + Future You describe 100% of what actually went out that month;
+- **absolute target amounts** remain percentages of recorded monthly income, preserving the familiar 50/30/20 euro reference.
+
+This means low- or zero-income months can still show a meaningful spending mix without pretending that the percentage shares themselves are an income-budget utilization metric. The income-based euro targets may still be exceeded during those months, which is intentional and shown as an absolute over/under amount rather than a percentage above 100%.
 
 For the selected month the page derives:
 
 - total income;
 - ordinary spending, defined as Essentials plus Fun;
 - Future You allocation;
-- total remaining after all three buckets;
-- actual, target, and remaining/over amount for every bucket;
+- net cash flow after all three buckets;
+- each bucket's share of total monthly outflows;
+- each bucket's fixed 50/30/20 euro target derived from monthly income;
+- the rolling Fun Fund balance, shown compactly in the Fun card;
 - category totals;
 - editable transaction history.
 
-Targets are percentages of income recorded for that calendar month. If no income is recorded, target amounts are zero rather than inventing a budget.
+### Fun Fund
+
+The Fun Fund is deliberately separate from the monthly allocation percentages. Its purpose is to let unused discretionary allowance roll forward so a larger later purchase can be made from accumulated room rather than making one month look arbitrarily bad.
+
+The fund starts fresh at **€0 on 21 August 2026**. Earlier history is intentionally ignored rather than inventing an opening balance from incomplete records.
+
+For each month from that point onward:
+
+```text
+Fun Fund = max(€0, previous Fun Fund + 30% of recorded income - Fun spending)
+```
+
+The floor at zero is important: excess Fun spending never creates debt against future months. If the balance is zero during a low-income period, it simply remains zero. A later source of recorded income starts building the fund again without first repaying past discretionary spending.
+
+The Fun Fund therefore answers a different question from the allocation cards:
+
+- allocation cards: "Where did this month's outflows go, and how does the euro amount compare with the income-based guide?"
+- Fun Fund: "How much deliberately accumulated discretionary room is available?"
 
 ## Navigation
 
@@ -104,13 +116,13 @@ Expenses is a normal available working space registered in shared navigation con
 
 ## Offline boundary
 
-Expense entry is online-only in V1. The dedicated service-worker queue remains restricted to Quick Capture; Expenses does not claim offline durability or general snapshot synchronization.
+Expense entry is online-only. The dedicated service-worker queue remains restricted to Quick Capture; Expenses does not claim offline durability or general snapshot synchronization.
 
 A server-save failure is surfaced in the Expenses UI and the hook refreshes canonical state when possible. Expanding the offline queue to finance entries should only happen after real use demonstrates that temporary connectivity is a meaningful source of missed expenses.
 
 ## Current non-goals
 
-V1 does not include:
+The current version does not include:
 
 - Trade Republic or other bank automation;
 - Open Banking connections;
@@ -122,7 +134,7 @@ V1 does not include:
 - multi-currency conversion;
 - dense analytics dashboards or long-term trend charts.
 
-The first acceptance question is behavioral: can immediate capture plus the weekly safety net stay easy enough to keep the data current? Trend views and deeper finance features should follow observed use rather than precede it.
+The acceptance question remains behavioral: can immediate capture plus the weekly safety net stay easy enough to keep the data current?
 
 ## Regression checks
 
@@ -132,8 +144,10 @@ When Expenses changes, verify:
 - every transaction remains scoped to the authenticated user through the shared snapshot store;
 - amount/date/category validation rejects malformed mutations;
 - income categories cannot be used for expenses and vice versa;
-- 50/30/20 calculations keep Future You separate from ordinary spending;
-- allocation percentages must total 100%;
+- Essentials + Fun + Future You actual percentages use total monthly outflows and sum to 100% when outflows exist;
+- absolute bucket targets use the fixed 50/30/20 percentages of monthly income;
+- a month with no income still produces meaningful allocation shares while euro targets are zero;
+- Fun Fund ignores transactions before its reset date, rolls unused 30% income allowance forward, and never carries a negative balance;
 - add/update/delete and reconciliation mutations survive normalization and export;
 - later weekly checks overlap the previous boundary date so same-day late transactions are not skipped;
 - expense-only mutations do not trigger Google Calendar reconciliation;

@@ -3,7 +3,9 @@
 import { useMemo, useState, type FormEvent } from "react";
 import {
   calculateExpenseMonth,
+  calculateFunFund,
   categoriesForType,
+  expenseAllocationTargets,
   expenseBucketIds,
   expenseBucketLabels,
   getExpenseCategory,
@@ -67,6 +69,10 @@ function formatMoney(cents: number, currency: string) {
   }).format(cents / 100);
 }
 
+function formatPercent(value: number) {
+  return `${value.toFixed(1)}%`;
+}
+
 export default function ExpensesPage() {
   const {
     transactions,
@@ -78,7 +84,6 @@ export default function ExpensesPage() {
     addTransaction,
     updateTransaction,
     deleteTransaction,
-    updateSettings,
     setReconciledThrough,
   } = useExpenses();
   const today = localDateOnly();
@@ -150,7 +155,6 @@ export default function ExpensesPage() {
           settings={settings}
           onUpdateTransaction={updateTransaction}
           onDeleteTransaction={deleteTransaction}
-          onUpdateSettings={updateSettings}
         />
       ) : (
         <WeeklyCheck
@@ -314,7 +318,6 @@ function MonthView({
   settings,
   onUpdateTransaction,
   onDeleteTransaction,
-  onUpdateSettings,
 }: {
   month: string;
   onMonthChange: (month: string) => void;
@@ -322,10 +325,10 @@ function MonthView({
   settings: ExpenseSettings;
   onUpdateTransaction: (id: string, updates: ExpenseTransactionUpdates) => boolean;
   onDeleteTransaction: (id: string) => void;
-  onUpdateSettings: (settings: ExpenseSettings) => boolean;
 }) {
   const monthTransactions = useMemo(() => transactionsForMonth(transactions, month), [transactions, month]);
-  const summary = useMemo(() => calculateExpenseMonth(transactions, settings, month), [transactions, settings, month]);
+  const summary = useMemo(() => calculateExpenseMonth(transactions, month), [transactions, month]);
+  const funFund = useMemo(() => calculateFunFund(transactions, month), [transactions, month]);
   const categoryTotals = useMemo(() => {
     const totals = new Map<string, number>();
     for (const transaction of monthTransactions) {
@@ -347,7 +350,7 @@ function MonthView({
         <Metric label="Income" value={formatMoney(summary.incomeCents, settings.currency)} />
         <Metric label="Spent" value={formatMoney(summary.spendingCents, settings.currency)} />
         <Metric label="Future You" value={formatMoney(summary.futureCents, settings.currency)} />
-        <Metric label="Remaining" value={formatMoney(summary.remainingCents, settings.currency)} />
+        <Metric label="Net cash flow" value={formatMoney(summary.remainingCents, settings.currency)} />
       </div>
 
       <div className="mt-4 grid gap-3 lg:grid-cols-3">
@@ -356,15 +359,15 @@ function MonthView({
             key={bucket}
             bucket={bucket}
             actualCents={summary.buckets[bucket].actualCents}
+            actualPercent={summary.buckets[bucket].actualPercent}
             targetCents={summary.buckets[bucket].targetCents}
             remainingCents={summary.buckets[bucket].remainingCents}
-            targetPercent={settings.targets[bucket]}
+            targetPercent={expenseAllocationTargets[bucket]}
+            funFundCents={bucket === "fun" && funFund.active ? funFund.balanceCents : undefined}
             currency={settings.currency}
           />
         ))}
       </div>
-
-      <BudgetTargets settings={settings} onSave={onUpdateSettings} />
 
       <div className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
         <section>
@@ -421,94 +424,50 @@ function Metric({ label, value }: { label: string; value: string }) {
 function BucketProgress({
   bucket,
   actualCents,
+  actualPercent,
   targetCents,
   remainingCents,
   targetPercent,
+  funFundCents,
   currency,
 }: {
   bucket: ExpenseBucketId;
   actualCents: number;
+  actualPercent: number;
   targetCents: number;
   remainingCents: number;
   targetPercent: number;
+  funFundCents?: number;
   currency: string;
 }) {
-  const progress = targetCents > 0
-    ? Math.min(100, Math.round(actualCents / targetCents * 100))
-    : actualCents > 0 ? 100 : 0;
+  const progress = Math.min(100, Math.max(0, actualPercent));
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="font-semibold">{expenseBucketLabels[bucket]}</p>
-          <p className="mt-1 text-xs text-slate-500">{targetPercent}% target</p>
+          <p className="mt-1 text-xs text-slate-500">
+            {targetPercent}% of income · {formatMoney(targetCents, currency)} target
+          </p>
         </div>
-        <span className="text-xs font-semibold text-slate-500">
-          {remainingCents >= 0 ? `${formatMoney(remainingCents, currency)} left` : `${formatMoney(Math.abs(remainingCents), currency)} over`}
-        </span>
+        <div className="shrink-0 text-right">
+          <p className="text-sm font-semibold text-slate-950">{formatPercent(actualPercent)}</p>
+          {funFundCents !== undefined ? (
+            <p className="mt-1 text-xs font-semibold text-slate-500">Fund {formatMoney(funFundCents, currency)}</p>
+          ) : null}
+        </div>
       </div>
       <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-slate-100">
-        <div className={`h-full rounded-full ${remainingCents < 0 ? "bg-red-600" : "bg-slate-950"}`} style={{ width: `${progress}%` }} />
+        <div className="h-full rounded-full bg-slate-950" style={{ width: `${progress}%` }} />
       </div>
       <div className="mt-2 flex items-center justify-between gap-3 text-xs text-slate-500">
-        <span>{formatMoney(actualCents, currency)}</span>
-        <span>{formatMoney(targetCents, currency)}</span>
+        <span>{formatMoney(actualCents, currency)} spent</span>
+        <span>
+          {remainingCents >= 0
+            ? `${formatMoney(remainingCents, currency)} left`
+            : `${formatMoney(Math.abs(remainingCents), currency)} over`}
+        </span>
       </div>
-    </div>
-  );
-}
-
-function BudgetTargets({ settings, onSave }: { settings: ExpenseSettings; onSave: (settings: ExpenseSettings) => boolean }) {
-  const [targets, setTargets] = useState(() => ({ ...settings.targets }));
-  const [open, setOpen] = useState(false);
-  const total = expenseBucketIds.reduce((sum, bucket) => sum + targets[bucket], 0);
-  const targetsValid = Math.abs(total - 100) < 0.001;
-
-  function toggleOpen() {
-    if (!open) setTargets({ ...settings.targets });
-    setOpen(!open);
-  }
-
-  return (
-    <div className="mt-4 rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <button type="button" onClick={toggleOpen} className="flex min-h-12 w-full items-center justify-between gap-4 px-4 text-left text-sm font-semibold" aria-expanded={open}>
-        <span>Budget targets · {settings.targets.essentials}/{settings.targets.fun}/{settings.targets.future}</span>
-        <span className="text-slate-400">{open ? "−" : "+"}</span>
-      </button>
-      {open ? (
-        <div className="border-t border-slate-100 p-4">
-          <div className="grid grid-cols-3 gap-3">
-            {expenseBucketIds.map((bucket) => (
-              <label key={bucket}>
-                <span className="text-xs font-semibold text-slate-500">{expenseBucketLabels[bucket]}</span>
-                <div className="mt-1 flex min-h-11 items-center rounded-xl border border-slate-300 px-2">
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="1"
-                    value={targets[bucket]}
-                    onChange={(event) => setTargets((current) => ({ ...current, [bucket]: Number(event.target.value) }))}
-                    className="min-w-0 flex-1 border-0 bg-transparent p-0 text-base outline-none"
-                  />
-                  <span className="text-sm text-slate-400">%</span>
-                </div>
-              </label>
-            ))}
-          </div>
-          <div className="mt-3 flex items-center justify-between gap-3">
-            <span className={targetsValid ? "text-xs text-slate-500" : "rounded-lg bg-red-50 px-2 py-1 text-xs text-red-800"}>Total: {total}%</span>
-            <button
-              type="button"
-              disabled={!targetsValid}
-              onClick={() => onSave({ ...settings, targets })}
-              className="min-h-10 rounded-xl bg-slate-950 px-4 text-xs font-semibold text-white disabled:opacity-30"
-            >
-              Save targets
-            </button>
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }

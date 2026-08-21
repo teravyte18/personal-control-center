@@ -49,6 +49,10 @@ export const expenseAllocationTargets: Record<ExpenseBucketId, number> = {
   future: 20,
 };
 
+// The Fun Fund intentionally starts fresh rather than reconstructing an
+// uncertain historical balance. Transactions before this date never affect it.
+export const funFundStartDate = "2026-08-21";
+
 export type ExpenseTransaction = {
   id: string;
   type: ExpenseTransactionType;
@@ -98,6 +102,13 @@ export type ExpenseMonthSummary = {
   totalOutflowCents: number;
   remainingCents: number;
   buckets: Record<ExpenseBucketId, ExpenseBucketSummary>;
+};
+
+export type FunFundSummary = {
+  active: boolean;
+  balanceCents: number;
+  allowanceCents: number;
+  funSpentCents: number;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -285,6 +296,44 @@ export function calculateExpenseMonth(
     remainingCents: incomeCents - totalOutflowCents,
     buckets,
   };
+}
+
+export function calculateFunFund(
+  transactions: ExpenseTransaction[],
+  throughMonth: string,
+  startedOn = funFundStartDate,
+): FunFundSummary {
+  const startMonth = startedOn.slice(0, 7);
+  if (!validExpenseDate(startedOn) || !/^\d{4}-\d{2}$/.test(throughMonth) || throughMonth < startMonth) {
+    return { active: false, balanceCents: 0, allowanceCents: 0, funSpentCents: 0 };
+  }
+
+  const monthly = new Map<string, { incomeCents: number; funSpentCents: number }>();
+  for (const transaction of transactions) {
+    const month = transaction.occurredOn.slice(0, 7);
+    if (transaction.occurredOn < startedOn || month > throughMonth) continue;
+
+    const totals = monthly.get(month) ?? { incomeCents: 0, funSpentCents: 0 };
+    if (transaction.type === "income") {
+      totals.incomeCents += transaction.amountCents;
+    } else if (getExpenseCategory(transaction.categoryId)?.bucket === "fun") {
+      totals.funSpentCents += transaction.amountCents;
+    }
+    monthly.set(month, totals);
+  }
+
+  let balanceCents = 0;
+  let allowanceCents = 0;
+  let funSpentCents = 0;
+  for (const month of [...monthly.keys()].sort()) {
+    const totals = monthly.get(month)!;
+    const monthAllowance = Math.round(totals.incomeCents * expenseAllocationTargets.fun / 100);
+    allowanceCents += monthAllowance;
+    funSpentCents += totals.funSpentCents;
+    balanceCents = Math.max(0, balanceCents + monthAllowance - totals.funSpentCents);
+  }
+
+  return { active: true, balanceCents, allowanceCents, funSpentCents };
 }
 
 function localDateOnly(date: Date) {

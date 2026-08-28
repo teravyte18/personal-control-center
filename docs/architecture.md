@@ -10,7 +10,7 @@ Desktop remains supported, but the primary interaction assumptions are:
 - one-handed navigation where practical;
 - large touch targets and readable layouts without zooming;
 - fast startup and minimal required input;
-- longer review, editing, planning, and reconciliation sessions that also work comfortably on a larger screen.
+- longer review, editing, planning, and analytics sessions that also work comfortably on a larger screen.
 
 A separate native application should only be introduced if an important workflow cannot be delivered reliably through the PWA.
 
@@ -35,7 +35,7 @@ PostgreSQL has been the canonical personal-data store since Slice 3. Browser sto
 - the per-device offline Quick Capture queue;
 - device-specific theme and mobile quick-access preferences.
 
-It is not a general offline synchronisation or collaborative editing system. Personal Expenses uses the canonical server snapshot and is online-only in V1 rather than extending the Quick Capture queue implicitly.
+It is not a general offline synchronisation or collaborative editing system. Personal Expenses uses the canonical server snapshot and is online-only rather than extending the Quick Capture queue implicitly.
 
 ## System topology
 
@@ -83,7 +83,9 @@ See:
 - `docs/offsite-backups.md` for R2 and `restic` recovery;
 - `docs/google-calendar.md` for the optional one-way Calendar projection;
 - `docs/offline-capture.md` for the narrow offline boundary;
-- `docs/expenses.md` for the Personal Expenses data and reconciliation boundary.
+- `docs/notes.md` for Notes autosave and safe Markdown rendering;
+- `docs/book-library.md` for the Library data/cover boundary;
+- `docs/expenses.md` for Personal Expenses calculations, analytics, and compatibility state.
 
 ## Persistence and synchronisation
 
@@ -93,13 +95,13 @@ Each authenticated account owns one row in `personal_data_state`. That row conta
 - a versioned `jsonb` snapshot;
 - items of every supported kind, including projects, tasks, thoughts, notes, and books;
 - project action history, note ordering, and Library ordering/classification payloads;
-- Personal Expenses transactions, allocation settings, and the reconciliation boundary;
+- Personal Expenses transactions plus backward-compatible expense settings/reconciliation fields;
 - the active Weekly Review draft;
 - completed review history.
 
 Mutations are scoped by authenticated user ID and run in a transaction. The server locks the user's state row with `SELECT ... FOR UPDATE`, applies one validated domain mutation, increments the revision, and returns the updated snapshot.
 
-The client applies discrete mutations optimistically so actions feel immediate. Continuously edited Inbox and Weekly Review text is kept local while typing and persisted after roughly 800 ms of inactivity or immediately on blur/submit. This prevents one database write per character and prevents older responses from replacing newer text.
+The client applies discrete mutations optimistically so actions feel immediate. Continuously edited Inbox, Notes, and Weekly Review text is kept local while typing and persisted after a short idle delay or immediately on relevant blur/exit/submit boundaries. This prevents one database write per character and prevents older responses from replacing newer text.
 
 Expense mutations use the same server mutation boundary and row locking. The Expenses page has a focused client hook that normalises the complete returned snapshot, queues its writes serially, shows save/error state, and refreshes canonical state after a failed optimistic save. This does not create a second persistence store.
 
@@ -116,7 +118,7 @@ Both use versioned `localStorage` keys, validate stored values, and fall back sa
 
 Pending offline captures are also device-local until the server confirms them. They use stable client-generated item IDs so ambiguous retries do not create duplicates.
 
-Expense transactions and reconciliation state are not device-local. A failed or offline expense write is not advertised as durable until the server confirms it.
+Expense state is not device-local. A failed or offline expense write is not advertised as durable until the server confirms it. The legacy reconciliation marker, if present in an older snapshot, remains server-canonical compatibility data rather than a current UI workflow.
 
 ## Navigation architecture
 
@@ -173,7 +175,7 @@ The service worker does not cache authenticated application HTML or personal API
 
 Weekly Review background delivery while the app is fully closed is not guaranteed; issue #21 tracks real-device observation. The in-app reminder remains available whenever the application is opened.
 
-Broader push notifications and full offline editing remain later work only if a concrete workflow justifies their complexity. Personal Expenses does not widen the offline promise in V1.
+Broader push notifications and full offline editing remain later work only if a concrete workflow justifies their complexity. Personal Expenses does not widen the offline promise.
 
 ## Domain model
 
@@ -205,27 +207,36 @@ Tasks represent one-off actions that do not need a project timeline. They have a
 
 Thoughts are retained observations that remain read-only by default and do not use normal deletion or completion workflows.
 
-Notes are editable plain-text reference records. Their first line is the implicit title, cards use persistent manual ordering, and Notes remain distinct from Thoughts throughout Inbox organisation, views, import, export, backup, and restore.
+Notes are editable reference records. Their first line is the implicit title, cards use persistent manual ordering, and text autosaves rather than relying on a lossy Cancel action. Storage remains ordinary text; a constrained Markdown subset supplies useful formatting and safe preview rendering without turning Notes into arbitrary HTML. Notes remain distinct from Thoughts throughout Inbox organisation, views, import, export, backup, and restore.
 
 ### Book Library
 
-A book reuses the existing item snapshot with a versioned Library payload. Reading state, ownership, and priority remain independent so generated views can be derived without duplicating records. Optional dates, ratings, thoughts/takeaways, and Up next ordering are preserved in the same canonical snapshot.
+A book reuses the existing item snapshot with a versioned Library payload. Reading state, ownership, and priority remain independent so generated views can be derived without duplicating records. Optional dates, 0–10 ratings, thoughts/takeaways, and Up next ordering are preserved in the same canonical snapshot.
+
+The default My library view is derived as `ownership === "owned"`; Wishlist is an explicit view and is excluded from ordinary reading-state views. Sorting the owned shelf is derived from the overall score (rated high to low) with unrated books retaining title order. No extra stored shelf tables are needed.
 
 Original cover uploads are private user-scoped files. The authenticated cover endpoint generates a bounded WebP display response on request, uses private browser caching and ETag revalidation, and falls back to the original bytes if optimisation fails. Backups preserve the original upload tree, not a second derivative store.
 
 ### Personal Expenses
 
-Expense state extends the same personal-data snapshot with three values:
+Expense state extends the same personal-data snapshot with:
 
 - `expenseTransactions` — user-scoped expense and income records;
-- `expenseSettings` — EUR plus high-level allocation percentages;
-- `expenseReconciliation` — the last manually checked-through date.
+- `expenseSettings` — EUR/settings shape retained for snapshot compatibility;
+- `expenseReconciliation` — legacy weekly-check state retained for normalization/round-trip compatibility but no longer exposed in the UI.
 
-Amounts are stored as positive integer cents. Type/category combinations and calendar dates are validated in the domain layer. Expense categories map to Essentials, Fun, or Future You; income categories remain separate. Monthly summaries are derived from canonical transactions rather than stored as copied monthly records.
+Amounts are stored as positive integer cents. Type/category combinations and calendar dates are validated in the domain layer. Expense categories map to Essentials, Fun, or Future You; income categories remain separate.
 
-Older snapshots normalise to empty expense history, 50/30/20 targets, and no reconciliation marker, so the feature does not require a PostgreSQL schema migration. Import/export and database/off-site backups automatically include the new snapshot fields.
+The current 50/30/20 reference is a code-level constant rather than a mutable in-app setting. Monthly summaries are derived from canonical transactions:
 
-Weekly reconciliation remains deliberately manual. PCC stores only its own transactions and a boundary marker; it does not store a bank connection or assert statement completeness. Once the boundary date is in the past, the next check includes that date again so transactions made later on the day of the previous check cannot be skipped permanently.
+- bucket actual percentages are each bucket's share of total monthly outflows;
+- absolute target cents remain 50/30/20 percentages of recorded monthly income;
+- net cash flow is income minus all outflows;
+- the Fun Fund is derived from monthly income and Fun spending from its start month onward, rolls unused allowance forward, and floors at zero.
+
+Insights also derives data directly from the same transactions. Date presets/custom month ranges filter expense records; optional category selection either leaves the result grouped by category or groups the selected category by normalized transaction description. Total spending, counts, average/month, donut segments, and monthly trend values are calculated client-side from the filtered canonical records. There is no separate analytics database or reporting table.
+
+Older snapshots continue to normalize safely, including the historical reconciliation marker and settings shape, so the current feature requires no PostgreSQL schema migration. Import/export and database/off-site backups automatically include expense state.
 
 ### Weekly Review
 
@@ -265,7 +276,7 @@ PostgreSQL stores authentication, personal state, and integration metadata in a 
 - Google Calendar connection and event-mapping tables — encrypted credentials, secondary-calendar identity, source/event IDs, sync hashes, and errors;
 - `schema_migrations` — applied migration versions.
 
-The snapshot model was chosen over a fully normalised item schema to keep lifecycle changes atomic and the private deployment simple. More normalised reporting tables can be introduced later if querying needs justify them. The current expense workload is small enough that monthly and category summaries are derived directly from the snapshot.
+The snapshot model was chosen over a fully normalised item schema to keep lifecycle changes atomic and the private deployment simple. More normalised reporting tables can be introduced later if querying needs justify them. The current expense workload is small enough that monthly summaries, Fun Fund state, category/description breakdowns, and trend data are derived directly from the snapshot.
 
 ## Private file storage
 
@@ -296,7 +307,7 @@ Implemented controls include:
 - client-side encryption before backup data reaches R2;
 - validated local and off-site restore preparation before destructive application.
 
-Personal Expenses inherits the same authenticated user scope and backup boundary as the rest of the snapshot. V1 introduces no bank credential, account number, Open Banking token, or additional secret-storage path.
+Personal Expenses inherits the same authenticated user scope and backup boundary as the rest of the snapshot. It introduces no bank credential, account number, Open Banking token, or additional secret-storage path.
 
 The current user-isolation and rate-limit model is appropriate for one trusted application process. A future multi-process or collaborative deployment would require revisiting shared rate-limit state, concurrency, and authorisation design.
 

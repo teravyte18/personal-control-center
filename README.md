@@ -21,10 +21,10 @@ This repository targets a small personal deployment rather than a commercial pro
 - Projects with multiple open actions, optional dates, completion notes, automatic Active/Waiting transitions, Accomplishments, Archive, and Restore
 - Standalone Tasks with optional check-in dates and due/overdue attention
 - Read-only-by-default Thoughts for non-actionable observations
-- Editable plain-text Notes with compact cards and persistent manual ordering
-- Fixed Saturday-to-Friday Weekly Review periods with generated context, draft persistence, durable photos, history, and in-app reminders
-- A books-first Library with search, generated views, independent reading/ownership/priority fields, optional dates, ratings, manual Up next ordering, private covers, and review context
-- Personal Expenses with fast manual expense/income entry, configurable 50/30/20-style allocation, category summaries, editable transaction history, and a manual weekly check for missed transactions
+- Editable Notes with compact cards, persistent manual ordering, debounced autosave, and a safe Markdown formatting/preview subset
+- Fixed Saturday-to-Friday Weekly Review periods with generated context, draft persistence, durable photos, expanded history, and in-app reminders
+- A books-first Library whose default My library view contains Owned books only, with explicit Wishlist access, search, generated views, 0–10 ratings, manual Up next ordering, private covers, and review context
+- Personal Expenses with fast manual expense/income entry, fixed 50/30/20 reference amounts, outflow-share cards, a rolling Fun Fund, editable transaction history, and filtered Insights analytics
 - Four configurable mobile quick-access slots, a dock-attached Spaces handle, a compact All Spaces directory, and an expanded desktop rail
 - A neutral Default appearance plus Pokémon, Hades, Hades II, Hollow Knight, Silksong, Elden Ring, Cyberpunk 2077, The Witcher 3, and Stardew Valley themes
 - One-way Google Calendar projection for dated open Tasks and every dated open project action
@@ -52,7 +52,7 @@ Review (/review)
 Library (/library)
 Expenses (/expenses)
   - Month
-  - Weekly check
+  - Insights
 All Spaces (/spaces)
   - All available working spaces
   - Accomplishments
@@ -184,11 +184,13 @@ See [`docs/offline-capture.md`](docs/offline-capture.md).
 
 ## Personal Expenses
 
-Expenses is intentionally manual in the first version. Quick Add records amount, category, date, and an optional description; income uses the same flow. The monthly view compares Essentials, Fun, and Future You against configurable allocation percentages that default to 50/30/20.
+Expenses is intentionally manual. A compact `+` action records amount, category, date, and an optional description; income uses the same flow. The Month view shows income, ordinary spending, Future You, net cash flow, the three allocation buckets, category totals, and editable transactions.
 
-Weekly check is a safety net rather than bank automation. Compare PCC's dated entries with bank activity, add or correct anything missing, then mark the period checked. Later checks include the previous boundary date once more to avoid missing a transaction made later on the day of the previous check.
+The 50/30/20 split is a fixed reference rather than a routine setting. Actual bucket percentages describe the share of monthly outflows, while the euro targets remain based on recorded income. Fun also has a rolling Fun Fund: unused 30% income allowance can carry into later months, while overspending never creates future debt.
 
-There is no Trade Republic/Open Banking connection, automated matching, or CSV import in V1.
+There is deliberately no weekly bank-reconciliation workflow. The intended habit is to log from the bank notification when practical and accept the occasional missed item rather than create another checking ritual. The Insights view provides this month, 3/6-month, year, all-time, and custom-period analysis; category filtering; category or description breakdowns; a donut chart; and monthly trends.
+
+There is no Trade Republic/Open Banking connection, automated transaction matching, autonomous categorisation, or CSV import.
 
 See [`docs/expenses.md`](docs/expenses.md).
 

@@ -14,7 +14,7 @@ Create one private control centre that answers:
 4. What changed during the week?
 5. What information should remain easy to retrieve?
 6. Which external views can be recreated from canonical application data?
-7. Where did personal money go, and is current allocation aligned with the intended balance?
+7. Where did personal money go, and what patterns are visible over time?
 
 ## Scope
 
@@ -30,7 +30,8 @@ The repository is public, so code, documentation, fixtures, examples, issues, an
 - Keep projects, one-off tasks, thoughts, editable notes, books, personal expenses, recurring routines, and future time-specific events conceptually distinct.
 - Support reflection without turning every thought into an obligation.
 - Reconstruct the review period from recorded activity so the user does not need to remember every detail.
-- Make manual expense capture fast enough to happen immediately while preserving a recovery path for missed transactions.
+- Make manual expense capture fast enough to happen alongside the bank notification; an occasional missed expense is acceptable and should not create a second reconciliation ritual.
+- Use expense analytics to learn from already-captured data rather than adding maintenance work.
 - Save long-form input without generating one server write per character.
 - Design phone interactions first and progressively enhance desktop use.
 - Keep external calendars as projections of application data unless a later feature explicitly defines inbound conflict handling.
@@ -73,29 +74,49 @@ Observations and ideas retained without being forced into task or completion wor
 
 ### Notes
 
-Editable plain-text reference material. The first line is the implicit title, cards remain compact, editing opens a complete phone-first editor, and manual ordering persists through server snapshots, exports, backups, and restores. Notes may be created directly or from Inbox and remain distinct from immutable Thoughts.
+Editable reference material with a safe Markdown subset. The first line is the implicit title, cards remain compact, editing opens a complete phone-first editor, and manual ordering persists through server snapshots, exports, backups, and restores.
+
+Notes autosave after a short idle delay and on relevant exit/blur boundaries rather than relying on a lossy Cancel flow. Formatting is stored as ordinary text and rendered through the constrained Markdown preview, so existing plain-text notes remain compatible. Notes may be created directly or from Inbox and remain distinct from Thoughts.
 
 ### Review
 
 One top-level section with Current and History views. The current review is tied to a fixed Saturday-to-Friday period and combines generated context with structured reflection, location, an optional durable photo, and next-week focus.
 
-Generated context includes project attention and activity, open/completed tasks, recent thoughts, and dated books started or finished during the period.
+Generated context includes project attention and activity, open/completed tasks, recent thoughts, and dated books started or finished during the period. Completed history entries can be expanded to read the full saved review rather than only a summary card.
 
 ### Library
 
-A books-first personal reading space with All books, Currently reading, Up next, Owned unread, Wishlist, Finished, and Paused/abandoned views; title/author search; expandable filters; independent reading state, ownership, and priority; optional author, edition note, dates, ratings, overall override, and Thoughts and takeaways; persistent Up next ordering; optional private covers; and direct or Inbox-to-Book creation.
+A books-first personal reading space. The default **My library** view contains only books marked Owned, so a large Wishlist never clutters the normal bookshelf. Rated Owned books are ordered from highest to lowest overall score; unrated Owned books follow in title order. Reading state remains visible on the cards rather than creating separate default sections.
+
+Wishlist is an explicit view. Wishlist books are also excluded from ordinary reading-state generated views so they do not leak into Currently reading, Finished, or Paused/abandoned.
+
+Other generated views include Currently reading, Up next, Owned unread, Finished, and Paused/abandoned. The Library also supports title/author search, expandable filters, independent reading state/ownership/priority, optional author and edition note, optional dates, 0–10 half-step ratings, optional overall override, Thoughts and takeaways, persistent Up next ordering, optional private covers, and direct or Inbox-to-Book creation.
 
 The first version is intentionally not a generic media catalogue.
 
 ### Expenses
 
-A phone-first manual personal-finance space. Quick Add remains visible at the top and records an expense or income using amount, category, date, and optional description. Detailed expense categories map automatically to Essentials, Fun, or Future You so capture does not require duplicate classification.
+A phone-first manual personal-finance space. The page opens on data rather than an entry form; a compact `+` expands Quick Add for an expense or income using amount, category, date, and optional description. Detailed expense categories map automatically to Essentials, Fun, or Future You so capture does not require duplicate classification.
 
-The Month view derives income, ordinary spending, Future You allocation, remaining money, 50/30/20-style target progress, category totals, and editable transactions. The high-level percentages are configurable but must total 100%.
+The Month view derives:
 
-Weekly check is a recovery workflow for missed purchases rather than an automated bank reconciliation. The user's bank history remains the checklist; PCC shows its chronological entries for the unchecked period and persists the last checked-through date. Later checks deliberately overlap the previous boundary date once so late same-day transactions cannot fall permanently between periods.
+- recorded income;
+- ordinary spending (Essentials + Fun);
+- Future You allocation;
+- net cash flow;
+- each bucket's share of total monthly outflows;
+- fixed 50/30/20 euro reference targets derived from recorded income;
+- a rolling Fun Fund for unused discretionary allowance;
+- category totals;
+- editable transaction history.
 
-Expenses is online-only in V1. Bank APIs, Open Banking, CSV import, automatic matching, and multi-currency conversion are not part of the current boundary. See [`expenses.md`](expenses.md).
+The 50/30/20 reference is intentionally fixed in code rather than exposed as another routine setting. Actual bucket percentages describe where that month's outflows went; the euro targets remain income-based. The Fun Fund rolls unused Fun allowance forward and floors at zero so excess Fun spending never becomes debt against later months.
+
+The second top-level Expenses view is **Insights**, not a weekly reconciliation flow. Insights supports this month, recent 3/6-month windows, the current year, all time, and custom month ranges; category filtering; category-mix or description-level breakdowns; a donut chart; total/transaction/average metrics; and monthly trends. Selecting a category uses transaction descriptions for detail such as individual subscription names without introducing a second subcategory model.
+
+There is deliberately no weekly bank-check workflow. The intended habit is to add transactions when the bank notification arrives and accept occasional misses rather than create recurring reconciliation work. Legacy `expenseReconciliation` snapshot state remains readable for compatibility only and is not exposed in the UI.
+
+Expenses is online-only. Bank APIs, Open Banking, CSV import, automatic matching, autonomous categorisation, and multi-currency conversion are not part of the current boundary. See [`expenses.md`](expenses.md).
 
 ### All Spaces
 
@@ -145,19 +166,23 @@ A retained observation that should not become an obligation merely because it wa
 
 ### Note
 
-Mutable plain-text reference information with an implicit first-line title and manual ordering.
+Mutable reference information with an implicit first-line title, safe Markdown formatting/preview, autosave, and manual ordering.
 
 ### Book
 
-A Library record with independent reading state, ownership, and priority plus optional dates, ratings, reflection, cover, and Up next order.
+A Library record with independent reading state, ownership, and priority plus optional dates, 0–10 ratings, reflection, cover, and Up next order.
 
 ### Expense transaction
 
 A user-scoped income or expense record stored as integer cents with a category, calendar date, optional description, and stable timestamps. Expense categories map to a high-level allocation bucket; income categories do not.
 
-### Expense reconciliation
+### Expense reconciliation compatibility marker
 
-A lightweight marker for how far the user has manually compared PCC with bank activity. It does not assert that PCC has access to the bank statement or can prove completeness. The previous boundary date is intentionally shown again on a later check to avoid a same-day blind spot.
+Older snapshots may contain `expenseReconciliation.reconciledThrough` from the original weekly-check design. It continues to normalize and round-trip safely so existing data remains compatible, but it is no longer an active product concept or exposed workflow.
+
+### Fun Fund
+
+A derived discretionary balance. From the selected starting month onward, each month contributes 30% of recorded income and subtracts Fun spending; the balance can roll forward but never below zero. It is not stored as a separate ledger and can be recalculated from canonical transactions.
 
 ### Event or appointment
 
@@ -191,9 +216,9 @@ The review supports what happened, what went well, what felt difficult, what was
 - **Clarify:** expand an Inbox item and organise it into a supported workflow.
 - **Plan projects:** manage several dated or undated actions, automatic Waiting, and explicit project completion.
 - **Manage tasks:** create, date, reschedule, and complete one-off work without project ceremony.
-- **Keep reference material:** separate editable ordered Notes from non-actionable Thoughts.
-- **Manage reading:** use generated Library views, Up next order, covers, dates, ratings, and reflections.
-- **Track spending:** log expenses immediately when practical, record monthly income, inspect high-level allocation, and use Weekly check as the safety net for missed transactions.
+- **Keep reference material:** separate autosaving Markdown-capable Notes from non-actionable Thoughts.
+- **Manage reading:** use the owned-first Library, explicit Wishlist, generated views, Up next order, covers, dates, ratings, and reflections.
+- **Track spending:** record expenses quickly, inspect the monthly allocation/Fun Fund view, and use filtered Insights to understand categories and descriptions over longer periods.
 - **Reflect:** inspect generated Weekly Review context and complete the fixed period.
 - **Project externally:** let Google Calendar reflect dated Tasks and project actions without becoming canonical.
 - **Personalise:** choose theme and mobile quick-access preferences for the current device.
@@ -206,33 +231,30 @@ The usable system now includes:
 1. quick capture, Inbox clarification, and Capture-only offline recovery;
 2. Projects with multiple open actions, automatic Waiting, history, completion, Accomplishments, and Archive;
 3. standalone Tasks;
-4. non-actionable Thoughts and editable ordered Notes;
-5. fixed Weekly Review periods, history, photos, and reminders;
-6. a books-first Library with ratings, views, covers, ordering, and review context;
-7. configurable phone quick access, compact All Spaces, simplified headers, and expanded desktop navigation;
-8. Default and game-named visual themes;
-9. invite-only authentication and isolated multi-device persistence;
-10. one-way Google Calendar projection;
-11. installable PWA assets and public HTTPS ingress;
-12. validated local and encrypted off-site backups.
-
-The current feature branch adds Personal Expenses, but it is not part of the delivered baseline until CI, production-stack validation, merge, deployment, and real phone testing are complete.
+4. non-actionable Thoughts and autosaving Markdown-capable ordered Notes;
+5. fixed Weekly Review periods, expanded history, photos, and reminders;
+6. an owned-first books Library with explicit Wishlist, 0–10 ratings, generated views, covers, ordering, and review context;
+7. Personal Expenses with low-friction manual entry, monthly allocation/Fun Fund context, editable history, and filtered Insights analytics;
+8. configurable phone quick access, compact All Spaces, simplified headers, and expanded desktop navigation;
+9. Default and game-named visual themes;
+10. invite-only authentication and isolated multi-device persistence;
+11. one-way Google Calendar projection;
+12. installable PWA assets and public HTTPS ingress;
+13. validated local and encrypted off-site backups.
 
 ## Current roadmap state
 
-Personal Expenses is the selected major product slice and is in implementation. The accepted V1 boundary is documented in [`expenses.md`](expenses.md); it prioritises immediate manual entry and weekly recovery over banking automation or dense analytics.
+**No new major product slice is currently selected.** Personal Expenses, the most recently selected slice, is delivered through PR #45 with subsequent model and interface refinements in PRs #47 and #48.
 
-Other near-term candidates remain:
+The next major feature should be chosen from observed value or friction rather than promoted automatically from the candidate list. The most defined candidates are:
 
-- a **Today/Home horizon view** opened from Home rather than listed as a normal space, showing genuinely dated work for Today, Tomorrow, or the following two days;
-- photo-assisted book title/author recognition after manual Library entry has been used enough to measure friction (issue #33);
-- observing Weekly Review notifications on the installed phone (issue #21);
-- Routines/Habits when the desired recurring-work model is concrete;
-- Trips, Fitness, or Events/Appointments when one becomes immediately useful;
-- optional two-way Google Calendar evaluation only after conflict rules are defined (issue #26);
-- advanced art-direction themes after the current palette/icon model has proven stable.
-
-The Today candidate must not invent dates for projects merely to make them appear. Undated work remains valid and continues to surface through Project and Weekly Review workflows.
+- **Encrypted Password Keychain** — a fully designed future candidate with a separate client-encrypted-vault threat model and staged implementation plan in [`password-keychain.md`](password-keychain.md); accepted, but explicitly not selected yet;
+- **Today/Home horizon** — a focused Home-linked view for genuinely dated work due Today, Tomorrow, or two days ahead, without pressuring uncertain work to acquire invented dates;
+- **photo-assisted book identification** — issue #33, only if manual title/author entry remains recurring friction;
+- **Weekly Review notification observation** — issue #21, an operational observation rather than a major product slice;
+- **Routines/Habits**, **Trips**, **Fitness**, or **Events/Appointments** when one becomes immediately useful;
+- **optional two-way Google Calendar** — issue #26, deliberately unselected until supported record types and conflict rules are explicit;
+- **advanced art-direction themes** after the existing palette/icon system has proven stable.
 
 ## Current non-goals
 
@@ -242,6 +264,7 @@ The Today candidate must not invent dates for projects merely to make them appea
 - full calendar replacement or two-way sync without explicit conflict rules;
 - full offline editing of every space or general cross-device conflict resolution;
 - automatic bank connections, Open Banking, or autonomous transaction categorisation;
+- mandatory bank reconciliation or accounting-grade completeness;
 - automatic travel booking or autonomous AI changes;
 - generic task-reminder or notification-centre behaviour;
 - universal media tracking, page-by-page reading progress, highlights, or ebook ingestion;
@@ -253,6 +276,10 @@ The Today candidate must not invent dates for projects merely to make them appea
 ### Today/Home horizon
 
 A focused view for near-term dated work, likely reached from a Home button rather than All Spaces. Candidate filters are Today, Tomorrow, and two days ahead. It should include only records with meaningful dates and must not pressure users to date uncertain work.
+
+### Encrypted Password Keychain
+
+A possible client-encrypted secrets vault, not plaintext records in the normal personal-data snapshot and not a claim to replace an audited password manager. Its threat model, recovery model, cryptographic boundary, and staged implementation are defined in [`password-keychain.md`](password-keychain.md). It remains a candidate until explicitly selected.
 
 ### Routines
 
@@ -291,10 +318,12 @@ The system is useful when:
 - one-off actions remain lightweight Tasks;
 - Thoughts and editable Notes remain distinct;
 - long-form typing remains responsive while persistence happens safely;
+- Notes can use useful formatting without sacrificing plain-text compatibility or safe rendering;
 - Weekly Review provides enough recorded context to avoid reconstructing the week from memory;
-- books move between useful views without duplicate records or compulsory dates;
-- personal expenses can be entered in seconds and a missed entry can be recovered during a bounded weekly check without reconstructing a month from memory;
-- monthly spending separates ordinary consumption from Future You allocation while preserving clear 50/30/20-style targets;
+- books move between useful views without duplicate records or compulsory dates, and Wishlist does not clutter the normal owned bookshelf;
+- personal expenses can be entered in seconds without requiring a second reconciliation habit;
+- monthly spending separates ordinary consumption from Future You, preserves a clear 50/30/20 reference, and makes the rolling Fun Fund understandable;
+- Insights can explain category and description patterns over useful periods without another finance data model;
 - phone and desktop share canonical data while remaining isolated from other accounts;
 - navigation grows without redesigning the shell;
 - themes add personality without obscuring semantic state or creating engagement pressure;

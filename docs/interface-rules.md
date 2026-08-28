@@ -47,7 +47,7 @@ A normal working space displays its name and then its content. Do not add a pret
 
 Use title-focused headers for Inbox, Projects, Tasks, Thoughts, Notes, Review, Library, Expenses, Accomplishments, Archive, Account & access, and Spaces. Remove decorative full stops from names and headings.
 
-Small dynamic context may remain when it communicates current state: Inbox item count, Review period, Library book count, Expenses checked-through/save state, explicit offline/pending/synchronising/error state, and useful result or view counts. It should remain concise and visually secondary.
+Small dynamic context may remain when it communicates current state: Inbox item count, Review period, Library book count, Expenses save state or selected analytics context, explicit offline/pending/synchronising/error state, and useful result or view counts. It should remain concise and visually secondary.
 
 Instructions belong near the moment where they are needed: an empty state, destructive action, complex field, one-time onboarding message, error, or unavailable state. Do not permanently place usage instructions above familiar content.
 

@@ -1,5 +1,7 @@
 # Slice 2 — Project Action Workflow
 
+> **Historical document.** This records the original Slice 2 design and validation state. Later work added multiple open project actions, optional action dates, automatic Active/Waiting transitions, standalone Tasks, PostgreSQL persistence, and other behavior that supersedes parts of this plan. Use `product-spec.md`, `roadmap.md`, and `architecture.md` for the current model.
+
 ## Purpose
 
 Slice 2 turns the phone-first prototype into a usable project workflow before durable deployment begins.

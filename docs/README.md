@@ -11,9 +11,9 @@ This directory contains current product/operations documentation plus a small am
 
 ## Feature guides
 
-- [`expenses.md`](expenses.md) — manual expense capture, 50/30/20 allocation view, weekly reconciliation, persistence, and V1 boundaries
+- [`expenses.md`](expenses.md) — manual expense capture, fixed 50/30/20 reference, rolling Fun Fund, Insights analytics, persistence, and current boundaries
 - [`notes.md`](notes.md) — Markdown subset, autosave rules, safe preview rendering, and regression checks
-- [`book-library.md`](book-library.md) — Library model, ratings, views, covers, caching, and regression checks
+- [`book-library.md`](book-library.md) — Library model, ratings, owned-first default view, Wishlist isolation, covers, caching, and regression checks
 - [`google-calendar.md`](google-calendar.md) — one-way Calendar setup, projection rules, and troubleshooting
 - [`offline-capture.md`](offline-capture.md) — Capture-only offline boundary, device queue, service worker, and recovery tests
 - [`password-keychain.md`](password-keychain.md) — accepted encrypted-vault boundary, threat model, recovery rules, and staged implementation plan
@@ -30,9 +30,10 @@ This directory contains current product/operations documentation plus a small am
 
 ## Historical context
 
+- [`slice-2-plan.md`](slice-2-plan.md) — historical plan for the original single-current-action project workflow; later multiple-action behavior is documented in the current product documents
 - [`slice-3-plan.md`](slice-3-plan.md) — concise retrospective of the durable-deployment slice and links to the documents that supersede its original plan
 
-Historical documents must say that they are historical. Do not follow old branch names, temporary-host instructions, or superseded ingress/backup plans when current operational guides disagree.
+Historical documents must say that they are historical. Do not follow old branch names, temporary-host instructions, browser-local assumptions, or superseded ingress/backup/product rules when current documents disagree.
 
 ## Repository-level guidance
 

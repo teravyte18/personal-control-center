@@ -49,8 +49,10 @@ export const expenseAllocationTargets: Record<ExpenseBucketId, number> = {
   future: 20,
 };
 
-// The Fun Fund intentionally starts fresh rather than reconstructing an
-// uncertain historical balance. Transactions before this date never affect it.
+// The Fun Fund starts fresh in the month containing this marker. The whole
+// starting calendar month is counted so its first balance matches that month's
+// Fun allowance minus all Fun spending, rather than depending on the day the
+// tracker happened to be introduced.
 export const funFundStartDate = "2026-08-21";
 
 export type ExpenseTransaction = {
@@ -311,7 +313,7 @@ export function calculateFunFund(
   const monthly = new Map<string, { incomeCents: number; funSpentCents: number }>();
   for (const transaction of transactions) {
     const month = transaction.occurredOn.slice(0, 7);
-    if (transaction.occurredOn < startedOn || month > throughMonth) continue;
+    if (month < startMonth || month > throughMonth) continue;
 
     const totals = monthly.get(month) ?? { incomeCents: 0, funSpentCents: 0 };
     if (transaction.type === "income") {

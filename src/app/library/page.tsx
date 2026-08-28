@@ -53,7 +53,7 @@ const priorityLabels: Record<BookPriority, string> = {
 };
 
 const shelves: { id: BookShelfId; label: string }[] = [
-  { id: "all", label: "All books" },
+  { id: "owned", label: "My library" },
   { id: "reading", label: "Currently reading" },
   { id: "up-next", label: "Up next" },
   { id: "owned-unread", label: "Owned unread" },
@@ -67,7 +67,7 @@ const ratingValues = Array.from({ length: 21 }, (_, index) => index / 2);
 export default function LibraryPage() {
   const { items, addItem, updateItem, deleteItem } = usePersonalData();
   const books = useMemo(() => getBooks(items), [items]);
-  const [shelf, setShelf] = useState<BookShelfId>("all");
+  const [shelf, setShelf] = useState<BookShelfId>("owned");
   const [query, setQuery] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [readingFilter, setReadingFilter] = useState<BookReadingState | "">("");

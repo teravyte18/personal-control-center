@@ -1,6 +1,6 @@
 # Book Library
 
-**Status: delivered in PR #32, with cover-delivery performance improvements in PR #35.**
+**Status: delivered in PR #32, with cover-delivery performance improvements in PR #35 and later shelf/rating refinements.**
 
 The Library is a books-first personal reading space. It is intentionally separate from Tasks, Projects, Notes, Thoughts, and later general-media ideas.
 
@@ -20,7 +20,13 @@ Dates are optional historical context. Selecting Finished supplies today only wh
 
 ## Library navigation
 
-The compact interface includes one View selector for All books, Currently reading, Up next, Owned unread, Wishlist, Finished, and Paused/abandoned; visible title/author search; expandable detailed filters with an active count; a current-view heading and result count; a responsive cover grid; and persistent earlier/later controls for Up next ordering.
+The default view is **My library**, which contains only books marked Owned. Wishlist entries are intentionally excluded so a large wishlist does not clutter the bookshelf view; they appear only when the explicit Wishlist view is selected.
+
+My library orders rated books from highest to lowest overall score. Unrated books follow the existing title ordering after the rated books. Reading states remain visible on each card rather than being split into separate default sections.
+
+The compact interface also includes generated views for Currently reading, Up next, Owned unread, Wishlist, Finished, and Paused/abandoned; visible title/author search; expandable detailed filters with an active count; a current-view heading and result count; a responsive cover grid; and persistent earlier/later controls for Up next ordering.
+
+Wishlist books are also excluded from the ordinary reading-state generated views, so Wishlist remains an intentional destination rather than leaking into Finished, Currently reading, or Paused/abandoned views.
 
 Changing a book's properties moves it between generated views immediately without duplicating records.
 
@@ -50,17 +56,20 @@ A book appears in generated Review context when its optional start or finish dat
 
 ## Regression checklist
 
-1. Create an Owned + Unread + Up next book and confirm it appears in the expected generated views without duplicates.
-2. Reorder several Up next books, refresh, and confirm persistence.
-3. Search by title/author and exercise detailed filters.
-4. Move a book through Reading and Finished, including editable/clearable optional dates.
-5. Verify zero versus Unrated ratings, aggregate calculation, and overall override.
-6. Save and reopen Thoughts and takeaways.
-7. Upload, cache, replace, remove, back up, and restore a cover.
-8. Organise an Inbox capture as Book and confirm context becomes initial takeaways.
-9. Confirm Books remain absent from Notes and Thoughts.
-10. Confirm dated reading activity appears in the correct Review period.
-11. Confirm cross-account cover URLs remain inaccessible.
+1. Open Library and confirm My library is the default and contains only Owned books.
+2. Confirm rated Owned books sort highest to lowest, followed by unrated books in title order.
+3. Confirm Wishlist books appear only in the explicit Wishlist view and do not leak into reading-state views.
+4. Create an Owned + Unread + Up next book and confirm it appears in the expected generated views without duplicates.
+5. Reorder several Up next books, refresh, and confirm persistence.
+6. Search by title/author and exercise detailed filters.
+7. Move a book through Reading and Finished, including editable/clearable optional dates.
+8. Verify zero versus Unrated ratings, aggregate calculation, and overall override.
+9. Save and reopen Thoughts and takeaways.
+10. Upload, cache, replace, remove, back up, and restore a cover.
+11. Organise an Inbox capture as Book and confirm context becomes initial takeaways.
+12. Confirm Books remain absent from Notes and Thoughts.
+13. Confirm dated reading activity appears in the correct Review period.
+14. Confirm cross-account cover URLs remain inaccessible.
 
 ## Current boundaries
 

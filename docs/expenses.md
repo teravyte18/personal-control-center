@@ -1,6 +1,6 @@
 # Personal Expenses
 
-Personal Expenses is a phone-first manual spending tracker. Its purpose is to make immediate logging easy enough to become the normal habit while keeping a lightweight weekly reconciliation flow as a safety net for missed transactions.
+Personal Expenses is a phone-first manual spending tracker. Its purpose is to make immediate logging easy enough to become the normal habit while still giving useful monthly and longer-term context without turning expense tracking into a reconciliation chore.
 
 The feature deliberately does not depend on bank APIs, Open Banking, CSV imports, notifications, or AI. Personal Control Center remains the canonical record of categorized transactions.
 
@@ -18,15 +18,7 @@ An expense requires only:
 
 Description is optional. The form collapses after a successful entry. Income uses the same form through an Expense / Income toggle.
 
-### Weekly check
-
-Immediate logging is the primary habit, not a requirement for perfect real-time capture. Weekly check exists to recover from missed transactions without reconstructing the week from memory.
-
-The bank transaction history is the checklist. PCC shows its own entries for the unchecked period, grouped by transaction date. The user compares the two lists, adds missing transactions through `+`, corrects or deletes entries when needed, and then marks the period checked.
-
-`reconciledThrough` is persisted in the user snapshot. Immediately after a check the period is caught up through that date. On a later day, the next check deliberately includes the previous boundary date once more before moving forward. This one-day overlap prevents a transaction made later on the day of the previous check from falling permanently between reconciliation periods. Before the first reconciliation, the view defaults to the most recent seven calendar days rather than presenting an unbounded historical period.
-
-Reconciliation is intentionally manual. There is no claim that PCC knows which bank transactions are missing.
+There is deliberately no weekly bank-reconciliation workflow in the UI. The intended habit is to record expenses when the bank notification arrives; an occasional missed transaction is acceptable and should not create a second recurring checking task.
 
 ## Data model
 
@@ -36,7 +28,7 @@ The snapshot contains:
 
 - `expenseTransactions` — user-scoped income and expense entries;
 - `expenseSettings` — retained currency/settings data for snapshot compatibility;
-- `expenseReconciliation` — the last checked-through date.
+- `expenseReconciliation` — legacy reconciliation state retained for snapshot compatibility, but no longer exposed in the Expenses UI.
 
 A transaction stores a stable ID, expense/income type, positive integer amount in cents, category ID, optional description, calendar date, and created/updated timestamps.
 
@@ -95,9 +87,9 @@ For the selected month the page derives:
 
 The Fun Fund is deliberately separate from the monthly allocation percentages. Its purpose is to let unused discretionary allowance roll forward so a larger later purchase can be made from accumulated room rather than making one month look arbitrarily bad.
 
-The fund starts fresh at **€0 on 21 August 2026**. Earlier history is intentionally ignored rather than inventing an opening balance from incomplete records.
+The current reset marker is **21 August 2026**, but the first Fund calculation covers the **entire August 2026 calendar month**. That makes the first displayed Fund balance equal the monthly Fun target minus all Fun spending recorded for August. The day-level marker is retained for compatibility, while months before August are ignored.
 
-For each month from that point onward:
+For each month from the starting month onward:
 
 ```text
 Fun Fund = max(€0, previous Fun Fund + 30% of recorded income - Fun spending)
@@ -105,10 +97,20 @@ Fun Fund = max(€0, previous Fun Fund + 30% of recorded income - Fun spending)
 
 The floor at zero is important: excess Fun spending never creates debt against future months. If the balance is zero during a low-income period, it simply remains zero. A later source of recorded income starts building the fund again without first repaying past discretionary spending.
 
-The Fun Fund therefore answers a different question from the allocation cards:
+## Insights view
 
-- allocation cards: "Where did this month's outflows go, and how does the euro amount compare with the income-based guide?"
-- Fun Fund: "How much deliberately accumulated discretionary room is available?"
+The former Weekly check tab is now **Insights**. It is intended to answer questions such as “where is my money going?” without requiring another maintenance habit.
+
+The view supports:
+
+- This month, last 3 months, last 6 months, this year, all time, and custom month ranges;
+- all-category or specific-category filtering;
+- a category-mix donut chart and totals;
+- total spending, transaction count, and average spending per month;
+- monthly spending trend for the selected range/filter;
+- description-level breakdown after selecting a category, so categories such as Subscriptions can reveal entries such as Netflix, Amazon Prime, and similar descriptions.
+
+Description grouping is intentionally based on the text entered on transactions rather than a second merchant/subcategory data model.
 
 ## Navigation
 
@@ -131,10 +133,9 @@ The current version does not include:
 - per-category hard budgets;
 - recurring-transaction generation;
 - debt, account-balance, net-worth, tax, or investment-performance tracking;
-- multi-currency conversion;
-- dense analytics dashboards or long-term trend charts.
+- multi-currency conversion.
 
-The acceptance question remains behavioral: can immediate capture plus the weekly safety net stay easy enough to keep the data current?
+The goal remains a lightweight record that is easy to keep reasonably current, with analytics useful enough to learn from the data already captured.
 
 ## Regression checks
 
@@ -147,9 +148,11 @@ When Expenses changes, verify:
 - Essentials + Fun + Future You actual percentages use total monthly outflows and sum to 100% when outflows exist;
 - absolute bucket targets use the fixed 50/30/20 percentages of monthly income;
 - a month with no income still produces meaningful allocation shares while euro targets are zero;
-- Fun Fund ignores transactions before its reset date, rolls unused 30% income allowance forward, and never carries a negative balance;
-- add/update/delete and reconciliation mutations survive normalization and export;
-- later weekly checks overlap the previous boundary date so same-day late transactions are not skipped;
+- the first Fun Fund month equals that month's Fun target minus all Fun spending;
+- later Fun Fund months roll unused 30% income allowance forward and never carry a negative balance;
+- Insights filters respect date ranges and category selection, and selected categories break down by description;
+- add/update/delete mutations survive normalization and export;
+- legacy reconciliation state continues to normalize safely even though the UI does not expose it;
 - expense-only mutations do not trigger Google Calendar reconciliation;
 - Expenses remains pinnable without changing the four default mobile destinations;
 - Quick Capture remains the only advertised offline workflow.

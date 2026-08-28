@@ -9,7 +9,6 @@ import {
   expenseBucketIds,
   expenseBucketLabels,
   getExpenseCategory,
-  nextExpenseDate,
   parseAmountToCents,
   transactionsForMonth,
   type ExpenseBucketId,
@@ -19,18 +18,13 @@ import {
   type ExpenseTransactionUpdates,
 } from "@/domain/expenses";
 import { useExpenses } from "@/hooks/use-expenses";
+import { ExpenseInsights } from "./insights";
 
 function localDateOnly(date = new Date()) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
-}
-
-function shiftLocalDate(date: string, delta: number) {
-  const value = new Date(`${date}T12:00:00`);
-  value.setDate(value.getDate() + delta);
-  return localDateOnly(value);
 }
 
 function shiftMonth(month: string, delta: number) {
@@ -54,13 +48,6 @@ function formatDate(date: string) {
   });
 }
 
-function daysBetweenInclusive(start: string, end: string) {
-  const startDate = new Date(`${start}T00:00:00.000Z`).getTime();
-  const endDate = new Date(`${end}T00:00:00.000Z`).getTime();
-  if (endDate < startDate) return 0;
-  return Math.floor((endDate - startDate) / 86_400_000) + 1;
-}
-
 function formatMoney(cents: number, currency: string) {
   return new Intl.NumberFormat(undefined, {
     style: "currency",
@@ -77,17 +64,15 @@ export default function ExpensesPage() {
   const {
     transactions,
     settings,
-    reconciliation,
     loaded,
     saving,
     error,
     addTransaction,
     updateTransaction,
     deleteTransaction,
-    setReconciledThrough,
   } = useExpenses();
   const today = localDateOnly();
-  const [view, setView] = useState<"month" | "check">("month");
+  const [view, setView] = useState<"month" | "insights">("month");
   const [month, setMonth] = useState(today.slice(0, 7));
   const [entryOpen, setEntryOpen] = useState(false);
 
@@ -95,11 +80,7 @@ export default function ExpensesPage() {
     <section className="mx-auto max-w-4xl">
       <div className="flex items-end justify-between gap-4">
         <div>
-          <p className="text-sm text-slate-500">
-            {saving ? "Saving…" : reconciliation.reconciledThrough
-              ? `Checked through ${formatDate(reconciliation.reconciledThrough)}`
-              : "No weekly check yet"}
-          </p>
+          <p className="text-sm text-slate-500">{saving ? "Saving…" : `${transactions.length} transactions`}</p>
           <h2 className="mt-1 text-3xl font-semibold tracking-tight">Expenses</h2>
         </div>
         <button
@@ -138,10 +119,10 @@ export default function ExpensesPage() {
         </button>
         <button
           type="button"
-          onClick={() => setView("check")}
-          className={`min-h-11 rounded-xl px-4 text-sm font-semibold ${view === "check" ? "bg-slate-950 text-white" : "text-slate-500"}`}
+          onClick={() => setView("insights")}
+          className={`min-h-11 rounded-xl px-4 text-sm font-semibold ${view === "insights" ? "bg-slate-950 text-white" : "text-slate-500"}`}
         >
-          Weekly check
+          Insights
         </button>
       </div>
 
@@ -157,15 +138,7 @@ export default function ExpensesPage() {
           onDeleteTransaction={deleteTransaction}
         />
       ) : (
-        <WeeklyCheck
-          transactions={transactions}
-          settings={settings}
-          reconciledThrough={reconciliation.reconciledThrough}
-          today={today}
-          onUpdateTransaction={updateTransaction}
-          onDeleteTransaction={deleteTransaction}
-          onSetReconciledThrough={setReconciledThrough}
-        />
+        <ExpenseInsights transactions={transactions} settings={settings} today={today} />
       )}
     </section>
   );
@@ -468,99 +441,6 @@ function BucketProgress({
             : `${formatMoney(Math.abs(remainingCents), currency)} over`}
         </span>
       </div>
-    </div>
-  );
-}
-
-function WeeklyCheck({
-  transactions,
-  settings,
-  reconciledThrough,
-  today,
-  onUpdateTransaction,
-  onDeleteTransaction,
-  onSetReconciledThrough,
-}: {
-  transactions: ExpenseTransaction[];
-  settings: ExpenseSettings;
-  reconciledThrough: string;
-  today: string;
-  onUpdateTransaction: (id: string, updates: ExpenseTransactionUpdates) => boolean;
-  onDeleteTransaction: (id: string) => void;
-  onSetReconciledThrough: (date: string) => boolean;
-}) {
-  const initialStart = shiftLocalDate(today, -6);
-  const start = reconciledThrough ? nextExpenseDate(reconciledThrough) : initialStart;
-  const uncheckedDays = daysBetweenInclusive(start, today);
-  const uncheckedTransactions = useMemo(
-    () => transactions.filter((transaction) => transaction.occurredOn >= start && transaction.occurredOn <= today),
-    [transactions, start, today],
-  );
-  const groups = useMemo(() => {
-    const grouped = new Map<string, ExpenseTransaction[]>();
-    for (const transaction of uncheckedTransactions) {
-      const list = grouped.get(transaction.occurredOn) ?? [];
-      list.push(transaction);
-      grouped.set(transaction.occurredOn, list);
-    }
-    return [...grouped.entries()].sort((left, right) => right[0].localeCompare(left[0]));
-  }, [uncheckedTransactions]);
-
-  if (!uncheckedDays) {
-    return (
-      <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm">
-        <p className="text-lg font-semibold">Expenses are checked through today.</p>
-        <p className="mt-2 text-sm text-slate-500">The next check starts with tomorrow’s transactions.</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="mt-5">
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-sm font-semibold">{uncheckedDays} {uncheckedDays === 1 ? "day" : "days"} unchecked</p>
-            <p className="mt-1 text-xs text-slate-500">{formatDate(start)} → {formatDate(today)}</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => onSetReconciledThrough(today)}
-            className="min-h-11 shrink-0 rounded-xl bg-slate-950 px-4 text-xs font-semibold text-white"
-          >
-            Checked through today
-          </button>
-        </div>
-        <p className="mt-3 text-sm leading-6 text-slate-500">
-          Compare this period against your bank activity. Use + to add anything missing, then mark the period checked.
-        </p>
-      </div>
-
-      <div className="mt-5 flex items-center justify-between gap-3">
-        <h3 className="text-sm font-semibold text-slate-700">PCC entries in this period</h3>
-        <span className="text-xs text-slate-500">{uncheckedTransactions.length}</span>
-      </div>
-
-      {groups.length ? (
-        <div className="mt-3 space-y-4">
-          {groups.map(([date, dateTransactions]) => (
-            <section key={date}>
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">{formatDate(date)}</p>
-              <TransactionList
-                transactions={dateTransactions}
-                settings={settings}
-                showDate={false}
-                onUpdate={onUpdateTransaction}
-                onDelete={onDeleteTransaction}
-              />
-            </section>
-          ))}
-        </div>
-      ) : (
-        <div className="mt-3 rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
-          No PCC entries in this unchecked period yet.
-        </div>
-      )}
     </div>
   );
 }

@@ -38,7 +38,7 @@ export type BookItem = {
   details: BookDetails;
 };
 
-export type BookShelfId = "all" | "reading" | "up-next" | "owned-unread" | "wishlist" | "finished" | "paused";
+export type BookShelfId = "all" | "owned" | "reading" | "up-next" | "owned-unread" | "wishlist" | "finished" | "paused";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -156,19 +156,23 @@ export function bookMatchesShelf(book: BookItem, shelf: BookShelfId) {
   const { details } = book;
   switch (shelf) {
     case "all":
-      return true;
+      return details.ownership !== "wishlist";
+    case "owned":
+      return details.ownership === "owned";
     case "reading":
-      return details.readingState === "reading";
+      return details.ownership !== "wishlist" && details.readingState === "reading";
     case "up-next":
-      return details.priority === "up-next" && ["unread", "paused"].includes(details.readingState);
+      return details.ownership !== "wishlist"
+        && details.priority === "up-next"
+        && ["unread", "paused"].includes(details.readingState);
     case "owned-unread":
       return details.ownership === "owned" && details.readingState === "unread";
     case "wishlist":
       return details.ownership === "wishlist";
     case "finished":
-      return details.readingState === "finished";
+      return details.ownership !== "wishlist" && details.readingState === "finished";
     case "paused":
-      return ["paused", "abandoned"].includes(details.readingState);
+      return details.ownership !== "wishlist" && ["paused", "abandoned"].includes(details.readingState);
   }
 }
 
@@ -183,6 +187,15 @@ export function sortBooksForShelf(books: readonly BookItem[], shelf: BookShelfId
           return left.details.upNextOrder - right.details.upNextOrder;
         }
         if (leftOrdered !== rightOrdered) return leftOrdered ? -1 : 1;
+      }
+      if (shelf === "owned") {
+        const leftScore = getBookScore(left.details);
+        const rightScore = getBookScore(right.details);
+        if (leftScore !== undefined && rightScore !== undefined && leftScore !== rightScore) {
+          return rightScore - leftScore;
+        }
+        if (leftScore !== undefined && rightScore === undefined) return -1;
+        if (leftScore === undefined && rightScore !== undefined) return 1;
       }
       if (shelf === "finished") {
         const byFinish = right.details.finishDate.localeCompare(left.details.finishDate);

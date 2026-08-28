@@ -16,14 +16,15 @@ graph LR
     EXT["Workflow extensions<br/>projects and Notes<br/>✅ PR #29, #30"]
     S7["Slice 7<br/>Book Library<br/>✅ PR #32"]
     S8["Slice 8<br/>UI and themes<br/>✅ PR #34, #35, #36"]
-    S9["Slice 9<br/>Personal Expenses<br/>🚧 in progress"]
+    S9["Slice 9<br/>Personal Expenses<br/>✅ PR #45, #47, #48"]
+    NEXT["Next major slice<br/>not selected"]
 
-    S1 --> S2 --> S3 --> HARDEN --> S4 --> S5 --> S6 --> EXT --> S7 --> S8 --> S9
+    S1 --> S2 --> S3 --> HARDEN --> S4 --> S5 --> S6 --> EXT --> S7 --> S8 --> S9 --> NEXT
 
     classDef done fill:#ecfdf5,stroke:#10b981,color:#065f46;
     classDef pending fill:#f8fafc,stroke:#94a3b8,color:#334155;
-    class S1,S2,S3,HARDEN,S4,S5,S6,EXT,S7,S8 done;
-    class S9 pending;
+    class S1,S2,S3,HARDEN,S4,S5,S6,EXT,S7,S8,S9 done;
+    class NEXT pending;
 ```
 
 ## Slice 1 — Phone-first foundation
@@ -37,6 +38,8 @@ Delivered the initial Next.js application shell, Capture, Inbox, Projects, Thoug
 **Status: complete in PR #10.**
 
 Delivered shared domain actions, dated project actions with history, compact cards and full detail views, completion notes, Waiting, overdue attention, Accomplishments, recoverable Archive, and focused lifecycle tests.
+
+The original Slice 2 planning document is now explicitly historical; later project-action changes supersede parts of its single-current-action model.
 
 ## Slice 3 — Durable personal deployment
 
@@ -102,11 +105,15 @@ PR #42 later removed the lossy Cancel flow, added debounced autosave and safe Ma
 
 ## Slice 7 — Book Library
 
-**Status: complete in PR #32.**
+**Status: complete in PR #32, with later refinements.**
 
 Delivered an available and pinnable Library; direct and Inbox-to-Book creation; independent reading state, ownership, and priority; generated views; title/author search and expandable filters; persistent Up next ordering; optional metadata, dates, ratings, overall override, and Thoughts and takeaways; private user-scoped covers; dated reading activity in Weekly Review; and import/export/backup/restore compatibility.
 
-PR #35 later added bounded WebP display responses, private caching, and ETag revalidation while preserving original uploads.
+PR #35 added bounded WebP display responses, private caching, and ETag revalidation while preserving original uploads.
+
+PR #44 moved ratings from 0–5 to 0–10 with safe legacy conversion and added the one-off Amazon Library importer.
+
+PR #48 made **My library** the default owned-only view, isolated Wishlist entries from the normal bookshelf and reading-state views, and sorted rated owned books from highest to lowest while retaining title ordering for unrated books.
 
 Future Library enhancement issue #33 tracks photo-assisted title/author recognition after enough real use exists to judge the value.
 
@@ -126,39 +133,49 @@ This UI slice is complete. Future visual work should be selected independently r
 
 ## Slice 9 — Personal Expenses
 
-**Status: selected and implementation in progress on `agent/personal-expenses`.**
+**Status: complete in PR #45, with the current model finalized through PRs #47 and #48.**
 
-The feature is based on the useful behavior of the earlier spreadsheet budget workflow rather than a literal spreadsheet recreation. The primary goal is to make manual logging easy enough to happen immediately after spending while preserving a weekly recovery path for transactions that were missed.
+PR #45 established the manual expense/income records, detailed categories mapped to Essentials/Fun/Future You, monthly summary, editable transaction history, authenticated snapshot persistence, navigation, and the original weekly-reconciliation concept.
 
-Accepted V1 boundary:
+PR #47 refined the financial model:
 
-- an available and pinnable Expenses space with Quick Add always visible;
-- expense and income records using amount, category, date, and optional description;
-- date defaults to today and repeated entry keeps useful context instead of resetting every field;
-- detailed categories map automatically to Essentials, Fun, or Future You;
-- configurable high-level allocation targets, defaulting to 50/30/20 and required to total 100%;
-- a monthly view with income, ordinary spending, Future You allocation, remaining money, bucket target/actual progress, category totals, and editable transactions;
-- Future You remains part of allocation mathematics but is visually separate from consumption spending;
-- a Weekly check view that compares PCC's chronological entries against the user's bank history and stores a durable checked-through date;
-- manual add/edit/delete during reconciliation rather than automated transaction matching;
-- user-scoped snapshot persistence, normal import/export/backup compatibility, and no unnecessary Calendar reconciliation;
-- EUR and online-only entry for V1.
+- actual Essentials/Fun/Future You percentages describe shares of total monthly outflows;
+- absolute euro targets remain the fixed 50/30/20 percentages of recorded income;
+- the in-app target editor was removed;
+- Remaining became Net cash flow;
+- a rolling Fun Fund was added, with unused 30% income allowance rolling forward and the balance never carrying negative debt.
 
-The detailed behavior and current non-goals are recorded in [`expenses.md`](expenses.md).
+PR #48 then aligned the workflow with real use:
 
-Before this slice can be marked complete it still requires normal CI/build/production-stack validation and real phone testing of both immediate entry and the weekly-check flow.
+- Quick Add remains compact behind `+` rather than permanently occupying the page;
+- the weekly bank-check workflow was removed entirely;
+- the intended habit is to record from the bank notification when practical, with occasional missed entries accepted;
+- Weekly check was replaced with **Insights**;
+- Insights supports This month, 3 months, 6 months, This year, All time, and custom month ranges;
+- Insights can filter by category, show category-mix or description-level breakdowns, render a donut summary, and show monthly trends;
+- the first Fun Fund month uses the whole starting calendar month, so its first balance matches that month's Fun target minus all Fun spending.
+
+The current boundary remains deliberately lightweight:
+
+- EUR and online-only expense entry;
+- no bank credentials, Open Banking, automatic statement matching, autonomous categorisation, or CSV import;
+- no requirement for accounting-grade completeness;
+- legacy reconciliation snapshot state remains readable for compatibility but is not exposed in the UI;
+- expense data continues to use the normal authenticated snapshot/export/backup boundary and does not trigger Google Calendar reconciliation.
+
+See [`expenses.md`](expenses.md) for the detailed current behaviour.
 
 ## Current selection
 
-**Personal Expenses is the selected major product slice.**
+**No new major product slice is selected after Personal Expenses.**
 
-Other ideas remain candidates rather than an ordered queue.
+This is intentional: the roadmap should not silently turn the first candidate below into “next.” The next slice should be chosen from actual value or friction after using the current system.
 
 ### Encrypted Password Keychain
 
-**Feasibility decision: accepted future candidate; implementation not yet selected.**
+**Feasibility decision: accepted future candidate; implementation not selected.**
 
-The accepted boundary is a client-encrypted personal secrets vault, not plaintext records in the normal personal-data snapshot and not a claim to replace a mature audited password manager. The complete threat model and staged design are recorded in [`password-keychain.md`](password-keychain.md).
+PR #43 closed the design/evaluation issue and documented the accepted boundary in [`password-keychain.md`](password-keychain.md). This is currently the most fully specified major candidate, but that does not make it the selected next slice.
 
 Candidate behaviour and constraints:
 
@@ -171,7 +188,7 @@ Candidate behaviour and constraints:
 - explicit limitation that a compromised browser/device or malicious server code delivered at unlock can still capture decrypted data;
 - three security-focused implementation stages: encrypted foundation, locked phone-first UI, then hardening and independent review before important production use.
 
-Issue #41 tracks the design decision. Implementation should receive new stage-specific issues rather than expanding that evaluation issue into one large feature PR.
+If selected later, implementation should receive new stage-specific issues rather than reopening the completed feasibility decision as one large feature PR.
 
 ### Today/Home horizon
 
@@ -183,6 +200,8 @@ Candidate behaviour:
 - dated open Tasks and dated open project actions;
 - no invented dates merely to make uncertain work appear;
 - undated projects/actions/tasks remain valid and continue to surface through their normal spaces and Weekly Review.
+
+This is the clearest planning-focused candidate if the next priority is improving “what matters in the next couple of days?” rather than adding a new data domain.
 
 ### Routines/Habits
 
@@ -206,7 +225,7 @@ Photo-assisted identification is tracked in issue #33. Metadata lookup, progress
 
 ### Notification observation
 
-Issue #21 remains open for real installed-PWA behaviour when foregrounded, backgrounded, fully closed, battery-optimised, or restarted.
+Issue #21 remains open for real installed-PWA behaviour when foregrounded, backgrounded, fully closed, battery-optimised, or restarted. This is an observation/validation item, not the selected next product slice.
 
 ### Optional two-way Calendar
 

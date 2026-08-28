@@ -23,8 +23,8 @@
 - Start with `docs/README.md` for the documentation map.
 - Read `docs/product-spec.md`, `docs/roadmap.md`, and `docs/architecture.md` before major changes.
 - Read `docs/interface-rules.md` for shell, copy, spacing, theme, and semantic-colour rules.
-- Read the relevant feature or operations document before changing authentication, uploads, Calendar, offline capture, Funnel, backups, or the Library.
-- Treat `docs/slice-3-plan.md` as historical context only; current deployment guidance lives in the architecture and operations documents.
+- Read the relevant feature or operations document before changing authentication, uploads, Calendar, offline capture, Funnel, backups, Notes, the Library, or Personal Expenses.
+- Treat `docs/slice-2-plan.md` and `docs/slice-3-plan.md` as historical context only; current behavior and deployment guidance live in the product, architecture, feature, and operations documents.
 
 ## Development
 

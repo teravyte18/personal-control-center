@@ -45,10 +45,10 @@ function formatMoney(cents: number, currency: string) {
   }).format(cents / 100);
 }
 
-function formatMonth(month: string, year = true) {
+function formatMonth(month: string, includeYear = true) {
   return new Date(`${month}-01T12:00:00`).toLocaleDateString(undefined, {
     month: "short",
-    ...(year ? { year: "numeric" as const } : {}),
+    ...(includeYear ? { year: "numeric" as const } : {}),
   });
 }
 
@@ -61,8 +61,7 @@ function shiftMonth(month: string, delta: number) {
 function endOfMonth(month: string) {
   const [year, monthNumber] = month.split("-").map(Number);
   const value = new Date(year, monthNumber, 0, 12);
-  const day = String(value.getDate()).padStart(2, "0");
-  return `${month}-${day}`;
+  return `${month}-${String(value.getDate()).padStart(2, "0")}`;
 }
 
 function monthsInRange(startDate: string, endDate: string) {
@@ -91,10 +90,11 @@ function rangeForPreset(
   if (preset === "6m") startDate = `${shiftMonth(currentMonth, -5)}-01`;
   if (preset === "year") startDate = `${today.slice(0, 4)}-01-01`;
   if (preset === "all") {
-    const earliest = transactions
+    const expenseDates = transactions
       .filter((transaction) => transaction.type === "expense")
-      .reduce((minimum, transaction) => minimum && minimum < transaction.occurredOn ? minimum : transaction.occurredOn, "");
-    startDate = earliest || `${currentMonth}-01`;
+      .map((transaction) => transaction.occurredOn)
+      .sort();
+    startDate = expenseDates[0] || `${currentMonth}-01`;
   }
   if (preset === "custom") {
     const from = customFrom || currentMonth;
@@ -158,17 +158,19 @@ export function ExpenseInsights({
   const breakdown = useMemo(() => {
     const rows = new Map<string, BreakdownRow>();
     for (const transaction of filteredExpenses) {
-      let key = transaction.categoryId;
-      let label = getExpenseCategory(transaction.categoryId)?.label ?? transaction.categoryId;
-      if (categoryId) {
-        const description = transaction.description.trim();
-        key = description ? description.toLocaleLowerCase() : "__no-description";
-        label = description || "No description";
-      }
+      const description = transaction.description.trim();
+      const key = categoryId
+        ? description.toLocaleLowerCase() || "__no-description"
+        : transaction.categoryId;
+      const label = categoryId
+        ? description || "No description"
+        : getExpenseCategory(transaction.categoryId)?.label ?? transaction.categoryId;
       const current = rows.get(key) ?? { key, label, cents: 0, count: 0 };
-      current.cents += transaction.amountCents;
-      current.count += 1;
-      rows.set(key, current);
+      rows.set(key, {
+        ...current,
+        cents: current.cents + transaction.amountCents,
+        count: current.count + 1,
+      });
     }
     return [...rows.values()].sort((left, right) => right.cents - left.cents || left.label.localeCompare(right.label));
   }, [filteredExpenses, categoryId]);
@@ -287,12 +289,16 @@ function Metric({ label, value }: { label: string; value: string }) {
 }
 
 function DonutChart({ rows, totalCents, currency }: { rows: BreakdownRow[]; totalCents: number; currency: string }) {
-  let cursor = 0;
-  const stops = rows.map((row, index) => {
-    const start = cursor;
-    cursor += totalCents > 0 ? row.cents / totalCents * 100 : 0;
-    return `${chartPalette[index % chartPalette.length]} ${start}% ${cursor}%`;
-  });
+  const stops = rows.reduce<{ cursor: number; stops: string[] }>((result, row, index) => {
+    const nextCursor = result.cursor + (totalCents > 0 ? row.cents / totalCents * 100 : 0);
+    return {
+      cursor: nextCursor,
+      stops: [
+        ...result.stops,
+        `${chartPalette[index % chartPalette.length]} ${result.cursor}% ${nextCursor}%`,
+      ],
+    };
+  }, { cursor: 0, stops: [] }).stops;
   const background = `conic-gradient(${stops.join(", ")})`;
 
   return (

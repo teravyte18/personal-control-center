@@ -75,7 +75,7 @@ test("keeps zero ratings distinct from unrated and honors an overall override", 
   assert.equal(getBookScore(details), 10);
 });
 
-test("builds independent generated shelves", () => {
+test("keeps wishlist books isolated from normal library shelves", () => {
   const upNext = { ...createBookDetails(), ownership: "owned" as const, priority: "up-next" as const, upNextOrder: 2 };
   const reading = { ...createBookDetails(), readingState: "reading" as const, ownership: "borrowed" as const };
   const finishedWishlist = { ...createBookDetails(), readingState: "finished" as const, ownership: "wishlist" as const };
@@ -87,10 +87,34 @@ test("builds independent generated shelves", () => {
     item("archived", serializeBookDetails(createBookDetails()), { status: "archived" }),
   ]);
   assert.equal(books.length, 3);
+  assert.equal(bookMatchesShelf(books[0], "owned"), true);
   assert.equal(bookMatchesShelf(books[0], "owned-unread"), true);
   assert.deepEqual(sortBooksForShelf(books, "reading").map((book) => book.item.id), ["reading"]);
   assert.deepEqual(sortBooksForShelf(books, "wishlist").map((book) => book.item.id), ["finished"]);
+  assert.deepEqual(sortBooksForShelf(books, "finished").map((book) => book.item.id), []);
+  assert.deepEqual(sortBooksForShelf(books, "all").map((book) => book.item.id), ["reading", "up-next"]);
   assert.deepEqual(sortBooksForShelf(books, "up-next").map((book) => book.item.id), ["up-next"]);
+});
+
+test("owned shelf sorts rated books high to low and leaves unrated books in title order", () => {
+  const high = { ...createBookDetails(), ownership: "owned" as const, ratings: { overallOverride: 9 } };
+  const low = { ...createBookDetails(), ownership: "owned" as const, ratings: { overallOverride: 6.5 } };
+  const unrated = { ...createBookDetails(), ownership: "owned" as const };
+  const wishlist = { ...createBookDetails(), ownership: "wishlist" as const, ratings: { overallOverride: 10 } };
+  const books = getBooks([
+    item("z-unrated", serializeBookDetails(unrated), { title: "Zeta" }),
+    item("low", serializeBookDetails(low), { title: "Beta" }),
+    item("a-unrated", serializeBookDetails(unrated), { title: "Alpha" }),
+    item("high", serializeBookDetails(high), { title: "Gamma" }),
+    item("wishlist", serializeBookDetails(wishlist), { title: "Wishlist" }),
+  ]);
+
+  assert.deepEqual(sortBooksForShelf(books, "owned").map((book) => book.item.id), [
+    "high",
+    "low",
+    "a-unrated",
+    "z-unrated",
+  ]);
 });
 
 test("reorders the up-next queue with persistent numeric positions", () => {
@@ -107,6 +131,6 @@ test("reorders the up-next queue with persistent numeric positions", () => {
 
 test("matches optional dates against review periods", () => {
   assert.equal(dateWithinPeriod("2026-07-25", "2026-07-25", "2026-07-31"), true);
-  assert.equal(dateWithinPeriod("", "2026-07-25", "2026-07-31"), false);
+  assert.equal(dateWithinPeriod("", "2026-07-25", "2026-07-25"), false);
   assert.equal(dateWithinPeriod("2026-08-01", "2026-07-25", "2026-07-31"), false);
 });

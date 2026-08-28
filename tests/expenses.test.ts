@@ -100,10 +100,40 @@ test("allocation shares remain meaningful with no monthly income while absolute 
   assert.deepEqual(expenseAllocationTargets, { essentials: 50, fun: 30, future: 20 });
 });
 
-test("Fun Fund starts fresh, rolls unused allowance forward, and never carries debt", () => {
+test("Fun Fund first month matches that month's Fun target minus all Fun spending", () => {
   const transactions = [
     transaction({
-      id: "old-income",
+      id: "income",
+      type: "income",
+      categoryId: "paycheck",
+      amountCents: 135_460,
+      occurredOn: "2026-08-10",
+    }),
+    transaction({
+      id: "early-fun",
+      categoryId: "books",
+      amountCents: 3_470,
+      occurredOn: "2026-08-15",
+    }),
+    transaction({
+      id: "late-fun",
+      categoryId: "going-out",
+      amountCents: 4_239,
+      occurredOn: "2026-08-25",
+    }),
+  ];
+
+  const month = calculateExpenseMonth(transactions, "2026-08");
+  const fund = calculateFunFund(transactions, "2026-08");
+  assert.equal(month.buckets.fun.targetCents, 40_638);
+  assert.equal(month.buckets.fun.remainingCents, 32_929);
+  assert.equal(fund.balanceCents, month.buckets.fun.remainingCents);
+});
+
+test("Fun Fund uses the full starting month, rolls unused allowance forward, and never carries debt", () => {
+  const transactions = [
+    transaction({
+      id: "aug-income",
       type: "income",
       categoryId: "paycheck",
       amountCents: 300_000,
@@ -150,10 +180,10 @@ test("Fun Fund starts fresh, rolls unused allowance forward, and never carries d
     allowanceCents: 0,
     funSpentCents: 0,
   });
-  assert.equal(calculateFunFund(transactions, "2026-08").balanceCents, 0);
-  assert.equal(calculateFunFund(transactions, "2026-09").balanceCents, 50_000);
-  assert.equal(calculateFunFund(transactions, "2026-10").balanceCents, 0);
-  assert.equal(calculateFunFund(transactions, "2026-11").balanceCents, 30_000);
+  assert.equal(calculateFunFund(transactions, "2026-08").balanceCents, 70_000);
+  assert.equal(calculateFunFund(transactions, "2026-09").balanceCents, 120_000);
+  assert.equal(calculateFunFund(transactions, "2026-10").balanceCents, 40_000);
+  assert.equal(calculateFunFund(transactions, "2026-11").balanceCents, 70_000);
 });
 
 test("legacy stored budget targets still normalize safely", () => {
@@ -183,7 +213,7 @@ test("reconciliation accepts an empty or valid date and rejects malformed values
   );
 });
 
-test("weekly reconciliation overlaps an older boundary date to avoid same-day blind spots", () => {
+test("legacy reconciliation boundary logic remains stable for stored snapshots", () => {
   const duringCheck = new Date(2026, 7, 20, 18, 0, 0);
   const nextDay = new Date(2026, 7, 21, 9, 0, 0);
 

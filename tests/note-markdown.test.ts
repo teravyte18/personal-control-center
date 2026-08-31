@@ -63,3 +63,19 @@ test("parses GitHub-style tables and fills missing cells safely", () => {
   assert.equal(table.rows.length, 2);
   assert.deepEqual(table.rows[1][1], []);
 });
+
+test("preserves single line breaks inside note paragraphs", () => {
+  const blocks = parseNoteMarkdown([
+    "Trying line break",
+    "123",
+    "testing",
+  ].join("\n"));
+
+  assert.equal(blocks.length, 1);
+  const paragraph = blocks[0];
+  assert.equal(paragraph.type, "paragraph");
+  if (paragraph.type !== "paragraph") return;
+  assert.deepEqual(paragraph.content, [
+    { type: "text", value: "Trying line break\n123\ntesting" },
+  ]);
+});

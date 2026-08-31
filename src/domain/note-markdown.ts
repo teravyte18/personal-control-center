@@ -174,7 +174,7 @@ export function parseNoteMarkdown(value: string): MarkdownBlock[] {
       paragraph.push(lines[index].trim());
       index += 1;
     }
-    blocks.push({ type: "paragraph", content: parseInlineMarkdown(paragraph.join(" ")) });
+    blocks.push({ type: "paragraph", content: parseInlineMarkdown(paragraph.join("\n")) });
   }
 
   return blocks;

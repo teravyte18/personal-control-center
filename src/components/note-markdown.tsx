@@ -3,6 +3,7 @@ import {
   parseNoteMarkdown,
   safeMarkdownHref,
   type MarkdownInline,
+  type MarkdownList,
 } from "@/domain/note-markdown";
 
 export function NoteMarkdown({ value }: { value: string }) {
@@ -34,23 +35,7 @@ export function NoteMarkdown({ value }: { value: string }) {
             </pre>
           );
         }
-        if (block.type === "list") {
-          const Tag = block.ordered ? "ol" : "ul";
-          return (
-            <Tag key={key} className={`${block.ordered ? "list-decimal" : "list-disc"} space-y-2 pl-6`}>
-              {block.items.map((item, itemIndex) => (
-                <li key={`${key}-${itemIndex}`} className={item.checked === null ? "pl-1" : "list-none -ml-5 flex gap-2"}>
-                  {item.checked === null ? null : (
-                    <span aria-hidden="true" className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded border border-slate-400 text-xs font-bold">
-                      {item.checked ? "✓" : ""}
-                    </span>
-                  )}
-                  <span>{renderInline(item.content, `${key}-${itemIndex}`)}</span>
-                </li>
-              ))}
-            </Tag>
-          );
-        }
+        if (block.type === "list") return renderList(block, key);
 
         return (
           <div key={key} className="overflow-x-auto rounded-2xl border border-slate-200">
@@ -80,6 +65,37 @@ export function NoteMarkdown({ value }: { value: string }) {
         );
       })}
     </div>
+  );
+}
+
+function renderList(list: MarkdownList, keyPrefix: string, nested = false): ReactNode {
+  const Tag = list.ordered ? "ol" : "ul";
+  return (
+    <Tag
+      key={keyPrefix}
+      className={`${list.ordered ? "list-decimal" : "list-disc"} ${nested ? "mt-1.5 space-y-1 pl-6" : "space-y-2 pl-6"}`}
+    >
+      {list.items.map((item, itemIndex) => {
+        const itemKey = `${keyPrefix}-${itemIndex}`;
+        return (
+          <li key={itemKey} className={item.checked === null ? "pl-1" : "list-none -ml-5"}>
+            <div className={item.checked === null ? "" : "flex gap-2"}>
+              {item.checked === null ? null : (
+                <span aria-hidden="true" className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded border border-slate-400 text-xs font-bold">
+                  {item.checked ? "✓" : ""}
+                </span>
+              )}
+              <span>{renderInline(item.content, itemKey)}</span>
+            </div>
+            {item.children.map((child, childIndex) => (
+              <div key={`${itemKey}-child-${childIndex}`} className={item.checked === null ? "" : "ml-5"}>
+                {renderList(child, `${itemKey}-child-list-${childIndex}`, true)}
+              </div>
+            ))}
+          </li>
+        );
+      })}
+    </Tag>
   );
 }
 

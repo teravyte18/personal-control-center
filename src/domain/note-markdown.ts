@@ -8,6 +8,13 @@ export type MarkdownInline =
 export type MarkdownListItem = {
   content: MarkdownInline[];
   checked: boolean | null;
+  children: MarkdownList[];
+};
+
+export type MarkdownList = {
+  type: "list";
+  ordered: boolean;
+  items: MarkdownListItem[];
 };
 
 export type MarkdownBlock =
@@ -15,11 +22,12 @@ export type MarkdownBlock =
   | { type: "paragraph"; content: MarkdownInline[] }
   | { type: "quote"; content: MarkdownInline[] }
   | { type: "code"; value: string; language: string }
-  | { type: "list"; ordered: boolean; items: MarkdownListItem[] }
+  | MarkdownList
   | { type: "table"; headers: MarkdownInline[][]; rows: MarkdownInline[][][] };
 
 const INLINE_PATTERN = /(\*\*([^*]+)\*\*|`([^`]+)`|\[([^\]]+)\]\(([^)]+)\)|\*([^*\n]+)\*)/g;
 const TABLE_DIVIDER_CELL = /^:?-{3,}:?$/;
+const LIST_LINE_PATTERN = /^(\s*)([-*]|\d+\.)\s+(.*)$/;
 
 export function parseInlineMarkdown(value: string): MarkdownInline[] {
   const nodes: MarkdownInline[] = [];
@@ -73,11 +81,57 @@ function isTableDivider(line: string) {
   return cells.length > 0 && cells.every((cell) => TABLE_DIVIDER_CELL.test(cell));
 }
 
+function matchListLine(line: string) {
+  const match = line.match(LIST_LINE_PATTERN);
+  if (!match) return null;
+  return {
+    indent: match[1].length,
+    marker: match[2],
+    raw: match[3],
+  };
+}
+
+function parseList(lines: string[], startIndex: number, indent: number): { list: MarkdownList; index: number } | null {
+  const first = matchListLine(lines[startIndex] ?? "");
+  if (!first || first.indent !== indent) return null;
+
+  const ordered = /^\d+\.$/.test(first.marker);
+  const items: MarkdownListItem[] = [];
+  let index = startIndex;
+
+  while (index < lines.length) {
+    const current = matchListLine(lines[index]);
+    if (!current || current.indent !== indent || /^\d+\.$/.test(current.marker) !== ordered) break;
+
+    const checkbox = current.raw.match(/^\[([ xX])\]\s+(.*)$/);
+    const item: MarkdownListItem = {
+      checked: checkbox ? checkbox[1].toLowerCase() === "x" : null,
+      content: parseInlineMarkdown(checkbox ? checkbox[2] : current.raw),
+      children: [],
+    };
+    index += 1;
+
+    while (index < lines.length) {
+      const nested = matchListLine(lines[index]);
+      if (!nested || nested.indent !== indent + 2) break;
+      const child = parseList(lines, index, indent + 2);
+      if (!child) break;
+      item.children.push(child.list);
+      index = child.index;
+    }
+
+    items.push(item);
+  }
+
+  return { list: { type: "list", ordered, items }, index };
+}
+
 function isBlockStart(lines: string[], index: number) {
   const line = lines[index] ?? "";
   if (!line.trim()) return true;
   if (/^```/.test(line) || /^(#{1,3})\s+/.test(line) || /^>\s?/.test(line)) return true;
-  if (/^[-*]\s+/.test(line) || /^\d+\.\s+/.test(line)) return true;
+  const listLine = matchListLine(line);
+  if (listLine?.indent === 0) return true;
   return line.includes("|") && isTableDivider(lines[index + 1] ?? "");
 }
 
@@ -140,32 +194,14 @@ export function parseNoteMarkdown(value: string): MarkdownBlock[] {
       continue;
     }
 
-    if (/^[-*]\s+/.test(line)) {
-      const items: MarkdownListItem[] = [];
-      while (index < lines.length && /^[-*]\s+/.test(lines[index])) {
-        const raw = lines[index].replace(/^[-*]\s+/, "");
-        const checkbox = raw.match(/^\[([ xX])\]\s+(.*)$/);
-        items.push({
-          checked: checkbox ? checkbox[1].toLowerCase() === "x" : null,
-          content: parseInlineMarkdown(checkbox ? checkbox[2] : raw),
-        });
-        index += 1;
+    const listLine = matchListLine(line);
+    if (listLine?.indent === 0) {
+      const parsed = parseList(lines, index, 0);
+      if (parsed) {
+        blocks.push(parsed.list);
+        index = parsed.index;
+        continue;
       }
-      blocks.push({ type: "list", ordered: false, items });
-      continue;
-    }
-
-    if (/^\d+\.\s+/.test(line)) {
-      const items: MarkdownListItem[] = [];
-      while (index < lines.length && /^\d+\.\s+/.test(lines[index])) {
-        items.push({
-          checked: null,
-          content: parseInlineMarkdown(lines[index].replace(/^\d+\.\s+/, "")),
-        });
-        index += 1;
-      }
-      blocks.push({ type: "list", ordered: true, items });
-      continue;
     }
 
     const paragraph: string[] = [line.trim()];

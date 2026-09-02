@@ -47,6 +47,46 @@ test("parses headings, checklists, ordered lists, quotes, and code blocks", () =
   if (checklist.type === "list") assert.deepEqual(checklist.items.map((item) => item.checked), [true, false]);
 });
 
+test("parses nested lists using two spaces per level", () => {
+  const blocks = parseNoteMarkdown([
+    "- Games",
+    "  - Elden Ring",
+    "  - Hades",
+    "    - Hades II",
+    "- Books",
+    "  1. Dune",
+    "  2. Foundation",
+  ].join("\n"));
+
+  assert.equal(blocks.length, 1);
+  const list = blocks[0];
+  assert.equal(list.type, "list");
+  if (list.type !== "list") return;
+
+  assert.equal(list.items.length, 2);
+  assert.equal(list.items[0].children.length, 1);
+  assert.equal(list.items[0].children[0].ordered, false);
+  assert.equal(list.items[0].children[0].items.length, 2);
+  assert.equal(list.items[0].children[0].items[1].children.length, 1);
+  assert.equal(list.items[1].children.length, 1);
+  assert.equal(list.items[1].children[0].ordered, true);
+  assert.equal(list.items[1].children[0].items.length, 2);
+});
+
+test("supports nested checklists with two-space indentation", () => {
+  const blocks = parseNoteMarkdown([
+    "- Project",
+    "  - [x] Done",
+    "  - [ ] Pending",
+  ].join("\n"));
+
+  const list = blocks[0];
+  assert.equal(list.type, "list");
+  if (list.type !== "list") return;
+  const nested = list.items[0].children[0];
+  assert.deepEqual(nested.items.map((item) => item.checked), [true, false]);
+});
+
 test("parses GitHub-style tables and fills missing cells safely", () => {
   const blocks = parseNoteMarkdown([
     "| Item | Status |",

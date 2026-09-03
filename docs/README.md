@@ -5,7 +5,7 @@ This directory contains current product/operations documentation plus a small am
 ## Current product direction
 
 - [`product-spec.md`](product-spec.md) — current product model, workflows, boundaries, and success criteria
-- [`roadmap.md`](roadmap.md) — completed slices, open observations, and selected/future product work
+- [`roadmap.md`](roadmap.md) — completed slices, open observations, and the selected Keychain → Media → Personal Advisor sequence
 - [`architecture.md`](architecture.md) — deployed stack, persistence, navigation, PWA, themes, integrations, and security boundaries
 - [`interface-rules.md`](interface-rules.md) — current UI, copy, navigation, theme, and semantic-colour rules
 
@@ -14,9 +14,11 @@ This directory contains current product/operations documentation plus a small am
 - [`expenses.md`](expenses.md) — manual expense capture, fixed 50/30/20 reference, rolling Fun Fund, Insights analytics, persistence, and current boundaries
 - [`notes.md`](notes.md) — Markdown subset, autosave rules, safe preview rendering, and regression checks
 - [`book-library.md`](book-library.md) — Library model, ratings, owned-first default view, Wishlist isolation, covers, caching, and regression checks
+- [`media-library.md`](media-library.md) — selected Films and Series space, lightweight personal media model, recommendation signals, and first-slice exclusions
+- [`personal-advisor.md`](personal-advisor.md) — selected opt-in LLM layer, per-domain data permissions, context construction, Keychain exclusion, and read-only v1 boundary
 - [`google-calendar.md`](google-calendar.md) — one-way Calendar setup, projection rules, and troubleshooting
 - [`offline-capture.md`](offline-capture.md) — Capture-only offline boundary, device queue, service worker, and recovery tests
-- [`password-keychain.md`](password-keychain.md) — accepted encrypted-vault boundary, threat model, recovery rules, and staged implementation plan
+- [`password-keychain.md`](password-keychain.md) — selected encrypted-vault boundary, threat model, recovery rules, and staged implementation plan
 - [`notifications-observation.md`](notifications-observation.md) — open real-device Weekly Review notification observation tracked in issue #21
 
 ## Production and recovery

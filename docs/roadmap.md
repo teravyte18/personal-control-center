@@ -17,14 +17,18 @@ graph LR
     S7["Slice 7<br/>Book Library<br/>✅ PR #32"]
     S8["Slice 8<br/>UI and themes<br/>✅ PR #34, #35, #36"]
     S9["Slice 9<br/>Personal Expenses<br/>✅ PR #45, #47, #48"]
-    NEXT["Next major slice<br/>not selected"]
+    S10["Slice 10<br/>Encrypted Keychain<br/>▶ selected next"]
+    S11["Slice 11<br/>Media Library<br/>films + series"]
+    S12["Slice 12<br/>Personal Advisor v1<br/>opt-in LLM context"]
 
-    S1 --> S2 --> S3 --> HARDEN --> S4 --> S5 --> S6 --> EXT --> S7 --> S8 --> S9 --> NEXT
+    S1 --> S2 --> S3 --> HARDEN --> S4 --> S5 --> S6 --> EXT --> S7 --> S8 --> S9 --> S10 --> S11 --> S12
 
     classDef done fill:#ecfdf5,stroke:#10b981,color:#065f46;
-    classDef pending fill:#f8fafc,stroke:#94a3b8,color:#334155;
+    classDef selected fill:#eff6ff,stroke:#3b82f6,color:#1e3a8a;
+    classDef planned fill:#f8fafc,stroke:#94a3b8,color:#334155;
     class S1,S2,S3,HARDEN,S4,S5,S6,EXT,S7,S8,S9 done;
-    class NEXT pending;
+    class S10 selected;
+    class S11,S12 planned;
 ```
 
 ## Slice 1 — Phone-first foundation
@@ -167,17 +171,23 @@ See [`expenses.md`](expenses.md) for the detailed current behaviour.
 
 ## Current selection
 
-**No new major product slice is selected after Personal Expenses.**
+The next major product sequence is now deliberately selected:
 
-This is intentional: the roadmap should not silently turn the first candidate below into “next.” The next slice should be chosen from actual value or friction after using the current system.
+1. **Slice 10 — Encrypted Password Keychain**;
+2. **Slice 11 — Media Library for Films and Series**;
+3. **Slice 12 — Personal Advisor v1**.
 
-### Encrypted Password Keychain
+This sequence has an architectural reason rather than being a generic feature queue. Keychain is already fully specified and should be completed behind its separate security boundary. Media then adds an important missing preference/history domain. The Personal Advisor follows once Books, Media, Projects, Tasks, Thoughts, and Reviews provide enough useful structured context to make cross-space reasoning worthwhile.
 
-**Feasibility decision: accepted future candidate; implementation not selected.**
+Small fixes and operational observations may still land between these slices, but they do not replace the selected direction unless real use shows a stronger need.
 
-PR #43 closed the design/evaluation issue and documented the accepted boundary in [`password-keychain.md`](password-keychain.md). This is currently the most fully specified major candidate, but that does not make it the selected next slice.
+## Slice 10 — Encrypted Password Keychain
 
-Candidate behaviour and constraints:
+**Status: selected next; design complete, implementation not started.**
+
+PR #43 closed the design/evaluation issue and documented the accepted boundary in [`password-keychain.md`](password-keychain.md).
+
+Required behaviour and constraints:
 
 - separate Keychain master password plus a separately stored recovery key;
 - random per-user vault key wrapped client-side with an Argon2id-derived key;
@@ -188,7 +198,51 @@ Candidate behaviour and constraints:
 - explicit limitation that a compromised browser/device or malicious server code delivered at unlock can still capture decrypted data;
 - three security-focused implementation stages: encrypted foundation, locked phone-first UI, then hardening and independent review before important production use.
 
-If selected later, implementation should receive new stage-specific issues rather than reopening the completed feasibility decision as one large feature PR.
+Implementation should use stage-specific issues/PRs rather than one large vault change. The first stage is not a production-secrets milestone; it is the cryptographic and persistence foundation plus tests proving plaintext does not reach the server, database, backups, logs, or service worker.
+
+## Slice 11 — Media Library for Films and Series
+
+**Status: selected after Keychain; product boundary defined, implementation not started.**
+
+See [`media-library.md`](media-library.md).
+
+The first version is a lightweight personal Media space, not a general entertainment catalogue. Films and series share one top-level space and capture the preference signals that are most useful both directly and for later recommendations:
+
+- Film or Series type;
+- Wishlist, Watching, Completed, or Dropped state;
+- optional 0–10 half-step rating;
+- optional thoughts/takeaways;
+- optional poster and start/finish dates;
+- lightweight season/episode position for series.
+
+The slice should reuse proven Book Library patterns where sensible and remain fully usable without external metadata services. Exhaustive cast, genre, provider, episode, and catalogue data is intentionally deferred.
+
+## Slice 12 — Personal Advisor v1
+
+**Status: selected after Media; architecture and privacy boundary defined, implementation not started.**
+
+See [`personal-advisor.md`](personal-advisor.md).
+
+The Personal Advisor is a read-only, opt-in LLM layer over selected Personal Control Center domains. It is intended to make the existing spaces more useful together, not to make AI the source of truth for the system.
+
+The first version should:
+
+- support free-form questions plus a few useful shortcuts such as recommendations or project focus;
+- allow AI access by explicit user-scoped data domain;
+- build compact structured context from normal application queries;
+- use ratings, completion/drop state, reflections, recency, active state, and recent history as high-value signals;
+- send only relevant enabled context to a hosted model;
+- explain the personal evidence behind recommendations when practical;
+- avoid recommending books/media already recorded unless requested;
+- remain suggestion-only with no silent mutations;
+- keep provider credentials server-side and apply request-size, timeout, rate-limit, and cost controls;
+- avoid storing raw generated context in logs.
+
+**Keychain is permanently excluded from AI.** The Advisor context builder must not depend on Keychain tables, APIs, ciphertext, metadata, or decrypted client state. This must be enforced structurally rather than by telling the model not to access secrets.
+
+Embeddings, vector search, long-term Advisor memory, autonomous agents, and generic database tools are explicitly not required for v1. Direct structured queries plus bounded recent context should be tried first. If real data volume later makes retrieval necessary, PostgreSQL plus `pgvector` is the likely incremental path.
+
+## Other future candidates and follow-ups
 
 ### Today/Home horizon
 
@@ -201,7 +255,7 @@ Candidate behaviour:
 - no invented dates merely to make uncertain work appear;
 - undated projects/actions/tasks remain valid and continue to surface through their normal spaces and Weekly Review.
 
-This is the clearest planning-focused candidate if the next priority is improving “what matters in the next couple of days?” rather than adding a new data domain.
+This remains a useful planning-focused candidate after the selected Keychain → Media → Advisor sequence, or earlier only if real use shows that near-term visibility has become more valuable than the selected work.
 
 ### Routines/Habits
 
@@ -221,7 +275,7 @@ Imported activity and trend summaries without turning the app into a manual work
 
 ### Library follow-ups
 
-Photo-assisted identification is tracked in issue #33. Metadata lookup, progress, highlights, recommendations, or other media should wait for a specific observed need.
+Photo-assisted identification is tracked in issue #33. Metadata lookup, progress, and highlights should wait for a specific observed need. Cross-domain book/media recommendations belong to the Personal Advisor rather than being implemented as isolated Library intelligence.
 
 ### Notification observation
 
@@ -244,3 +298,5 @@ A later theme may add restrained texture, painterly borders, or decorative layer
 - New modules should enter through All Spaces and shared navigation configuration.
 - Themes may add personality but not engagement pressure or ambiguous semantic states.
 - Features should be selected from observed friction or value, not simply because they are common in planning apps.
+- AI is advisory and opt-in by data domain; deterministic application state remains canonical.
+- Keychain secrets are never part of AI context.

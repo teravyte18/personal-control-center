@@ -37,6 +37,8 @@ The repository is public, so code, documentation, fixtures, examples, issues, an
 - Keep external calendars as projections of application data unless a later feature explicitly defines inbound conflict handling.
 - Keep Quick Capture usable through temporary connection loss without pretending the entire application works offline.
 - Allow visual personality without manipulative engagement mechanics.
+- Keep future AI advisory rather than canonical, and require explicit user-scoped data-domain permission before personal data is sent to an external model.
+- Keep Keychain secrets outside every AI context path by construction, not merely through prompt instructions.
 
 ## Current page map
 
@@ -92,7 +94,7 @@ Wishlist is an explicit view. Wishlist books are also excluded from ordinary rea
 
 Other generated views include Currently reading, Up next, Owned unread, Finished, and Paused/abandoned. The Library also supports title/author search, expandable filters, independent reading state/ownership/priority, optional author and edition note, optional dates, 0–10 half-step ratings, optional overall override, Thoughts and takeaways, persistent Up next ordering, optional private covers, and direct or Inbox-to-Book creation.
 
-The first version is intentionally not a generic media catalogue.
+The first version is intentionally not a generic media catalogue; films and series are planned as a separate Media space rather than being folded into Books.
 
 ### Expenses
 
@@ -244,11 +246,18 @@ The usable system now includes:
 
 ## Current roadmap state
 
-**No new major product slice is currently selected.** Personal Expenses, the most recently selected slice, is delivered through PR #45 with subsequent model and interface refinements in PRs #47 and #48.
+The next major product sequence is selected:
 
-The next major feature should be chosen from observed value or friction rather than promoted automatically from the candidate list. The most defined candidates are:
+1. **Encrypted Password Keychain** — next implementation slice, using the staged client-encrypted-vault design in [`password-keychain.md`](password-keychain.md);
+2. **Media Library for Films and Series** — selected after Keychain, using the lightweight personal-state model in [`media-library.md`](media-library.md);
+3. **Personal Advisor v1** — selected after Media, using the opt-in, read-only LLM boundary in [`personal-advisor.md`](personal-advisor.md).
 
-- **Encrypted Password Keychain** — a fully designed future candidate with a separate client-encrypted-vault threat model and staged implementation plan in [`password-keychain.md`](password-keychain.md); accepted, but explicitly not selected yet;
+This sequence is intentional. Keychain is already fully designed and should be completed behind a strict security boundary. Media then fills an important missing personal-preference/history domain. The Advisor follows once the application has enough structured context across Books, Media, Projects, Tasks, Thoughts, and Reviews to make cross-space recommendations and reflection meaningfully personal.
+
+Small fixes and operational follow-ups may land between these slices without changing the selected direction.
+
+Other candidates remain unselected:
+
 - **Today/Home horizon** — a focused Home-linked view for genuinely dated work due Today, Tomorrow, or two days ahead, without pressuring uncertain work to acquire invented dates;
 - **photo-assisted book identification** — issue #33, only if manual title/author entry remains recurring friction;
 - **Weekly Review notification observation** — issue #21, an operational observation rather than a major product slice;
@@ -267,8 +276,9 @@ The next major feature should be chosen from observed value or friction rather t
 - mandatory bank reconciliation or accounting-grade completeness;
 - automatic travel booking or autonomous AI changes;
 - generic task-reminder or notification-centre behaviour;
-- universal media tracking, page-by-page reading progress, highlights, or ebook ingestion;
+- exhaustive public media cataloguing, streaming-provider tracking, episode-by-episode history, page-by-page reading progress, highlights, or ebook ingestion;
 - complete routines, fitness, travel, or appointment modules;
+- autonomous AI agents, blanket database access for models, or AI becoming canonical application state;
 - voice or video reviews before the written workflow proves it is needed.
 
 ## Planned specialised modules and enhancements
@@ -279,7 +289,25 @@ A focused view for near-term dated work, likely reached from a Home button rathe
 
 ### Encrypted Password Keychain
 
-A possible client-encrypted secrets vault, not plaintext records in the normal personal-data snapshot and not a claim to replace an audited password manager. Its threat model, recovery model, cryptographic boundary, and staged implementation are defined in [`password-keychain.md`](password-keychain.md). It remains a candidate until explicitly selected.
+The selected next slice is a client-encrypted secrets vault, not plaintext records in the normal personal-data snapshot and not a claim to replace an audited password manager. Its threat model, recovery model, cryptographic boundary, and staged implementation are defined in [`password-keychain.md`](password-keychain.md).
+
+Implementation remains separated into an encrypted foundation, locked phone-first experience, and hardening/review gate. Important credentials should not rely on the experimental vault as their only copy before the hardening/review stage is complete.
+
+### Media Library
+
+The selected Media slice adds one Films-and-Series space after Keychain. It records personal viewing state, 0–10 ratings, reflections, lightweight series progress, and optional dates/posters without requiring an external entertainment catalogue.
+
+Its first-version model and exclusions are defined in [`media-library.md`](media-library.md). The primary goal is useful personal history and preference signals, not exhaustive public metadata.
+
+### Personal Advisor
+
+The selected Personal Advisor follows Media. It is a read-only, opt-in LLM layer over explicitly enabled Personal Control Center domains and is defined in [`personal-advisor.md`](personal-advisor.md).
+
+Advisor v1 should use compact structured context from normal application queries before introducing embeddings or vector search. It may support recommendation, focus, project-review, and Weekly Review preparation questions, but model output remains advisory and cannot silently mutate stored records.
+
+Keychain is permanently excluded from Advisor context through code structure rather than prompt wording. Notes and Expenses require explicit permission and stronger privacy treatment; provider credentials remain server-side; raw generated context must not be written to normal logs.
+
+Embeddings or `pgvector` may be evaluated later only if real data volume shows that bounded structured/recent context misses relevant information.
 
 ### Routines
 
@@ -299,11 +327,7 @@ A later time-specific space for commitments that benefit from start times, end t
 
 ### Library enhancements
 
-Possible later additions include photo-assisted identification, external metadata lookup, page progress, quotes/highlights, or other media. Each should be selected only after actual Library use demonstrates the need.
-
-### AI assistance
-
-Natural-language classification suggestions, task breakdown, weekly summaries, duplicate detection, stale-project detection, and book field prefilling. Suggestions must remain optional and require user confirmation before changing stored structure.
+Possible later additions include photo-assisted identification, external metadata lookup, page progress, quotes/highlights, or richer book metadata. Cross-domain recommendations should live in the Personal Advisor rather than creating separate AI logic inside each library.
 
 ### Advanced theme art direction
 

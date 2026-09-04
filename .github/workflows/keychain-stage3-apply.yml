@@ -1,0 +1,56 @@
+name: Wire Keychain Stage 3 UI
+
+on:
+  push:
+    branches:
+      - agent/keychain-stage-3
+    paths:
+      - .github/workflows/keychain-stage3-apply.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: agent/keychain-stage-3
+          fetch-depth: 0
+
+      - name: Patch Keychain page
+        shell: python
+        run: |
+          from pathlib import Path
+
+          page = Path("src/app/keychain/page.tsx")
+          text = page.read_text()
+
+          import_anchor = 'import type {\n  KeychainPlainRecord,\n  KeychainVaultEnvelope,\n  StoredKeychainRecord,\n  StoredKeychainVault,\n} from "@/domain/keychain";\n'
+          import_replacement = import_anchor + 'import { KeychainHardeningTools } from "@/components/keychain-hardening-tools";\n'
+          if import_anchor not in text:
+              raise SystemExit("Keychain import anchor not found")
+          text = text.replace(import_anchor, import_replacement, 1)
+
+          handler_anchor = '''  async function copyRecoveryKey() {\n    if (!pendingSetup) return;\n    await copySecret(pendingSetup.recoveryKey, "Recovery key");\n  }\n\n'''
+          handler_replacement = handler_anchor + '''  function handleRotatedVault(nextVault: StoredKeychainVault, nextEnvelopes: StoredKeychainRecord[], nextKey: Uint8Array) {\n    const dataById = new Map(records.map((record) => [record.envelope.id, record.data]));\n    const nextRecords: DecryptedRecord[] = [];\n    for (const envelope of nextEnvelopes) {\n      const data = dataById.get(envelope.id);\n      if (data) nextRecords.push({ envelope, data: cloneRecord(data) });\n    }\n    clearRevealTimers();\n    setEditor(null);\n    setVault(nextVault);\n    setRecords(nextRecords);\n    activateKey(nextKey);\n    setNotice("Vault encryption key rotated. The newly shown recovery key replaces the old one.");\n  }\n\n  function handleRestoredVault(nextVault: StoredKeychainVault) {\n    setVault(nextVault);\n    lockVault("Encrypted Keychain export restored. Unlock using the export's master passphrase.");\n  }\n\n'''
+          if handler_anchor not in text:
+              raise SystemExit("Keychain handler anchor not found")
+          text = text.replace(handler_anchor, handler_replacement, 1)
+
+          ui_anchor = '''            {changingMasterPassword ? (\n              <MasterPasswordChangeForm\n                currentPassword={currentMasterPassword}\n                newPassword={newMasterPassword}\n                confirmation={newMasterConfirmation}\n                setCurrentPassword={setCurrentMasterPassword}\n                setNewPassword={setNewMasterPassword}\n                setConfirmation={setNewMasterConfirmation}\n                busy={busy}\n                onSubmit={handleChangeMasterPassword}\n              />\n            ) : null}\n          </details>'''
+          ui_replacement = '''            {changingMasterPassword ? (\n              <MasterPasswordChangeForm\n                currentPassword={currentMasterPassword}\n                newPassword={newMasterPassword}\n                confirmation={newMasterConfirmation}\n                setCurrentPassword={setCurrentMasterPassword}\n                setNewPassword={setNewMasterPassword}\n                setConfirmation={setNewMasterConfirmation}\n                busy={busy}\n                onSubmit={handleChangeMasterPassword}\n              />\n            ) : null}\n            <KeychainHardeningTools\n              userId={userId}\n              vault={vault}\n              records={records}\n              onRotated={handleRotatedVault}\n              onRestored={handleRestoredVault}\n            />\n          </details>'''
+          if ui_anchor not in text:
+              raise SystemExit("Keychain security UI anchor not found")
+          page.write_text(text.replace(ui_anchor, ui_replacement, 1))
+
+      - name: Commit UI wiring
+        run: |
+          set -eu
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/app/keychain/page.tsx
+          git commit -m "feat: wire Keychain Stage 3 maintenance UI"
+          git push origin HEAD:agent/keychain-stage-3

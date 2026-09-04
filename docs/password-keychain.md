@@ -112,6 +112,7 @@ The Keychain uses dedicated user-scoped tables and endpoints rather than the gen
 - Standard PostgreSQL and R2 backups include only ciphertext and remain sufficient for restore.
 - Keychain export uses its own versioned encrypted format and is validated locally before restore.
 - No third-party scripts or remote assets should run on the unlocked Keychain route. Content Security Policy and XSS prevention are part of the security boundary.
+- Keychain mutation endpoints require JSON and reject cross-origin browser writes using Origin/fetch-metadata checks.
 
 ## Implementation plan
 

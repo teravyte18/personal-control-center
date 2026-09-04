@@ -1,0 +1,77 @@
+name: Finalize Keychain Stage 2
+
+on:
+  push:
+    branches:
+      - agent/keychain-stage-2
+    paths:
+      - .github/workflows/keychain-stage2-finalize.yml
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v6
+        with:
+          ref: agent/keychain-stage-2
+          fetch-depth: 0
+
+      - name: Apply final validation and documentation fixes
+        shell: python
+        run: |
+          from pathlib import Path
+
+          page = Path("src/app/keychain/page.tsx")
+          text = page.read_text()
+          old = '''    window.addEventListener("pagehide", wipeOnLeave);\n    window.addEventListener("beforeunload", wipeOnLeave);\n    return () => {\n      window.removeEventListener("pagehide", wipeOnLeave);\n      window.removeEventListener("beforeunload", wipeOnLeave);\n      wipeOnLeave();\n      for (const timer of revealTimersRef.current.values()) window.clearTimeout(timer);\n      if (clipboardTimerRef.current !== null) window.clearTimeout(clipboardTimerRef.current);\n      if (unlockThrottleTimerRef.current !== null) window.clearTimeout(unlockThrottleTimerRef.current);\n    };'''
+          new = '''    const revealTimers = revealTimersRef.current;\n    window.addEventListener("pagehide", wipeOnLeave);\n    window.addEventListener("beforeunload", wipeOnLeave);\n    return () => {\n      window.removeEventListener("pagehide", wipeOnLeave);\n      window.removeEventListener("beforeunload", wipeOnLeave);\n      wipeOnLeave();\n      for (const timer of revealTimers.values()) window.clearTimeout(timer);\n      revealTimers.clear();\n      if (clipboardTimerRef.current !== null) window.clearTimeout(clipboardTimerRef.current);\n      if (unlockThrottleTimerRef.current !== null) window.clearTimeout(unlockThrottleTimerRef.current);\n    };'''
+          if old not in text:
+              raise SystemExit("Keychain cleanup block did not match expected source")
+          page.write_text(text.replace(old, new))
+
+          ci = Path(".github/workflows/ci.yml")
+          text = ci.read_text()
+          old = '''          node --test tests/server-persistence.test.mjs\n\n          curl --fail --silent http://127.0.0.1:3000/manifest.webmanifest > pwa-manifest.json'''
+          new = '''          node --test tests/server-persistence.test.mjs\n          node --test tests/keychain-server.test.mjs\n\n          curl --fail --silent http://127.0.0.1:3000/manifest.webmanifest > pwa-manifest.json'''
+          if old not in text:
+              raise SystemExit("CI persistence-test block did not match expected source")
+          ci.write_text(text.replace(old, new))
+
+          keychain_doc = Path("docs/password-keychain.md")
+          text = keychain_doc.read_text()
+          marker = '''The first release is an **experimental encrypted secrets vault**, not a claim to replace a mature audited password manager. Important credentials should not rely on it as their only copy until the implementation has received an independent security review.\n'''
+          status = '''The first release is an **experimental encrypted secrets vault**, not a claim to replace a mature audited password manager. Important credentials should not rely on it as their only copy until the implementation has received an independent security review.\n\n## Implementation status\n\nStages 1 and 2 are implemented in PRs #55 and #56 and remain experimental pending Stage 3. The current implementation includes dedicated ciphertext-only persistence, Argon2id/XChaCha20-Poly1305 browser cryptography, recovery-key wrapping, authenticated user/record/revision binding, setup/unlock/recovery/password-change flows, encrypted record CRUD, search, deliberate copy/reveal, fixed lock timers, and a CSPRNG password generator.\n\nCI covers cryptographic wrong-key/tamper/swap failures, source-level plaintext/storage boundaries, and live PostgreSQL/API user isolation. Stage 3 still gates use as the sole copy of important credentials and includes CSP/XSS review, dependency review, encrypted export and restore rehearsal, vault-key rotation, and independent security review.\n'''
+          if marker not in text:
+              raise SystemExit("Keychain documentation marker did not match expected source")
+          keychain_doc.write_text(text.replace(marker, status, 1))
+
+          roadmap = Path("docs/roadmap.md")
+          text = roadmap.read_text()
+          replacements = {
+              'S10["Slice 10<br/>Encrypted Keychain<br/>▶ selected next"]': 'S10["Slice 10<br/>Encrypted Keychain<br/>🧪 Stages 1–2 in PR #55/#56"]',
+              '    class S10 selected;': '    class S10 selected;',
+              '**Status: selected next; design complete, implementation not started.**': '**Status: Stages 1 and 2 implemented in PRs #55 and #56; experimental until Stage 3 hardening/review.**',
+              'Implementation should use stage-specific issues/PRs rather than one large vault change. The first stage is not a production-secrets milestone; it is the cryptographic and persistence foundation plus tests proving plaintext does not reach the server, database, backups, logs, or service worker.': 'Implementation is split into stage-specific PRs rather than one large vault change. PR #55 implements the cryptographic/persistence foundation and its failure-boundary tests. PR #56 implements the locked phone-first experience, encrypted credential CRUD/search/copy/reveal, recovery/password-change flows, fixed lock timers, and password generation. Stage 3 remains the production-use gate; until it is complete, Keychain must not be the sole copy of important credentials.'
+          }
+          for old, new in replacements.items():
+              if old not in text:
+                  raise SystemExit(f"Roadmap text did not match expected source: {old}")
+              text = text.replace(old, new, 1)
+          roadmap.write_text(text)
+
+          helper = Path(".github/workflows/keychain-stage2-finalize.yml")
+          helper.unlink()
+
+      - name: Commit finalized Stage 2
+        run: |
+          set -eu
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/app/keychain/page.tsx .github/workflows/ci.yml docs/password-keychain.md docs/roadmap.md .github/workflows/keychain-stage2-finalize.yml
+          git commit -m "chore: finalize keychain stage 2 validation"
+          git push origin HEAD:agent/keychain-stage-2

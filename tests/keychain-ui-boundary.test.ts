@@ -32,3 +32,10 @@ test("Keychain lock and reveal intervals stay fixed in the UI boundary", async (
   assert.match(page, /5 \* 60 \* 1000/);
   assert.match(page, /30 \* 1000/);
 });
+
+test("Keychain credential editor masks stored secrets unless explicitly revealed", async () => {
+  const page = await source("src/app/keychain/page.tsx");
+  assert.match(page, /type=\{passwordVisible \? "text" : "password"\}/);
+  assert.match(page, /setPasswordVisible/);
+  assert.doesNotMatch(page, /type="text" value=\{editor\.data\.password\}/);
+});

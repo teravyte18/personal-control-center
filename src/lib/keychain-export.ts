@@ -5,12 +5,12 @@ import {
   type KeychainVaultEnvelope,
   type StoredKeychainRecord,
   type StoredKeychainVault,
-} from "@/domain/keychain";
+} from "../domain/keychain.ts";
 import {
   clearKeychainKey,
   decryptKeychainRecord,
   unlockKeychainWithMasterPassword,
-} from "@/lib/keychain-crypto";
+} from "./keychain-crypto.ts";
 
 export const KEYCHAIN_EXPORT_FORMAT = "pcc-keychain-export" as const;
 export const KEYCHAIN_EXPORT_VERSION = 1 as const;

@@ -10,6 +10,7 @@ export type IconName =
   | "archive"
   | "library"
   | "expenses"
+  | "keychain"
   | "trips"
   | "fitness"
   | "habits"
@@ -112,7 +113,16 @@ export const destinations: Destination[] = [
     label: "Expenses",
     href: "/expenses",
     icon: "expenses",
-    description: "Capture spending, review monthly allocations, and reconcile missed transactions.",
+    description: "Capture spending, review monthly allocations, and explore longer-term insights.",
+    available: true,
+    pinnable: true,
+  },
+  {
+    id: "keychain",
+    label: "Keychain",
+    href: "/keychain",
+    icon: "keychain",
+    description: "Store client-encrypted credentials and secrets.",
     available: true,
     pinnable: true,
   },

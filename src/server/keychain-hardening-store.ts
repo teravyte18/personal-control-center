@@ -67,34 +67,6 @@ function mapRecord(row: RecordRow): StoredKeychainRecord {
   };
 }
 
-async function updateVault(
-  sql: Parameters<Parameters<ReturnType<typeof getDatabase>["begin"]>[0]>[0],
-  userId: string,
-  expectedRevision: number,
-  envelope: KeychainVaultEnvelope,
-) {
-  const rows = await sql<VaultRow[]>`
-    update keychain_vaults
-    set envelope_version = ${envelope.version},
-        kdf_algorithm = ${envelope.kdf.algorithm},
-        kdf_salt = ${envelope.kdf.salt},
-        kdf_opslimit = ${envelope.kdf.opslimit},
-        kdf_memlimit = ${envelope.kdf.memlimit},
-        master_nonce = ${envelope.masterWrap.nonce},
-        master_ciphertext = ${envelope.masterWrap.ciphertext},
-        recovery_nonce = ${envelope.recoveryWrap.nonce},
-        recovery_ciphertext = ${envelope.recoveryWrap.ciphertext},
-        vault_revision = vault_revision + 1,
-        updated_at = now()
-    where user_id = ${userId}
-      and vault_revision = ${expectedRevision}
-    returning envelope_version, vault_revision, kdf_algorithm, kdf_salt, kdf_opslimit, kdf_memlimit,
-              master_nonce, master_ciphertext, recovery_nonce, recovery_ciphertext, created_at, updated_at
-  `;
-  if (!rows[0]) throw new KeychainConflictError();
-  return mapVault(rows[0]);
-}
-
 export async function restoreStoredKeychain(
   userId: string,
   expectedVaultRevision: number,
@@ -119,8 +91,26 @@ export async function restoreStoredKeychain(
       storedRecords.push(mapRecord(rows[0]));
     }
 
-    const storedVault = await updateVault(sql, userId, expectedVaultRevision, vault);
-    return { vault: storedVault, records: storedRecords };
+    const vaultRows = await sql<VaultRow[]>`
+      update keychain_vaults
+      set envelope_version = ${vault.version},
+          kdf_algorithm = ${vault.kdf.algorithm},
+          kdf_salt = ${vault.kdf.salt},
+          kdf_opslimit = ${vault.kdf.opslimit},
+          kdf_memlimit = ${vault.kdf.memlimit},
+          master_nonce = ${vault.masterWrap.nonce},
+          master_ciphertext = ${vault.masterWrap.ciphertext},
+          recovery_nonce = ${vault.recoveryWrap.nonce},
+          recovery_ciphertext = ${vault.recoveryWrap.ciphertext},
+          vault_revision = vault_revision + 1,
+          updated_at = now()
+      where user_id = ${userId}
+        and vault_revision = ${expectedVaultRevision}
+      returning envelope_version, vault_revision, kdf_algorithm, kdf_salt, kdf_opslimit, kdf_memlimit,
+                master_nonce, master_ciphertext, recovery_nonce, recovery_ciphertext, created_at, updated_at
+    `;
+    if (!vaultRows[0]) throw new KeychainConflictError();
+    return { vault: mapVault(vaultRows[0]), records: storedRecords };
   });
 }
 
@@ -153,7 +143,26 @@ export async function rotateStoredKeychain(
       }
     }
 
-    const storedVault = await updateVault(sql, userId, expectedVaultRevision, vault);
+    const vaultRows = await sql<VaultRow[]>`
+      update keychain_vaults
+      set envelope_version = ${vault.version},
+          kdf_algorithm = ${vault.kdf.algorithm},
+          kdf_salt = ${vault.kdf.salt},
+          kdf_opslimit = ${vault.kdf.opslimit},
+          kdf_memlimit = ${vault.kdf.memlimit},
+          master_nonce = ${vault.masterWrap.nonce},
+          master_ciphertext = ${vault.masterWrap.ciphertext},
+          recovery_nonce = ${vault.recoveryWrap.nonce},
+          recovery_ciphertext = ${vault.recoveryWrap.ciphertext},
+          vault_revision = vault_revision + 1,
+          updated_at = now()
+      where user_id = ${userId}
+        and vault_revision = ${expectedVaultRevision}
+      returning envelope_version, vault_revision, kdf_algorithm, kdf_salt, kdf_opslimit, kdf_memlimit,
+                master_nonce, master_ciphertext, recovery_nonce, recovery_ciphertext, created_at, updated_at
+    `;
+    if (!vaultRows[0]) throw new KeychainConflictError();
+
     const storedRecords: StoredKeychainRecord[] = [];
     for (const record of records) {
       const rows = await sql<RecordRow[]>`
@@ -171,6 +180,6 @@ export async function rotateStoredKeychain(
       if (!rows[0]) throw new KeychainConflictError("Keychain records changed before rotation completed.");
       storedRecords.push(mapRecord(rows[0]));
     }
-    return { vault: storedVault, records: storedRecords };
+    return { vault: mapVault(vaultRows[0]), records: storedRecords };
   });
 }

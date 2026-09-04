@@ -1,0 +1,51 @@
+name: Apply Stage 3 navigation cleanup
+
+on:
+  push:
+    branches:
+      - agent/keychain-stage-3
+    paths:
+      - .github/workflows/stage3-navigation-cleanup.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: agent/keychain-stage-3
+          fetch-depth: 0
+
+      - name: Replace internal assign navigations
+        shell: python
+        run: |
+          from pathlib import Path
+
+          files = [
+              Path("public/offline-capture.js"),
+              Path("src/app/account/page.tsx"),
+              Path("src/app/activate/page.tsx"),
+              Path("src/app/keychain/page.tsx"),
+              Path("src/components/session-guard.tsx"),
+          ]
+          total = 0
+          for path in files:
+              text = path.read_text()
+              count = text.count("window.location.assign(")
+              total += count
+              path.write_text(text.replace("window.location.assign(", "window.location.replace("))
+          if total != 6:
+              raise SystemExit(f"Expected exactly 6 internal assign navigations, found {total}")
+
+      - name: Commit navigation cleanup
+        run: |
+          set -eu
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/offline-capture.js src/app/account/page.tsx src/app/activate/page.tsx src/app/keychain/page.tsx src/components/session-guard.tsx
+          git commit -m "chore: align internal navigation with Next 16"
+          git push origin HEAD:agent/keychain-stage-3

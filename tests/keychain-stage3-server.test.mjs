@@ -52,10 +52,35 @@ function recordEnvelope(character, revision) {
   };
 }
 
-test("Keychain rotation and encrypted restore are atomic, revision-safe, and user-scoped", async () => {
+test("Keychain rotation and encrypted restore are atomic, revision-safe, user-scoped, and same-origin guarded", async () => {
   const before = await jsonRequest("/api/keychain/vault", {}, ownerEmail);
   assert.equal(before.response.status, 200);
   assert.equal(before.body.vault.revision, 1);
+
+  const blockedCrossOrigin = await jsonRequest("/api/keychain/rotate", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Origin": "https://evil.example.test",
+      "Sec-Fetch-Site": "cross-site",
+    },
+    body: JSON.stringify({
+      expectedVaultRevision: 1,
+      vault: vaultEnvelope("X"),
+      records: [recordEnvelope("Y", 3)],
+    }),
+  }, ownerEmail);
+  assert.equal(blockedCrossOrigin.response.status, 403);
+
+  const blockedFormWrite = await jsonRequest("/api/keychain/rotate", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: "x=1",
+  }, ownerEmail);
+  assert.equal(blockedFormWrite.response.status, 415);
+
+  const afterBlockedWrite = await jsonRequest("/api/keychain/vault", {}, ownerEmail);
+  assert.equal(afterBlockedWrite.body.vault.revision, 1);
 
   const rotated = await jsonRequest("/api/keychain/rotate", {
     method: "POST",

@@ -119,6 +119,7 @@ jobs:
           done
           curl --fail --silent http://127.0.0.1:3000/api/health
           node --test tests/server-persistence.test.mjs
+          node --test tests/keychain-server.test.mjs
 
           curl --fail --silent http://127.0.0.1:3000/manifest.webmanifest > pwa-manifest.json
           node <<'NODE'

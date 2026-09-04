@@ -12,7 +12,7 @@ import {
   type KeychainRecordEnvelope,
   type KeychainVaultEnvelope,
   type KeychainWrappedKey,
-} from "@/domain/keychain";
+} from "../domain/keychain.ts";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();

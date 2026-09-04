@@ -912,6 +912,7 @@ function RecordEditor({
   onSubmit: (event: FormEvent) => void;
 }) {
   const [generatorOpen, setGeneratorOpen] = useState(false);
+  const [passwordVisible, setPasswordVisible] = useState(false);
   const [generator, setGenerator] = useState<KeychainPasswordGeneratorOptions>({ ...defaultKeychainPasswordGeneratorOptions });
   const [generatorError, setGeneratorError] = useState("");
 
@@ -945,7 +946,8 @@ function RecordEditor({
       </div>
       <label className="mt-4 block text-sm font-medium text-slate-700">Password or secret
         <div className="mt-2 flex gap-2">
-          <input className="input min-w-0 flex-1 font-mono" type="text" value={editor.data.password} onChange={(event) => update("password", event.target.value)} maxLength={8192} autoComplete="off" spellCheck={false} />
+          <input className="input min-w-0 flex-1 font-mono" type={passwordVisible ? "text" : "password"} value={editor.data.password} onChange={(event) => update("password", event.target.value)} maxLength={8192} autoComplete="off" spellCheck={false} />
+          <button type="button" onClick={() => setPasswordVisible((current) => !current)} className="min-h-11 shrink-0 rounded-xl border border-slate-200 px-3 text-xs font-semibold text-slate-700">{passwordVisible ? "Hide" : "Show"}</button>
           <button type="button" onClick={() => setGeneratorOpen((current) => !current)} className="min-h-11 shrink-0 rounded-xl border border-slate-200 px-3 text-xs font-semibold text-slate-700">Generate</button>
         </div>
       </label>

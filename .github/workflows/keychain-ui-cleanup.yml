@@ -1,0 +1,72 @@
+name: Apply Keychain UI cleanup
+
+on:
+  push:
+    branches:
+      - agent/keychain-stage-3
+    paths:
+      - .github/workflows/keychain-ui-cleanup.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: agent/keychain-stage-3
+          fetch-depth: 0
+      - name: Simplify Keychain UI
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path("src/app/keychain/page.tsx")
+          text = path.read_text()
+
+          def replace_once(old, new):
+              global text
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"Expected one match, found {count}: {old[:80]!r}")
+              text = text.replace(old, new)
+
+          replace_once('  const [lastKdfMs, setLastKdfMs] = useState<number | null>(null);\n', '')
+          if text.count('    const started = performance.now();\n') != 3:
+              raise SystemExit('Expected three KDF timing starts')
+          text = text.replace('    const started = performance.now();\n', '')
+          if text.count('      setLastKdfMs(performance.now() - started);\n') != 3:
+              raise SystemExit('Expected three KDF timing updates')
+          text = text.replace('      setLastKdfMs(performance.now() - started);\n', '')
+
+          replace_once('''        <div>\n          <p className="text-sm text-slate-500">Client-encrypted credentials</p>\n          <h2 className="mt-1 text-3xl font-semibold tracking-tight">Keychain</h2>\n        </div>''', '''        <h2 className="text-3xl font-semibold tracking-tight">Keychain</h2>''')
+
+          replace_once('''\n      <div className="mt-4 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm leading-6 text-amber-950">\n        <strong>Experimental vault.</strong> Encryption protects stored database and backup data, but this has not completed the final independent security-review gate. Keep another recoverable copy of important credentials for now.\n      </div>\n''', '\n')
+
+          replace_once('''          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">\n            <span>{records.length} {records.length === 1 ? "credential" : "credentials"}</span>\n            {lastKdfMs !== null ? <span>Last key derivation: {Math.round(lastKdfMs)} ms on this device</span> : null}\n          </div>''', '''          <p className="mt-3 text-xs text-slate-500">{records.length} {records.length === 1 ? "credential" : "credentials"}</p>''')
+
+          replace_once('<summary className="cursor-pointer font-semibold">Keychain security</summary>', '<summary className="cursor-pointer font-semibold">Keychain settings</summary>')
+          replace_once('<p>The vault locks after 15 minutes without Keychain interaction, after 5 minutes in the background, and whenever this page is unloaded. The recovery key remains the only reset path if the master password is forgotten.</p>', '<p>Locks automatically after inactivity or 5 minutes in the background.</p>')
+
+          replace_once('<h3 className="text-xl font-semibold">Create your encrypted vault</h3>\n      <p className="mt-2 text-sm leading-6 text-slate-500">Choose one separate Keychain master passphrase. Minimum 12 characters; there are no uppercase, number, or symbol requirements.</p>', '<h3 className="text-xl font-semibold">Create Keychain</h3>\n      <p className="mt-2 text-sm text-slate-500">Use a separate master passphrase of at least 12 characters.</p>')
+          replace_once('<p className="mt-2 text-sm leading-6 text-slate-500">This is shown during setup only. Store it outside Personal Control Center. Losing both this key and the master password makes the vault permanently unrecoverable.</p>', '<p className="mt-2 text-sm text-slate-500">Save this outside PCC. Without this key and your master passphrase, the Keychain cannot be recovered.</p>')
+
+          replace_once('            lastKdfMs={lastKdfMs}\n', '')
+          replace_once('  lastKdfMs,\n', '')
+          replace_once('  lastKdfMs: number | null;\n', '')
+          replace_once('      <p className="mt-2 text-sm leading-6 text-slate-500">The master passphrase is processed only in this browser. It is not sent to the Raspberry Pi.</p>\n', '')
+          replace_once('      {lastKdfMs !== null ? <p className="mt-2 text-center text-xs text-slate-400">Previous key derivation: {Math.round(lastKdfMs)} ms on this device</p> : null}\n', '')
+          replace_once('      <p className="mt-2 text-sm leading-6 text-slate-500">The recovery key unlocks the existing random vault key locally and lets you replace the forgotten master passphrase.</p>\n', '')
+
+          path.write_text(text)
+      - name: Commit cleanup
+        run: |
+          set -eu
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/app/keychain/page.tsx
+          git commit -m "ui: simplify Keychain interface"
+          git push origin HEAD:agent/keychain-stage-3

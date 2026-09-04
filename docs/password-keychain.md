@@ -6,13 +6,13 @@
 
 Personal Control Center may add a client-encrypted Keychain for small credentials and secrets. It must not be implemented as ordinary Notes, plaintext fields, or records inside the normal personal-data snapshot.
 
-The first release is an **experimental encrypted secrets vault**, not a claim to replace a mature audited password manager. Important credentials should not rely on it as their only copy until the implementation has received an independent security review.
+The first release is a **client-encrypted secrets vault** with documented residual risks, not a claim to replace a mature independently audited password manager. An independent review remains a recommended external assurance step rather than something the implementation author can self-certify.
 
 ## Implementation status
 
-Stages 1 and 2 are implemented in PRs #55 and #56 and remain experimental pending Stage 3. The current implementation includes dedicated ciphertext-only persistence, Argon2id/XChaCha20-Poly1305 browser cryptography, recovery-key wrapping, authenticated user/record/revision binding, setup/unlock/recovery/password-change flows, encrypted record CRUD, search, deliberate copy/reveal, fixed lock timers, and a CSPRNG password generator.
+Stages 1, 2, and the implementation-side Stage 3 hardening are complete in PRs #55, #56, and #58. The implementation includes ciphertext-only persistence, Argon2id/XChaCha20-Poly1305 browser cryptography, recovery-key wrapping, authenticated user/record/revision binding, setup/unlock/recovery/password-change flows, encrypted record CRUD, search, deliberate copy/reveal, fixed lock timers, a CSPRNG password generator, encrypted export/restore, atomic vault-key rotation, route hardening, dependency auditing, and backup/restore rehearsal.
 
-CI covers cryptographic wrong-key/tamper/swap failures, source-level plaintext/storage boundaries, and live PostgreSQL/API user isolation. Stage 3 still gates use as the sole copy of important credentials and includes CSP/XSS review, dependency review, encrypted export and restore rehearsal, vault-key rotation, and independent security review.
+CI covers cryptographic wrong-key/tamper/swap failures, source-level plaintext/storage boundaries, live PostgreSQL/API user isolation, same-origin write enforcement, production dependency auditing, security headers, and restoring synthetic Keychain ciphertext from the normal PostgreSQL backup. The remaining independent professional review is external assurance, not unfinished implementation work.
 
 ## Intended value
 
@@ -78,7 +78,7 @@ Keychain setup generates a high-entropy recovery key in the browser. The recover
 - A forgotten master password can be replaced only by presenting the recovery key.
 - Losing both values makes the vault permanently unrecoverable.
 - Changing the master password derives a new wrapping key and re-wraps the unchanged vault key.
-- Rotating the vault key is a separate maintenance operation that re-encrypts every record and must be resumable and tested.
+- Rotating the vault key is a separate maintenance operation that re-encrypts every record locally and commits the complete ciphertext set atomically; failed or stale commits leave the previous vault unchanged.
 
 There is no owner/admin reset path that reveals another user's vault.
 
@@ -110,8 +110,9 @@ The Keychain uses dedicated user-scoped tables and endpoints rather than the gen
 - Search and filtering happen in the browser after unlock.
 - Normal Inbox, Notes, Thoughts, Review, Calendar, and global import/export code never inspect Keychain records.
 - Standard PostgreSQL and R2 backups include only ciphertext and remain sufficient for restore.
-- A future Keychain export must remain encrypted and use its own versioned format.
+- Keychain export uses its own versioned encrypted format and is validated locally before restore.
 - No third-party scripts or remote assets should run on the unlocked Keychain route. Content Security Policy and XSS prevention are part of the security boundary.
+- Keychain mutation endpoints require JSON and reject cross-origin browser writes using Origin/fetch-metadata checks.
 
 ## Implementation plan
 
@@ -142,8 +143,8 @@ No production secrets should be stored at this stage.
 - CSP and XSS review of the unlocked route;
 - backup/restore and encrypted-export rehearsal;
 - vault-key rotation test;
-- independent security review;
-- explicit decision on whether the experimental warning may be removed.
+- independent security review as an external follow-up;
+- explicit production-use decision and residual-risk documentation.
 
 ## Acceptance boundary
 
@@ -154,4 +155,4 @@ The feature is acceptable only when:
 - password change and recovery re-wrap the same vault key correctly;
 - lock timers and session revocation reliably remove access to decrypted records;
 - backup and restore preserve usable ciphertext without weakening encryption;
-- the UI states the server-compromise and unrecoverable-loss boundaries honestly.
+- recovery setup communicates unrecoverable loss clearly, while the detailed server-compromise and review boundaries remain documented in `docs/keychain-security-review.md` rather than permanently occupying the app UI.

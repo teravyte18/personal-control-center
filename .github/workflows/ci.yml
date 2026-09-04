@@ -32,6 +32,12 @@ jobs:
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
 
+      - name: Verify Keychain crypto dependency lock
+        run: node scripts/check-keychain-dependencies.mjs
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+
       - name: Lint
         run: |
           set -o pipefail
@@ -98,7 +104,7 @@ jobs:
           docker compose config --quiet
           docker compose --profile funnel config --quiet
 
-      - name: Validate production persistence, authentication, photos, PWA, and backups
+      - name: Validate production persistence, authentication, photos, PWA, Keychain, and backups
         run: |
           set -o pipefail
           sudo rm -rf data/backups data/uploads data/offsite-restore .secrets
@@ -109,7 +115,7 @@ jobs:
           touch compose-validation.log
           exec > >(tee -a compose-validation.log) 2>&1
           set -x
-          trap 'docker compose ps -a; docker compose logs; docker compose down --volumes --remove-orphans; sudo rm -rf data/backups data/uploads data/offsite-restore .secrets; rm -f pwa-manifest.json pwa-icon-* pwa-static-* upload-archive.list' EXIT
+          trap 'docker compose ps -a; docker compose logs; docker compose down --volumes --remove-orphans; sudo rm -rf data/backups data/uploads data/offsite-restore .secrets; rm -f pwa-manifest.json pwa-icon-* pwa-static-* upload-archive.list keychain-page.headers' EXIT
           docker compose up -d --build
           for attempt in $(seq 1 60); do
             if curl --fail --silent http://127.0.0.1:3000/api/health >/dev/null; then
@@ -120,6 +126,15 @@ jobs:
           curl --fail --silent http://127.0.0.1:3000/api/health
           node --test tests/server-persistence.test.mjs
           node --test tests/keychain-server.test.mjs
+          node --test tests/keychain-stage3-server.test.mjs
+
+          curl --fail --silent --show-error --dump-header keychain-page.headers --output /dev/null -H 'x-pcc-user-email: owner@example.test' http://127.0.0.1:3000/keychain
+          grep -Eqi '^cache-control:.*private.*no-store' keychain-page.headers
+          grep -Eqi '^content-security-policy:.*default-src .self' keychain-page.headers
+          grep -Eqi '^content-security-policy:.*object-src .none' keychain-page.headers
+          grep -Eqi '^content-security-policy:.*frame-ancestors .none' keychain-page.headers
+          grep -Eqi '^referrer-policy:.*no-referrer' keychain-page.headers
+          grep -Eqi '^x-frame-options:.*deny' keychain-page.headers
 
           curl --fail --silent http://127.0.0.1:3000/manifest.webmanifest > pwa-manifest.json
           node <<'NODE'
@@ -177,6 +192,13 @@ jobs:
           docker compose exec -T backup pg_restore --list "/backups/$(basename "$latest_dump")" >/dev/null
           tar -tzf "$latest_uploads" > upload-archive.list
           grep -Eq '^\./[^/]+/review-photos/[0-9a-f-]{36}$' upload-archive.list
+
+          docker compose exec -T backup createdb -h postgres -U pcc keychain_restore_test
+          docker compose exec -T backup pg_restore -h postgres -U pcc -d keychain_restore_test --no-owner --no-privileges "/backups/$(basename "$latest_dump")"
+          test "$(docker compose exec -T backup psql -h postgres -U pcc -d keychain_restore_test -Atc "select count(*) from keychain_vaults where master_ciphertext = repeat('J', 64)")" = "1"
+          test "$(docker compose exec -T backup psql -h postgres -U pcc -d keychain_restore_test -Atc "select count(*) from keychain_records where ciphertext = repeat('K', 48) and revision = 7")" = "1"
+          docker compose exec -T backup dropdb -h postgres -U pcc keychain_restore_test
+
           docker compose run --rm --no-deps --entrypoint /bin/sh backup /usr/local/bin/pcc-offsite status | grep -q 'R2 off-site backups are disabled'
 
       - name: Upload Compose failure log

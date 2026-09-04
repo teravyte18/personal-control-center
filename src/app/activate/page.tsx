@@ -26,7 +26,7 @@ export default function ActivatePage() {
       });
       const body = await response.json() as { error?: string };
       if (!response.ok) throw new Error(body.error ?? "Account activation failed.");
-      window.location.assign("/");
+      window.location.replace("/");
     } catch (activationError) {
       setError(activationError instanceof Error ? activationError.message : "Account activation failed.");
     } finally {

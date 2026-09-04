@@ -104,7 +104,7 @@
       if (!response.ok) return false;
       connectionLabel.textContent = "Server restored";
       message.textContent = "Opening the full app to synchronise pending captures…";
-      window.location.assign("/");
+      window.location.replace("/");
       return true;
     } catch {
       if (showStatus) {

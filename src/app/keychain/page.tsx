@@ -14,6 +14,7 @@ import type {
   StoredKeychainRecord,
   StoredKeychainVault,
 } from "@/domain/keychain";
+import { KeychainHardeningTools } from "@/components/keychain-hardening-tools";
 import {
   clearKeychainKey,
   createKeychainVault,
@@ -92,7 +93,6 @@ export default function KeychainPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const [lastKdfMs, setLastKdfMs] = useState<number | null>(null);
   const [revealed, setRevealed] = useState<Set<string>>(new Set());
 
   const [setupPassword, setSetupPassword] = useState("");
@@ -173,7 +173,7 @@ export default function KeychainPage() {
       .catch((requestError) => {
         if (cancelled) return;
         if (requestError instanceof KeychainApiError && requestError.status === 401) {
-          window.location.assign(`/login?next=${encodeURIComponent("/keychain")}`);
+          window.location.replace(`/login?next=${encodeURIComponent("/keychain")}`);
           return;
         }
         setError("Keychain could not be loaded.");
@@ -289,7 +289,6 @@ export default function KeychainPage() {
       return;
     }
     setBusy(true);
-    const started = performance.now();
     try {
       clearKeychainKey(pendingKeyRef.current);
       const created = await createKeychainVault(userId, setupPassword);
@@ -298,7 +297,6 @@ export default function KeychainPage() {
       setRecoveryConfirmation("");
       setSetupPassword("");
       setSetupConfirmation("");
-      setLastKdfMs(performance.now() - started);
     } catch (setupError) {
       setError(setupError instanceof Error ? setupError.message : "Keychain setup could not start.");
     } finally {
@@ -347,7 +345,6 @@ export default function KeychainPage() {
     setError("");
     setNotice("");
     setBusy(true);
-    const started = performance.now();
     let key: Uint8Array | null = null;
     try {
       key = await unlockKeychainWithMasterPassword(userId, vault, unlockPassword);
@@ -356,7 +353,6 @@ export default function KeychainPage() {
       key = null;
       setUnlockPassword("");
       unlockFailuresRef.current = 0;
-      setLastKdfMs(performance.now() - started);
     } catch {
       scheduleUnlockThrottle();
       setError("Could not unlock Keychain. Check the master password and try again.");
@@ -375,7 +371,6 @@ export default function KeychainPage() {
       return;
     }
     setBusy(true);
-    const started = performance.now();
     let recoveredKey: Uint8Array | null = null;
     try {
       recoveredKey = await unlockKeychainWithRecoveryKey(userId, vault, recoveryKeyInput);
@@ -389,7 +384,6 @@ export default function KeychainPage() {
       setRecoveryKeyInput("");
       setRecoveryNewPassword("");
       setRecoveryNewConfirmation("");
-      setLastKdfMs(performance.now() - started);
       setNotice("Master password replaced using the recovery key.");
     } catch {
       setError("Recovery failed. Check the recovery key and new master password.");
@@ -529,6 +523,26 @@ export default function KeychainPage() {
     await copySecret(pendingSetup.recoveryKey, "Recovery key");
   }
 
+  function handleRotatedVault(nextVault: StoredKeychainVault, nextEnvelopes: StoredKeychainRecord[], nextKey: Uint8Array) {
+    const dataById = new Map(records.map((record) => [record.envelope.id, record.data]));
+    const nextRecords: DecryptedRecord[] = [];
+    for (const envelope of nextEnvelopes) {
+      const data = dataById.get(envelope.id);
+      if (data) nextRecords.push({ envelope, data: cloneRecord(data) });
+    }
+    clearRevealTimers();
+    setEditor(null);
+    setVault(nextVault);
+    setRecords(nextRecords);
+    activateKey(nextKey);
+    setNotice("Vault encryption key rotated. The newly shown recovery key replaces the old one.");
+  }
+
+  function handleRestoredVault(nextVault: StoredKeychainVault) {
+    setVault(nextVault);
+    lockVault("Encrypted Keychain export restored. Unlock using the export's master passphrase.");
+  }
+
   if (loading) {
     return <section className="mx-auto max-w-3xl"><h2 className="text-3xl font-semibold tracking-tight">Keychain</h2><p className="mt-4 text-sm text-slate-500">Opening encrypted vault…</p></section>;
   }
@@ -536,10 +550,7 @@ export default function KeychainPage() {
   return (
     <section className="mx-auto max-w-4xl">
       <div className="flex items-end justify-between gap-4">
-        <div>
-          <p className="text-sm text-slate-500">Client-encrypted credentials</p>
-          <h2 className="mt-1 text-3xl font-semibold tracking-tight">Keychain</h2>
-        </div>
+        <h2 className="text-3xl font-semibold tracking-tight">Keychain</h2>
         {unlocked ? (
           <button type="button" onClick={() => lockVault("Keychain locked.")} className="min-h-11 rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700">
             Lock
@@ -547,9 +558,6 @@ export default function KeychainPage() {
         ) : null}
       </div>
 
-      <div className="mt-4 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
-        <strong>Experimental vault.</strong> Encryption protects stored database and backup data, but this has not completed the final independent security-review gate. Keep another recoverable copy of important credentials for now.
-      </div>
 
       {error ? <div role="alert" className="mt-4 rounded-2xl border border-red-300 bg-red-50 p-4 text-sm text-red-950">{error}</div> : null}
       {notice ? <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-3 text-sm text-slate-600">{notice}</div> : null}
@@ -600,7 +608,6 @@ export default function KeychainPage() {
             setPassword={setUnlockPassword}
             busy={busy}
             blocked={unlockBlocked}
-            lastKdfMs={lastKdfMs}
             onSubmit={handleUnlock}
             onRecover={() => {
               setRecovering(true);
@@ -620,10 +627,7 @@ export default function KeychainPage() {
             </button>
           </div>
 
-          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
-            <span>{records.length} {records.length === 1 ? "credential" : "credentials"}</span>
-            {lastKdfMs !== null ? <span>Last key derivation: {Math.round(lastKdfMs)} ms on this device</span> : null}
-          </div>
+          <p className="mt-3 text-xs text-slate-500">{records.length} {records.length === 1 ? "credential" : "credentials"}</p>
 
           {corruptRecordCount > 0 ? (
             <div role="alert" className="mt-4 rounded-2xl border border-red-300 bg-red-50 p-4 text-sm text-red-950">
@@ -696,9 +700,9 @@ export default function KeychainPage() {
           ) : null}
 
           <details className="mt-6 rounded-2xl border border-slate-200 bg-white p-4">
-            <summary className="cursor-pointer font-semibold">Keychain security</summary>
+            <summary className="cursor-pointer font-semibold">Keychain settings</summary>
             <div className="mt-3 text-sm leading-6 text-slate-500">
-              <p>The vault locks after 15 minutes without Keychain interaction, after 5 minutes in the background, and whenever this page is unloaded. The recovery key remains the only reset path if the master password is forgotten.</p>
+              <p>Locks automatically after inactivity or 5 minutes in the background.</p>
               <button type="button" onClick={() => setChangingMasterPassword((current) => !current)} className="mt-3 min-h-10 rounded-xl border border-slate-200 px-3 text-xs font-semibold text-slate-700">
                 {changingMasterPassword ? "Cancel password change" : "Change master password"}
               </button>
@@ -715,6 +719,13 @@ export default function KeychainPage() {
                 onSubmit={handleChangeMasterPassword}
               />
             ) : null}
+            <KeychainHardeningTools
+              userId={userId}
+              vault={vault}
+              records={records}
+              onRotated={handleRotatedVault}
+              onRestored={handleRestoredVault}
+            />
           </details>
         </div>
       )}
@@ -739,8 +750,8 @@ function SetupForm({
 }) {
   return (
     <form onSubmit={onSubmit} className="mt-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-      <h3 className="text-xl font-semibold">Create your encrypted vault</h3>
-      <p className="mt-2 text-sm leading-6 text-slate-500">Choose one separate Keychain master passphrase. Minimum 12 characters; there are no uppercase, number, or symbol requirements.</p>
+      <h3 className="text-xl font-semibold">Create Keychain</h3>
+      <p className="mt-2 text-sm text-slate-500">Use a separate master passphrase of at least 12 characters.</p>
       <label className="mt-5 block text-sm font-medium text-slate-700">Master passphrase
         <input className="input mt-2" type="password" value={password} onChange={(event) => setPassword(event.target.value)} minLength={12} autoComplete="off" required />
       </label>
@@ -774,7 +785,7 @@ function RecoveryConfirmation({
   return (
     <form onSubmit={onSubmit} className="mt-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
       <h3 className="text-xl font-semibold">Save the recovery key</h3>
-      <p className="mt-2 text-sm leading-6 text-slate-500">This is shown during setup only. Store it outside Personal Control Center. Losing both this key and the master password makes the vault permanently unrecoverable.</p>
+      <p className="mt-2 text-sm text-slate-500">Save this outside PCC. Without this key and your master passphrase, the Keychain cannot be recovered.</p>
       <div className="mt-4 rounded-2xl bg-slate-950 p-4 text-white">
         <code className="block break-all text-sm leading-6">{pending.recoveryKey}</code>
         <button type="button" onClick={onCopy} className="mt-3 min-h-10 rounded-xl bg-white/10 px-3 text-xs font-semibold text-white">Copy recovery key</button>
@@ -795,7 +806,6 @@ function UnlockForm({
   setPassword,
   busy,
   blocked,
-  lastKdfMs,
   onSubmit,
   onRecover,
 }: {
@@ -803,21 +813,18 @@ function UnlockForm({
   setPassword: (value: string) => void;
   busy: boolean;
   blocked: boolean;
-  lastKdfMs: number | null;
   onSubmit: (event: FormEvent) => void;
   onRecover: () => void;
 }) {
   return (
     <form onSubmit={onSubmit} className="mt-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
       <h3 className="text-xl font-semibold">Unlock Keychain</h3>
-      <p className="mt-2 text-sm leading-6 text-slate-500">The master passphrase is processed only in this browser. It is not sent to the Raspberry Pi.</p>
       <label className="mt-5 block text-sm font-medium text-slate-700">Master passphrase
         <input className="input mt-2" type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="off" required autoFocus />
       </label>
       <button type="submit" disabled={busy || blocked} className="mt-5 min-h-11 w-full rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white disabled:opacity-50">
         {busy ? "Unlocking…" : blocked ? "Try again shortly" : "Unlock"}
       </button>
-      {lastKdfMs !== null ? <p className="mt-2 text-center text-xs text-slate-400">Previous key derivation: {Math.round(lastKdfMs)} ms on this device</p> : null}
       <button type="button" onClick={onRecover} className="mt-4 min-h-10 w-full text-xs font-semibold text-slate-600 underline decoration-slate-300 underline-offset-4">Forgot master password? Use recovery key</button>
     </form>
   );
@@ -847,7 +854,6 @@ function RecoveryForm({
   return (
     <form onSubmit={onSubmit} className="mt-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
       <h3 className="text-xl font-semibold">Recover Keychain</h3>
-      <p className="mt-2 text-sm leading-6 text-slate-500">The recovery key unlocks the existing random vault key locally and lets you replace the forgotten master passphrase.</p>
       <label className="mt-5 block text-sm font-medium text-slate-700">Recovery key
         <input className="input mt-2 font-mono text-sm" value={recoveryKey} onChange={(event) => setRecoveryKey(event.target.value)} autoComplete="off" spellCheck={false} required />
       </label>

@@ -79,3 +79,25 @@ export async function deleteRemoteKeychainRecord(recordId: string, revision: num
     body: JSON.stringify({ revision }),
   });
 }
+
+export async function restoreRemoteKeychain(
+  expectedVaultRevision: number,
+  vault: KeychainVaultEnvelope,
+  records: KeychainRecordEnvelope[],
+) {
+  return requestJson<{ userId: string; vault: StoredKeychainVault; records: StoredKeychainRecord[] }>("/api/keychain/restore", {
+    method: "POST",
+    body: JSON.stringify({ expectedVaultRevision, vault, records }),
+  });
+}
+
+export async function rotateRemoteKeychain(
+  expectedVaultRevision: number,
+  vault: KeychainVaultEnvelope,
+  records: KeychainRecordEnvelope[],
+) {
+  return requestJson<{ userId: string; vault: StoredKeychainVault; records: StoredKeychainRecord[] }>("/api/keychain/rotate", {
+    method: "POST",
+    body: JSON.stringify({ expectedVaultRevision, vault, records }),
+  });
+}

@@ -1,4 +1,4 @@
-import { normalizeKeychainRecordEnvelope } from "@/domain/keychain";
+import { normalizeKeychainRecordId } from "@/domain/keychain";
 import { deleteStoredKeychainRecord, KeychainConflictError } from "@/server/keychain-store";
 import { AuthenticationRequiredError, resolveRequestUser } from "@/server/request-user";
 
@@ -23,21 +23,15 @@ export async function DELETE(
   }
 
   const { recordId } = await context.params;
+  const id = normalizeKeychainRecordId(recordId);
   const revision = body && typeof body === "object" ? (body as Record<string, unknown>).revision : null;
-  const identityProbe = normalizeKeychainRecordEnvelope({
-    id: recordId,
-    version: 1,
-    revision: Number.isInteger(revision) ? revision : 1,
-    nonce: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-    ciphertext: "AAAAAAAAAAAAAAAAAAAA",
-  });
-  if (!identityProbe || !Number.isInteger(revision) || Number(revision) < 1) {
+  if (!id || !Number.isInteger(revision) || Number(revision) < 1) {
     return json({ error: "Keychain record deletion is invalid." }, 400);
   }
 
   try {
     const user = await resolveRequestUser(request);
-    await deleteStoredKeychainRecord(user.id, identityProbe.id, Number(revision));
+    await deleteStoredKeychainRecord(user.id, id, Number(revision));
     return new Response(null, { status: 204, headers });
   } catch (error) {
     if (error instanceof AuthenticationRequiredError) return json({ error: error.message }, 401);

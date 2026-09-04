@@ -14,6 +14,7 @@ import type {
   StoredKeychainRecord,
   StoredKeychainVault,
 } from "@/domain/keychain";
+import { KeychainHardeningTools } from "@/components/keychain-hardening-tools";
 import {
   clearKeychainKey,
   createKeychainVault,
@@ -529,6 +530,26 @@ export default function KeychainPage() {
     await copySecret(pendingSetup.recoveryKey, "Recovery key");
   }
 
+  function handleRotatedVault(nextVault: StoredKeychainVault, nextEnvelopes: StoredKeychainRecord[], nextKey: Uint8Array) {
+    const dataById = new Map(records.map((record) => [record.envelope.id, record.data]));
+    const nextRecords: DecryptedRecord[] = [];
+    for (const envelope of nextEnvelopes) {
+      const data = dataById.get(envelope.id);
+      if (data) nextRecords.push({ envelope, data: cloneRecord(data) });
+    }
+    clearRevealTimers();
+    setEditor(null);
+    setVault(nextVault);
+    setRecords(nextRecords);
+    activateKey(nextKey);
+    setNotice("Vault encryption key rotated. The newly shown recovery key replaces the old one.");
+  }
+
+  function handleRestoredVault(nextVault: StoredKeychainVault) {
+    setVault(nextVault);
+    lockVault("Encrypted Keychain export restored. Unlock using the export's master passphrase.");
+  }
+
   if (loading) {
     return <section className="mx-auto max-w-3xl"><h2 className="text-3xl font-semibold tracking-tight">Keychain</h2><p className="mt-4 text-sm text-slate-500">Opening encrypted vault…</p></section>;
   }
@@ -715,6 +736,13 @@ export default function KeychainPage() {
                 onSubmit={handleChangeMasterPassword}
               />
             ) : null}
+            <KeychainHardeningTools
+              userId={userId}
+              vault={vault}
+              records={records}
+              onRotated={handleRotatedVault}
+              onRestored={handleRestoredVault}
+            />
           </details>
         </div>
       )}

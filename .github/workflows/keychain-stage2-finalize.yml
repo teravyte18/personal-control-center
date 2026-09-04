@@ -21,7 +21,7 @@ jobs:
           ref: agent/keychain-stage-2
           fetch-depth: 0
 
-      - name: Apply final validation and documentation fixes
+      - name: Apply page and documentation fixes
         shell: python
         run: |
           from pathlib import Path
@@ -33,14 +33,6 @@ jobs:
           if old not in text:
               raise SystemExit("Keychain cleanup block did not match expected source")
           page.write_text(text.replace(old, new))
-
-          ci = Path(".github/workflows/ci.yml")
-          text = ci.read_text()
-          old = '''          node --test tests/server-persistence.test.mjs\n\n          curl --fail --silent http://127.0.0.1:3000/manifest.webmanifest > pwa-manifest.json'''
-          new = '''          node --test tests/server-persistence.test.mjs\n          node --test tests/keychain-server.test.mjs\n\n          curl --fail --silent http://127.0.0.1:3000/manifest.webmanifest > pwa-manifest.json'''
-          if old not in text:
-              raise SystemExit("CI persistence-test block did not match expected source")
-          ci.write_text(text.replace(old, new))
 
           keychain_doc = Path("docs/password-keychain.md")
           text = keychain_doc.read_text()
@@ -54,7 +46,6 @@ jobs:
           text = roadmap.read_text()
           replacements = {
               'S10["Slice 10<br/>Encrypted Keychain<br/>▶ selected next"]': 'S10["Slice 10<br/>Encrypted Keychain<br/>🧪 Stages 1–2 in PR #55/#56"]',
-              '    class S10 selected;': '    class S10 selected;',
               '**Status: selected next; design complete, implementation not started.**': '**Status: Stages 1 and 2 implemented in PRs #55 and #56; experimental until Stage 3 hardening/review.**',
               'Implementation should use stage-specific issues/PRs rather than one large vault change. The first stage is not a production-secrets milestone; it is the cryptographic and persistence foundation plus tests proving plaintext does not reach the server, database, backups, logs, or service worker.': 'Implementation is split into stage-specific PRs rather than one large vault change. PR #55 implements the cryptographic/persistence foundation and its failure-boundary tests. PR #56 implements the locked phone-first experience, encrypted credential CRUD/search/copy/reveal, recovery/password-change flows, fixed lock timers, and password generation. Stage 3 remains the production-use gate; until it is complete, Keychain must not be the sole copy of important credentials.'
           }
@@ -64,14 +55,11 @@ jobs:
               text = text.replace(old, new, 1)
           roadmap.write_text(text)
 
-          helper = Path(".github/workflows/keychain-stage2-finalize.yml")
-          helper.unlink()
-
-      - name: Commit finalized Stage 2
+      - name: Commit finalized Stage 2 content
         run: |
           set -eu
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/app/keychain/page.tsx .github/workflows/ci.yml docs/password-keychain.md docs/roadmap.md .github/workflows/keychain-stage2-finalize.yml
-          git commit -m "chore: finalize keychain stage 2 validation"
+          git add src/app/keychain/page.tsx docs/password-keychain.md docs/roadmap.md
+          git commit -m "chore: finalize keychain stage 2 content"
           git push origin HEAD:agent/keychain-stage-2

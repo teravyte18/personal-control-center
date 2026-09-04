@@ -40,6 +40,8 @@ export function Icon({ name, className = "h-5 w-5" }: IconProps) {
       return <svg {...common}><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11v17H6.5A2.5 2.5 0 0 0 4 22V5.5Z" /><path d="M20 5.5A2.5 2.5 0 0 0 17.5 3H13v17h4.5A2.5 2.5 0 0 1 20 22V5.5Z" /></svg>;
     case "expenses":
       return <svg {...common}><rect x="3" y="5" width="18" height="14" rx="2.5" /><path d="M3 9h18M7 14h4" /><circle cx="17" cy="14" r="1.5" /></svg>;
+    case "keychain":
+      return <svg {...common}><rect x="7" y="10" width="12" height="10" rx="2" /><path d="M10 10V7a3 3 0 0 1 6 0v3M13 14v2" /><path d="M5 13H3m2 4H3" /></svg>;
     case "trips":
       return <svg {...common}><path d="m3 11 18-7-7 18-3-8-8-3Z" /><path d="m11 14 4-4" /></svg>;
     case "fitness":

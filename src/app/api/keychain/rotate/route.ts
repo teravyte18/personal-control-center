@@ -5,6 +5,10 @@ import {
 } from "@/domain/keychain";
 import { rotateStoredKeychain } from "@/server/keychain-hardening-store";
 import { KeychainConflictError } from "@/server/keychain-store";
+import {
+  KeychainRequestSecurityError,
+  requireKeychainJsonWrite,
+} from "@/server/keychain-request-security";
 import { AuthenticationRequiredError, resolveRequestUser } from "@/server/request-user";
 
 export const runtime = "nodejs";
@@ -31,6 +35,13 @@ function normalizeRecords(value: unknown) {
 }
 
 export async function POST(request: Request) {
+  try {
+    requireKeychainJsonWrite(request);
+  } catch (error) {
+    if (error instanceof KeychainRequestSecurityError) return json({ error: error.message }, error.status);
+    throw error;
+  }
+
   let body: unknown;
   try {
     body = await request.json();

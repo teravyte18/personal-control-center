@@ -130,7 +130,9 @@ jobs:
 
           curl --fail --silent --show-error --dump-header keychain-page.headers --output /dev/null -H 'x-pcc-user-email: owner@example.test' http://127.0.0.1:3000/keychain
           grep -Eqi '^cache-control:.*private.*no-store' keychain-page.headers
-          grep -Eqi '^content-security-policy:.*default-src .self.*object-src .none.*frame-ancestors .none' keychain-page.headers
+          grep -Eqi '^content-security-policy:.*default-src .self' keychain-page.headers
+          grep -Eqi '^content-security-policy:.*object-src .none' keychain-page.headers
+          grep -Eqi '^content-security-policy:.*frame-ancestors .none' keychain-page.headers
           grep -Eqi '^referrer-policy:.*no-referrer' keychain-page.headers
           grep -Eqi '^x-frame-options:.*deny' keychain-page.headers
 

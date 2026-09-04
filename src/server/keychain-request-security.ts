@@ -1,7 +1,10 @@
 export class KeychainRequestSecurityError extends Error {
-  constructor(message: string, readonly status: 403 | 415) {
+  readonly status: 403 | 415;
+
+  constructor(message: string, status: 403 | 415) {
     super(message);
     this.name = "KeychainRequestSecurityError";
+    this.status = status;
   }
 }
 

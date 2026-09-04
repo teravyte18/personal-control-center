@@ -92,7 +92,7 @@ export function KeychainHardeningTools({
     try {
       const parsed = parseKeychainEncryptedExport(await file.text(), userId);
       setRestoreCandidate(parsed);
-      setNotice(`Encrypted export loaded: ${parsed.records.length} ${parsed.records.length === 1 ? "record" : "records"}, exported ${new Date(parsed.exportedAt).toLocaleString()}.`);
+      setNotice(`Encrypted export loaded: ${parsed.records.length} ${parsed.records.length === 1 ? "record" : "records"}.`);
     } catch (restoreError) {
       setError(restoreError instanceof Error ? restoreError.message : "Encrypted Keychain export could not be read.");
     }
@@ -101,7 +101,7 @@ export function KeychainHardeningTools({
   async function restoreExport(event: FormEvent) {
     event.preventDefault();
     if (!restoreCandidate || busy) return;
-    if (!window.confirm("Replace the current encrypted Keychain with this export? The current server copy will be replaced atomically.")) return;
+    if (!window.confirm("Replace the current Keychain with this encrypted export?")) return;
     setBusy(true);
     setError("");
     try {
@@ -137,9 +137,9 @@ export function KeychainHardeningTools({
       setPendingRotation({ envelope: created.envelope, records: encrypted, recoveryKey: created.recoveryKey });
       setRotationRecoveryConfirmation("");
       setRotationPassword("");
-      setNotice("A new vault key and recovery key were generated locally. Save and confirm the new recovery key before committing rotation.");
+      setNotice("Save the new recovery key before completing rotation.");
     } catch {
-      setError("Vault-key rotation could not start. Check the current master passphrase and try again.");
+      setError("Could not prepare rotation. Check the master passphrase and try again.");
     } finally {
       clearKeychainKey(verificationKey);
       clearKeychainKey(newKey);
@@ -153,17 +153,17 @@ export function KeychainHardeningTools({
     setPendingRotation(null);
     setRotationRecoveryConfirmation("");
     setError("");
-    setNotice("Rotation cancelled. The existing vault and recovery key are unchanged.");
+    setNotice("Rotation cancelled.");
   }
 
   async function completeRotation(event: FormEvent) {
     event.preventDefault();
     if (!pendingRotation || !pendingRotationKeyRef.current || busy) return;
     if (rotationRecoveryConfirmation.trim() !== pendingRotation.recoveryKey) {
-      setError("New recovery-key confirmation does not match. Save the shown key, then paste it exactly.");
+      setError("Recovery-key confirmation does not match.");
       return;
     }
-    if (!window.confirm("Rotate the Keychain encryption key now? The old recovery key will stop working.")) return;
+    if (!window.confirm("Rotate the Keychain encryption key? The old recovery key will stop working.")) return;
     setBusy(true);
     setError("");
     try {
@@ -173,9 +173,9 @@ export function KeychainHardeningTools({
       setPendingRotation(null);
       setRotationRecoveryConfirmation("");
       onRotated(response.vault, response.records, key);
-      setNotice("Vault encryption key rotated atomically. Replace any saved old recovery key with the new one.");
+      setNotice("Encryption key rotated. Replace the old recovery key with the new one.");
     } catch (rotationError) {
-      setError(rotationError instanceof Error ? rotationError.message : "Vault-key rotation failed. No partial rotation was committed.");
+      setError(rotationError instanceof Error ? rotationError.message : "Vault-key rotation failed.");
     } finally {
       setBusy(false);
     }
@@ -183,8 +183,7 @@ export function KeychainHardeningTools({
 
   return (
     <div className="mt-5 border-t border-slate-200 pt-5">
-      <h4 className="font-semibold text-slate-800">Stage 3 maintenance</h4>
-      <p className="mt-1 text-xs leading-5 text-slate-500">Exports contain encrypted envelopes only. Restore and key rotation are committed atomically on the server; plaintext remains in this browser.</p>
+      <h4 className="font-semibold text-slate-800">Backup & maintenance</h4>
 
       {error ? <div role="alert" className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-900">{error}</div> : null}
       {notice ? <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">{notice}</div> : null}
@@ -192,45 +191,42 @@ export function KeychainHardeningTools({
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         <div className="rounded-2xl border border-slate-200 p-4">
           <h5 className="text-sm font-semibold">Encrypted export</h5>
-          <p className="mt-1 text-xs leading-5 text-slate-500">Download a versioned JSON copy of the vault envelope and encrypted records. It contains no decrypted labels, usernames, notes, or passwords.</p>
-          <button type="button" onClick={downloadExport} disabled={busy} className="mt-3 min-h-10 rounded-xl border border-slate-200 px-3 text-xs font-semibold text-slate-700 disabled:opacity-50">Download encrypted export</button>
+          <button type="button" onClick={downloadExport} disabled={busy} className="mt-3 min-h-10 rounded-xl border border-slate-200 px-3 text-xs font-semibold text-slate-700 disabled:opacity-50">Download export</button>
         </div>
 
         <div className="rounded-2xl border border-slate-200 p-4">
-          <h5 className="text-sm font-semibold">Restore encrypted export</h5>
-          <p className="mt-1 text-xs leading-5 text-slate-500">The file is parsed and decrypted locally first. Only validated ciphertext envelopes are sent to the restore API.</p>
+          <h5 className="text-sm font-semibold">Restore export</h5>
           <input className="mt-3 block w-full text-xs" type="file" accept="application/json,.json" onChange={(event) => void selectRestoreFile(event.target.files?.[0] ?? null)} disabled={busy} />
           {restoreCandidate ? (
             <form onSubmit={restoreExport} className="mt-3">
               <label className="block text-xs font-semibold text-slate-600">Export master passphrase
                 <input className="input mt-1" type="password" value={restorePassword} onChange={(event) => setRestorePassword(event.target.value)} autoComplete="off" required />
               </label>
-              <button type="submit" disabled={busy} className="mt-3 min-h-10 rounded-xl border border-red-200 px-3 text-xs font-semibold text-red-700 disabled:opacity-50">Validate and restore</button>
+              <button type="submit" disabled={busy} className="mt-3 min-h-10 rounded-xl border border-red-200 px-3 text-xs font-semibold text-red-700 disabled:opacity-50">Restore</button>
             </form>
           ) : null}
         </div>
       </div>
 
       <div className="mt-3 rounded-2xl border border-slate-200 p-4">
-        <h5 className="text-sm font-semibold">Rotate vault encryption key</h5>
-        <p className="mt-1 text-xs leading-5 text-slate-500">Rotation generates a fresh random vault key and fresh recovery key, re-encrypts every credential locally, then swaps the complete ciphertext set in one database transaction.</p>
+        <h5 className="text-sm font-semibold">Rotate encryption key</h5>
         {!pendingRotation ? (
           <form onSubmit={beginRotation} className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end">
-            <label className="min-w-0 flex-1 text-xs font-semibold text-slate-600">Current master passphrase
+            <label className="min-w-0 flex-1 text-xs font-semibold text-slate-600">Master passphrase
               <input className="input mt-1" type="password" value={rotationPassword} onChange={(event) => setRotationPassword(event.target.value)} autoComplete="off" required />
             </label>
             <button type="submit" disabled={busy} className="min-h-11 rounded-xl border border-slate-200 px-3 text-xs font-semibold text-slate-700 disabled:opacity-50">Prepare rotation</button>
           </form>
         ) : (
           <form onSubmit={completeRotation} className="mt-3 rounded-2xl bg-slate-950 p-4 text-white">
-            <p className="text-xs font-semibold">New recovery key — save this outside PCC</p>
+            <p className="text-xs font-semibold">New recovery key</p>
             <code className="mt-2 block break-all text-xs leading-5">{pendingRotation.recoveryKey}</code>
-            <label className="mt-3 block text-xs font-semibold text-slate-200">Confirm new recovery key
+            <label className="mt-3 block text-xs font-semibold text-slate-200">Confirm recovery key
               <input className="input mt-1 text-slate-950" value={rotationRecoveryConfirmation} onChange={(event) => setRotationRecoveryConfirmation(event.target.value)} autoComplete="off" spellCheck={false} required />
             </label>
             <div className="mt-3 grid grid-cols-2 gap-2">
               <button type="button" onClick={cancelRotation} disabled={busy} className="min-h-10 rounded-xl bg-white/10 px-3 text-xs font-semibold text-white disabled:opacity-50">Cancel</button>
-              <button type="submit" disabled={busy} className="min-h-10 rounded-xl bg-white px-3 text-xs font-semibold text-slate-950 disabled:opacity-50">Commit rotation</button>
+              <button type="submit" disabled={busy} className="min-h-10 rounded-xl bg-white px-3 text-xs font-semibold text-slate-950 disabled:opacity-50">Rotate</button>
             </div>
           </form>
         )}

@@ -32,7 +32,7 @@ function messageFrom(value: unknown, fallback: string) {
 async function fetchAccountData(): Promise<AccountData | null> {
   const sessionResponse = await fetch("/api/auth/session", { cache: "no-store" });
   if (sessionResponse.status === 401) {
-    window.location.assign("/login?next=/account");
+    window.location.replace("/login?next=/account");
     return null;
   }
 
@@ -154,7 +154,7 @@ export default function AccountPage() {
     try {
       await fetch("/api/auth/logout", { method: "POST" });
     } finally {
-      window.location.assign("/login");
+      window.location.replace("/login");
     }
   }
 

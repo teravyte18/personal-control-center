@@ -174,7 +174,7 @@ export default function KeychainPage() {
       .catch((requestError) => {
         if (cancelled) return;
         if (requestError instanceof KeychainApiError && requestError.status === 401) {
-          window.location.assign(`/login?next=${encodeURIComponent("/keychain")}`);
+          window.location.replace(`/login?next=${encodeURIComponent("/keychain")}`);
           return;
         }
         setError("Keychain could not be loaded.");

@@ -19,7 +19,7 @@ type SessionUser = {
 function redirectToLogin() {
   window.localStorage.removeItem(activeBrowserUserStorageKey);
   const next = `${window.location.pathname}${window.location.search}`;
-  window.location.assign(`/login?next=${encodeURIComponent(next)}`);
+  window.location.replace(`/login?next=${encodeURIComponent(next)}`);
 }
 
 function hasCachedSession() {

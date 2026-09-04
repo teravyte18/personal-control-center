@@ -74,6 +74,10 @@ function isWrappedKey(value: unknown): value is KeychainWrappedKey {
     && isEncodedBytes(candidate.ciphertext, 60, 80);
 }
 
+export function normalizeKeychainRecordId(value: unknown) {
+  return typeof value === "string" && uuidPattern.test(value) ? value.toLowerCase() : null;
+}
+
 export function normalizeKeychainVaultEnvelope(value: unknown): KeychainVaultEnvelope | null {
   if (!value || typeof value !== "object") return null;
   const candidate = value as Record<string, unknown>;
@@ -107,8 +111,8 @@ export function normalizeKeychainVaultEnvelope(value: unknown): KeychainVaultEnv
 export function normalizeKeychainRecordEnvelope(value: unknown): KeychainRecordEnvelope | null {
   if (!value || typeof value !== "object") return null;
   const candidate = value as Record<string, unknown>;
-  if (typeof candidate.id !== "string"
-    || !uuidPattern.test(candidate.id)
+  const id = normalizeKeychainRecordId(candidate.id);
+  if (!id
     || candidate.version !== KEYCHAIN_ENVELOPE_VERSION
     || !isIntegerWithin(candidate.revision, 1, 2_147_483_647)
     || !isEncodedBytes(candidate.nonce, 30, 40)
@@ -117,7 +121,7 @@ export function normalizeKeychainRecordEnvelope(value: unknown): KeychainRecordE
   }
 
   return {
-    id: candidate.id.toLowerCase(),
+    id,
     version: KEYCHAIN_ENVELOPE_VERSION,
     revision: candidate.revision as number,
     nonce: candidate.nonce as string,

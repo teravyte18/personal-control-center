@@ -8,6 +8,12 @@ Personal Control Center may add a client-encrypted Keychain for small credential
 
 The first release is an **experimental encrypted secrets vault**, not a claim to replace a mature audited password manager. Important credentials should not rely on it as their only copy until the implementation has received an independent security review.
 
+## Implementation status
+
+Stages 1 and 2 are implemented in PRs #55 and #56 and remain experimental pending Stage 3. The current implementation includes dedicated ciphertext-only persistence, Argon2id/XChaCha20-Poly1305 browser cryptography, recovery-key wrapping, authenticated user/record/revision binding, setup/unlock/recovery/password-change flows, encrypted record CRUD, search, deliberate copy/reveal, fixed lock timers, and a CSPRNG password generator.
+
+CI covers cryptographic wrong-key/tamper/swap failures, source-level plaintext/storage boundaries, and live PostgreSQL/API user isolation. Stage 3 still gates use as the sole copy of important credentials and includes CSP/XSS review, dependency review, encrypted export and restore rehearsal, vault-key rotation, and independent security review.
+
 ## Intended value
 
 The Keychain should make a small number of personal secrets easy to find from the same phone-first application while keeping the server, PostgreSQL database, local backups, and R2 snapshots unable to read their contents.

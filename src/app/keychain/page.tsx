@@ -191,13 +191,15 @@ export default function KeychainPage() {
       clearKeychainKey(pendingKeyRef.current);
       pendingKeyRef.current = null;
     };
+    const revealTimers = revealTimersRef.current;
     window.addEventListener("pagehide", wipeOnLeave);
     window.addEventListener("beforeunload", wipeOnLeave);
     return () => {
       window.removeEventListener("pagehide", wipeOnLeave);
       window.removeEventListener("beforeunload", wipeOnLeave);
       wipeOnLeave();
-      for (const timer of revealTimersRef.current.values()) window.clearTimeout(timer);
+      for (const timer of revealTimers.values()) window.clearTimeout(timer);
+      revealTimers.clear();
       if (clipboardTimerRef.current !== null) window.clearTimeout(clipboardTimerRef.current);
       if (unlockThrottleTimerRef.current !== null) window.clearTimeout(unlockThrottleTimerRef.current);
     };

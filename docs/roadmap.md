@@ -17,7 +17,7 @@ graph LR
     S7["Slice 7<br/>Book Library<br/>✅ PR #32"]
     S8["Slice 8<br/>UI and themes<br/>✅ PR #34, #35, #36"]
     S9["Slice 9<br/>Personal Expenses<br/>✅ PR #45, #47, #48"]
-    S10["Slice 10<br/>Encrypted Keychain<br/>▶ selected next"]
+    S10["Slice 10<br/>Encrypted Keychain<br/>🧪 Stages 1–2 in PR #55/#56"]
     S11["Slice 11<br/>Media Library<br/>films + series"]
     S12["Slice 12<br/>Personal Advisor v1<br/>opt-in LLM context"]
 
@@ -183,7 +183,7 @@ Small fixes and operational observations may still land between these slices, bu
 
 ## Slice 10 — Encrypted Password Keychain
 
-**Status: selected next; design complete, implementation not started.**
+**Status: Stages 1 and 2 implemented in PRs #55 and #56; experimental until Stage 3 hardening/review.**
 
 PR #43 closed the design/evaluation issue and documented the accepted boundary in [`password-keychain.md`](password-keychain.md).
 
@@ -198,7 +198,7 @@ Required behaviour and constraints:
 - explicit limitation that a compromised browser/device or malicious server code delivered at unlock can still capture decrypted data;
 - three security-focused implementation stages: encrypted foundation, locked phone-first UI, then hardening and independent review before important production use.
 
-Implementation should use stage-specific issues/PRs rather than one large vault change. The first stage is not a production-secrets milestone; it is the cryptographic and persistence foundation plus tests proving plaintext does not reach the server, database, backups, logs, or service worker.
+Implementation is split into stage-specific PRs rather than one large vault change. PR #55 implements the cryptographic/persistence foundation and its failure-boundary tests. PR #56 implements the locked phone-first experience, encrypted credential CRUD/search/copy/reveal, recovery/password-change flows, fixed lock timers, and password generation. Stage 3 remains the production-use gate; until it is complete, Keychain must not be the sole copy of important credentials.
 
 ## Slice 11 — Media Library for Films and Series
 

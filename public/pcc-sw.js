@@ -1,4 +1,4 @@
-const CACHE_NAME = "pcc-offline-capture-v4";
+const CACHE_NAME = "pcc-offline-capture-v5";
 const OFFLINE_PAGE = "/offline-capture.html";
 const OFFLINE_ASSETS = [
   OFFLINE_PAGE,
@@ -31,6 +31,8 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
   if (url.pathname.startsWith("/api/")
+    || url.pathname === "/keychain"
+    || url.pathname.startsWith("/keychain/")
     || url.pathname === "/login"
     || url.pathname === "/activate") return;
 

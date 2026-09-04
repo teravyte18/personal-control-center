@@ -34,7 +34,13 @@ export function proxy(request: NextRequest) {
   if (testIdentityAllowed || request.cookies.has(SESSION_COOKIE)) return NextResponse.next();
 
   if (pathname.startsWith("/api/")) {
-    return NextResponse.json({ error: "Authentication is required." }, { status: 401 });
+    return NextResponse.json(
+      { error: "Authentication is required." },
+      {
+        status: 401,
+        headers: { "Cache-Control": "private, no-store" },
+      },
+    );
   }
 
   const loginUrl = new URL("/login", request.url);

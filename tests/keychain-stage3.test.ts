@@ -15,6 +15,10 @@ import {
   serializeKeychainEncryptedExport,
   validateKeychainEncryptedExport,
 } from "../src/lib/keychain-export.ts";
+import {
+  KeychainRequestSecurityError,
+  requireKeychainJsonWrite,
+} from "../src/server/keychain-request-security.ts";
 
 const userId = "stage3-keychain-user";
 const masterPassword = "violet train coffee mountain";
@@ -77,12 +81,65 @@ test("vault-key rotation changes both the data key and recovery key while preser
   }
 });
 
+test("Keychain write guard accepts same-origin JSON and rejects browser cross-origin writes", () => {
+  const sameOrigin = new Request("http://app:3000/api/keychain/vault", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      "origin": "https://pcc.example.test",
+      "x-forwarded-host": "pcc.example.test",
+      "sec-fetch-site": "same-origin",
+    },
+    body: "{}",
+  });
+  assert.doesNotThrow(() => requireKeychainJsonWrite(sameOrigin));
+
+  const crossOrigin = new Request("https://pcc.example.test/api/keychain/vault", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "origin": "https://evil.example.test",
+    },
+    body: "{}",
+  });
+  assert.throws(
+    () => requireKeychainJsonWrite(crossOrigin),
+    (error) => error instanceof KeychainRequestSecurityError && error.status === 403,
+  );
+
+  const crossSite = new Request("https://pcc.example.test/api/keychain/vault", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "sec-fetch-site": "cross-site",
+    },
+    body: "{}",
+  });
+  assert.throws(
+    () => requireKeychainJsonWrite(crossSite),
+    (error) => error instanceof KeychainRequestSecurityError && error.status === 403,
+  );
+
+  const formWrite = new Request("https://pcc.example.test/api/keychain/vault", {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: "vault=x",
+  });
+  assert.throws(
+    () => requireKeychainJsonWrite(formWrite),
+    (error) => error instanceof KeychainRequestSecurityError && error.status === 415,
+  );
+});
+
 test("Keychain Stage 3 UI keeps decrypted content out of persistence and raw HTML sinks", async () => {
   const page = await readFile(new URL("../src/app/keychain/page.tsx", import.meta.url), "utf8");
   const tools = await readFile(new URL("../src/components/keychain-hardening-tools.tsx", import.meta.url), "utf8");
   const combined = `${page}\n${tools}`;
   for (const forbidden of ["localStorage", "sessionStorage", "indexedDB", "dangerouslySetInnerHTML", "<script"]) {
     assert.equal(combined.includes(forbidden), false, `${forbidden} must not be used by the Keychain UI`);
+  }
+  for (const removedClutter of ["Experimental vault", "Client-encrypted credentials", "Stage 3 maintenance", "Last key derivation", "Previous key derivation"]) {
+    assert.equal(combined.includes(removedClutter), false, `${removedClutter} should not appear in the Keychain UI`);
   }
   assert.match(tools, /validateKeychainEncryptedExport/);
   assert.match(tools, /rotateRemoteKeychain/);

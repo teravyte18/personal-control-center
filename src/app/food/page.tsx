@@ -349,7 +349,7 @@ function RecipeEditor({
                 <Field label="Rating"><select className="input" value={details.rating ?? ""} onChange={(event) => setDetails((current) => ({ ...current, rating: event.target.value === "" ? undefined : Number(event.target.value) }))}><option value="">Unrated</option>{ratingValues.map((value) => <option key={value} value={value}>{value.toFixed(1)}</option>)}</select></Field>
                 <Field label="Prep time (min)"><input type="number" min="1" max="1440" className="input" value={details.prepMinutes ?? ""} onChange={(event) => setDetails((current) => ({ ...current, prepMinutes: numberOrUndefined(event.target.value) }))} placeholder="Optional" /></Field>
                 <Field label="Cook time (min)"><input type="number" min="1" max="1440" className="input" value={details.cookMinutes ?? ""} onChange={(event) => setDetails((current) => ({ ...current, cookMinutes: numberOrUndefined(event.target.value) }))} placeholder="Optional" /></Field>
-                <Field label="Make again?"><select className="input" value={details.makeAgain} onChange={(event) => setDetails((current) => ({ ...current, makeAgain: event.target.value as RecipeMakeAgain }))}><option value="unspecified">Not decided</option><option value="yes">Yes</option><option value="no">No</option></select></Field>
+                <Field label="Make again?"><select className="input" value={details.makeAgain} onChange={(event) => setDetails((current) => ({ ...current, makeAgain: event.target.value as RecipeMakeAgain }))}>{Object.entries(makeAgainLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></Field>
               </div>
             </section>
 

@@ -8,56 +8,69 @@ The first useful slice is a **personal recipe book**: a place to keep recipes th
 
 ## Slice 11 — Food v1
 
-**Status: selected as the next implementation slice.**
+**Status: implemented in PR #60; pending merge and real-device acceptance.**
 
 Food v1 is intentionally recipe-book-first. Meal calendars, prepared-food inventory, nutrition tracking, and broader weekly-routine planning are deferred until real use shows which of them would reduce friction.
 
-### Recipe record
+### Implemented recipe record
 
-A recipe should support:
+A recipe supports:
 
 - **Name** — required.
 - **Ingredients** — multiline plain text, normally written as Markdown-style list lines such as `- garlic` or `- 500 g chicken`.
-- **Steps** — multiline cooking instructions; simple numbered or free-form text is enough for v1.
-- **Source link** — optional URL to the original website, YouTube video, Instagram post, or other reference.
+- **Steps** — multiline cooking instructions; numbered or free-form text is accepted.
+- **Source link** — optional HTTP/HTTPS URL to the original website, YouTube video, Instagram post, or other reference.
 - **Photo** — optional private user-scoped image. The intended default is often the user's own photo after making the dish rather than automatically sourced catalogue artwork.
-- **Servings** — optional.
-- **Prep/cooking time** — optional lightweight timing fields or a single practical duration field; exact modelling is not important.
+- **Servings** — optional positive integer.
+- **Prep and cooking time** — optional practical minute values, with the combined duration shown on recipe cards.
 - **Tags** — optional lightweight labels useful for retrieval, such as quick, freezer-friendly, breakfast, chicken, rice, or vegetarian.
-- **Rating / make again** — optional personal preference signal.
+- **Rating** — optional 0–10 score in half-point steps.
+- **Make again** — optional Yes/No preference signal, with an undecided default.
 - **Cooking notes** — optional observations after making it, such as quantity adjustments, substitutions, temperature changes, or what to do differently next time.
 
 ### Ingredient workflow
 
 Ingredients are deliberately stored and edited as plain text rather than as a structured grocery database.
 
-Product rules:
+Current rules:
 
-- preserve line breaks and leading `- ` list markers;
-- do not require a Markdown preview for ingredients;
-- provide a **Copy ingredients** action that copies the ingredient block as written;
-- copied ingredients should paste cleanly into Notes so a shopping list can be created or refined there;
-- do not attempt automatic pantry subtraction, quantity normalisation, unit conversion, or ingredient matching in v1.
+- line breaks and leading `- ` list markers are preserved;
+- ingredients are not rendered through a Markdown preview;
+- **Copy ingredients** copies the ingredient block exactly as stored;
+- copied ingredients paste cleanly into Notes so a shopping list can be created or refined there;
+- there is no automatic pantry subtraction, quantity normalisation, unit conversion, or ingredient matching.
 
 ### Recipe browsing
 
-The Food space should make saved recipes easy to retrieve on a phone. Reuse proven Library patterns where sensible without copying book-specific complexity.
+The Food space is available through All Spaces, desktop navigation, and configurable mobile quick access.
 
-Useful v1 behaviour:
+Current behaviour:
 
-- compact recipe cards;
-- title search;
-- optional tag filtering if tags are included in the first implementation;
-- clear recipe detail/edit view;
-- add, edit, and delete recipes;
-- keep all recipe data user-scoped and included in the normal authenticated persistence/export/backup boundary;
-- use the existing private upload approach for recipe photos if photos ship in v1.
+- compact photo-first recipe cards;
+- title and tag search;
+- exact tag filtering;
+- rated recipes sort from highest to lowest, followed by unrated recipes in title order;
+- full-screen phone-first add/edit view;
+- add, edit, and permanent delete;
+- optional source-link opening;
+- private photo upload, replacement, removal, bounded display optimisation, private caching, and ETag revalidation;
+- all structured recipe data remains user-scoped inside the normal authenticated personal-data snapshot, so normal export/import and database backups include it;
+- recipe photos live under the existing per-user upload root and therefore follow the normal upload/off-site backup boundary;
+- Recipe records reuse the proven note-backed snapshot architecture but are explicitly excluded from the normal Notes view.
 
-The first version does not need external recipe metadata services. A source URL is enough.
+The first version has no dependency on external recipe metadata services.
+
+## Persistence and image boundary
+
+Recipe metadata is serialized into active `note` items using a dedicated `__pcc_recipe_v1__` description prefix. This avoids a new schema/table while retaining existing snapshot normalization, account isolation, export/import, and restore behaviour.
+
+Recipe photos are stored separately from Library covers under each user's `recipe-photos` upload directory. Uploads accept JPEG, PNG, WebP, or GIF images up to 10 MB. Display responses are authenticated, resized/converted to a bounded WebP when possible, and use private browser caching rather than public cacheability.
+
+Deleting or replacing a recipe photo removes the superseded upload. If a new upload succeeds but the recipe save fails, the unused new upload is cleaned up.
 
 ## Explicit v1 non-goals
 
-Do not make these requirements for the first Food slice:
+The first Food slice does **not** include:
 
 - nutrition or calorie targets;
 - automatic nutrition calculation;
@@ -73,6 +86,19 @@ Do not make these requirements for the first Food slice:
 - routines, streaks, or location scheduling.
 
 The recipe book should remain useful even if none of those features are ever added.
+
+## Real-device acceptance for PR #60
+
+Before treating the slice as fully accepted in production, verify on the installed phone:
+
+1. create a recipe with multiline `- item` ingredients, steps, source, optional metadata, and tags;
+2. copy ingredients and paste them into a normal Note without losing line breaks or list markers;
+3. reopen and edit the recipe, including rating/make-again and cooking notes;
+4. search by title and tag, and filter by a tag;
+5. open an HTTP/HTTPS source link;
+6. upload a photo, confirm it displays after reload, replace it, then remove it;
+7. delete a throwaway recipe and confirm it disappears from Food without appearing in Notes;
+8. pin Food into mobile quick access and confirm the phone layout remains comfortable.
 
 ## Likely follow-ups after real use
 

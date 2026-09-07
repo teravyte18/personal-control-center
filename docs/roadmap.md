@@ -17,18 +17,20 @@ graph LR
     S7["Slice 7<br/>Book Library<br/>✅ PR #32"]
     S8["Slice 8<br/>UI and themes<br/>✅ PR #34, #35, #36"]
     S9["Slice 9<br/>Personal Expenses<br/>✅ PR #45, #47, #48"]
-    S10["Slice 10<br/>Encrypted Keychain<br/>🧪 Stages 1–2 in PR #55/#56"]
-    S11["Slice 11<br/>Media Library<br/>films + series"]
-    S12["Slice 12<br/>Personal Advisor v1<br/>opt-in LLM context"]
+    S10["Slice 10<br/>Encrypted Keychain<br/>✅ PR #55, #56, #58"]
+    S11["Slice 11<br/>Food v1<br/>recipe book"]
+    S12["Slice 12<br/>Media Library<br/>films + series"]
+    S13["Slice 13<br/>Weekly Rhythm<br/>design before build"]
+    S14["Slice 14<br/>Personal Advisor v1<br/>opt-in LLM context"]
 
-    S1 --> S2 --> S3 --> HARDEN --> S4 --> S5 --> S6 --> EXT --> S7 --> S8 --> S9 --> S10 --> S11 --> S12
+    S1 --> S2 --> S3 --> HARDEN --> S4 --> S5 --> S6 --> EXT --> S7 --> S8 --> S9 --> S10 --> S11 --> S12 --> S13 --> S14
 
     classDef done fill:#ecfdf5,stroke:#10b981,color:#065f46;
     classDef selected fill:#eff6ff,stroke:#3b82f6,color:#1e3a8a;
     classDef planned fill:#f8fafc,stroke:#94a3b8,color:#334155;
-    class S1,S2,S3,HARDEN,S4,S5,S6,EXT,S7,S8,S9 done;
-    class S10 selected;
-    class S11,S12 planned;
+    class S1,S2,S3,HARDEN,S4,S5,S6,EXT,S7,S8,S9,S10 done;
+    class S11 selected;
+    class S12,S13,S14 planned;
 ```
 
 ## Slice 1 — Phone-first foundation
@@ -171,38 +173,65 @@ See [`expenses.md`](expenses.md) for the detailed current behaviour.
 
 ## Current selection
 
-The next major product sequence is now deliberately selected:
+Slice 10 Keychain is complete. The current product direction is:
 
-1. **Slice 10 — Encrypted Password Keychain**;
-2. **Slice 11 — Media Library for Films and Series**;
-3. **Slice 12 — Personal Advisor v1**.
+1. **Slice 11 — Food v1: personal Recipe Book** — selected next implementation slice;
+2. **Slice 12 — Media Library for Films and Series** — planned after Food;
+3. **Slice 13 — Weekly Rhythm** — promising direction that needs more product design before implementation;
+4. **Slice 14 — Personal Advisor v1** — planned after the system has more useful lifestyle and preference context.
 
-This sequence has an architectural reason rather than being a generic feature queue. Keychain is already fully specified and should be completed behind its separate security boundary. Media then adds an important missing preference/history domain. The Personal Advisor follows once Books, Media, Projects, Tasks, Thoughts, and Reviews provide enough useful structured context to make cross-space reasoning worthwhile.
+This sequence is based on expected daily value rather than catalogue completeness. Food can immediately reduce friction around cooking and preserving recipes worth repeating. Media remains a useful missing preference/history domain. Weekly Rhythm may later add loose structure around where and how days are spent without becoming a streak tracker. The Personal Advisor becomes more useful after these domains exist because it can reason across practical routines, food, media, projects, tasks, thoughts, reviews, and books when the user explicitly enables those domains.
 
-Small fixes and operational observations may still land between these slices, but they do not replace the selected direction unless real use shows a stronger need.
+Small fixes and operational observations may still land between these slices. Only Food v1 is committed as the immediate implementation slice; the later ordering can still change if real use shows a stronger need.
 
 ## Slice 10 — Encrypted Password Keychain
 
-**Status: Stages 1 and 2 implemented in PRs #55 and #56; experimental until Stage 3 hardening/review.**
+**Status: implementation complete in PRs #55, #56, and #58.**
 
 PR #43 closed the design/evaluation issue and documented the accepted boundary in [`password-keychain.md`](password-keychain.md).
 
-Required behaviour and constraints:
+The implemented boundary includes:
 
 - separate Keychain master password plus a separately stored recovery key;
 - random per-user vault key wrapped client-side with an Argon2id-derived key;
-- independently authenticated-encrypted records with all labels, usernames, URLs, notes, and secrets hidden from the server;
+- independently authenticated-encrypted records with labels, usernames, URLs, notes, and secrets hidden from the server;
 - dedicated user-scoped tables and endpoints, excluded from Inbox, Notes, Review, Calendar, normal import/export, logs, and service-worker caching;
 - masked values, deliberate reveal/copy, automatic re-hiding, memory-only unlock state, and fixed inactivity/background locking;
-- backups contain ciphertext only and restore without requiring the server to know the master password;
-- explicit limitation that a compromised browser/device or malicious server code delivered at unlock can still capture decrypted data;
-- three security-focused implementation stages: encrypted foundation, locked phone-first UI, then hardening and independent review before important production use.
+- ciphertext-only dedicated export/restore and backup behaviour;
+- atomic vault-key rotation and recovery flows;
+- explicit no-store/CSP/framing/referrer/permissions protections and same-origin mutation guards;
+- wrong-key, tamper, rotation, restore, cross-user, and cross-origin tests plus a PostgreSQL restore rehearsal.
 
-Implementation is split into stage-specific PRs rather than one large vault change. PR #55 implements the cryptographic/persistence foundation and its failure-boundary tests. PR #56 implements the locked phone-first experience, encrypted credential CRUD/search/copy/reveal, recovery/password-change flows, fixed lock timers, and password generation. Stage 3 remains the production-use gate; until it is complete, Keychain must not be the sole copy of important credentials.
+The implementation documents its residual boundary: a compromised browser/device or malicious application code delivered at unlock can still capture decrypted data. PR #58 completes the implementation-side hardening gate; an independent professional security review remains an optional external assurance step rather than something the implementation author can self-certify.
 
-## Slice 11 — Media Library for Films and Series
+## Slice 11 — Food v1: Recipe Book
 
-**Status: selected after Keychain; product boundary defined, implementation not started.**
+**Status: selected next; product boundary defined, implementation not started.**
+
+See [`food.md`](food.md).
+
+Food v1 is deliberately a recipe book rather than a nutrition tracker or meal-planning system. A recipe should support:
+
+- required name;
+- ingredients as multiline plain text, normally using `- item` lines;
+- a one-tap **Copy ingredients** action so the text can be pasted directly into Notes as a shopping list;
+- cooking steps;
+- optional source URL to a website, YouTube video, Instagram post, or other reference;
+- optional private photo, often the user's own photo after making the dish;
+- optional servings and practical prep/cooking time;
+- optional tags for retrieval;
+- optional rating or make-again signal;
+- optional cooking notes for substitutions, quantity adjustments, temperature changes, or lessons from previous attempts.
+
+The first version should prioritize fast phone retrieval and editing, reuse proven private-upload and persistence patterns, and remain fully usable without external recipe services.
+
+Explicitly deferred from v1 are nutrition tracking, weekly meal planning, Prep Sunday calculations, prepared-food inventory, pantry inventory, grocery-database behaviour, recipe scraping, AI meal generation, and routine/streak features.
+
+Nutrition remains a future option only if it becomes useful in real use. If added later, begin with a small understandable optional set such as calories, protein, fibre, and saturated fat per serving rather than a complete nutrition label or health-scoring system.
+
+## Slice 12 — Media Library for Films and Series
+
+**Status: planned after Food; product boundary defined, implementation not started.**
 
 See [`media-library.md`](media-library.md).
 
@@ -217,9 +246,25 @@ The first version is a lightweight personal Media space, not a general entertain
 
 The slice should reuse proven Book Library patterns where sensible and remain fully usable without external metadata services. Exhaustive cast, genre, provider, episode, and catalogue data is intentionally deferred.
 
-## Slice 12 — Personal Advisor v1
+## Slice 13 — Weekly Rhythm
 
-**Status: selected after Media; architecture and privacy boundary defined, implementation not started.**
+**Status: direction selected for later exploration; requires more design before implementation.**
+
+Weekly Rhythm is intentionally not a generic habit or streak tracker. The current idea is to give loose structure to days when no external schedule provides it, for example describing a day as Home, Library, Café, Flexible, Meal prep, or another useful recurring context.
+
+Potential value includes:
+
+- planning a few recurring out-of-home work days without scheduling every hour;
+- attaching a loose main intent or context to a day;
+- distinguishing intended structure from one-off Tasks or calendar Events;
+- eventually giving Food useful context such as whether a meal is likely to be at home or out;
+- giving the Personal Advisor better context about intended versus actual weekly patterns.
+
+Recurrence, exceptions, completion semantics, review integration, and the boundary between Weekly Rhythm, Routines/Habits, and Events/Appointments still need brainstorming. Do not implement this slice until those rules are clearer.
+
+## Slice 14 — Personal Advisor v1
+
+**Status: planned after the preceding context-building slices; architecture and privacy boundary defined, implementation not started.**
 
 See [`personal-advisor.md`](personal-advisor.md).
 
@@ -238,6 +283,8 @@ The first version should:
 - keep provider credentials server-side and apply request-size, timeout, rate-limit, and cost controls;
 - avoid storing raw generated context in logs.
 
+Food may later become another explicit opt-in Advisor domain, using saved recipes, personal ratings/make-again decisions, and cooking notes rather than inferred health goals. Weekly Rhythm may also become an opt-in context domain once its product model exists.
+
 **Keychain is permanently excluded from AI.** The Advisor context builder must not depend on Keychain tables, APIs, ciphertext, metadata, or decrypted client state. This must be enforced structurally rather than by telling the model not to access secrets.
 
 Embeddings, vector search, long-term Advisor memory, autonomous agents, and generic database tools are explicitly not required for v1. Direct structured queries plus bounded recent context should be tried first. If real data volume later makes retrieval necessary, PostgreSQL plus `pgvector` is the likely incremental path.
@@ -255,11 +302,22 @@ Candidate behaviour:
 - no invented dates merely to make uncertain work appear;
 - undated projects/actions/tasks remain valid and continue to surface through their normal spaces and Weekly Review.
 
-This remains a useful planning-focused candidate after the selected Keychain → Media → Advisor sequence, or earlier only if real use shows that near-term visibility has become more valuable than the selected work.
+This remains a useful planning-focused candidate after or between the selected direction if real use shows that near-term visibility has become more valuable than the planned work.
+
+### Food follow-ups
+
+After the Recipe Book has been used with real recipes, reassess:
+
+- prepared batches/portions with made date, remaining portions, fridge/freezer location, and optional use-by date;
+- a lightweight weekly meal plan that may contain a recipe, prepared portion, eating out, or nothing;
+- a prep-oriented view derived from an established meal plan;
+- optional nutrition metadata only if it becomes understandable and useful in practice.
+
+Do not promote raw pantry inventory or a grocery database without observed maintenance value.
 
 ### Routines/Habits
 
-Recurring responsibilities and practices, only after recurrence, completion, pause, and review rules are concrete enough to avoid building a generic streak tracker.
+Recurring responsibilities and practices beyond the looser Weekly Rhythm concept should wait until recurrence, completion, pause, exception, and review rules are concrete enough to avoid building a generic streak tracker.
 
 ### Events/Appointments
 

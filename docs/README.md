@@ -11,7 +11,7 @@ This directory contains current product/operations documentation plus a small am
 
 ## Feature guides
 
-- [`food.md`](food.md) — selected recipe-book-first Food v1, ingredient-copy workflow, explicit exclusions, and deferred meal-prep/routine follow-ups
+- [`food.md`](food.md) — implemented Food v1 recipe book, ingredient-copy workflow, private photos, explicit exclusions, and deferred meal-prep/routine follow-ups
 - [`expenses.md`](expenses.md) — manual expense capture, fixed 50/30/20 reference, rolling Fun Fund, Insights analytics, persistence, and current boundaries
 - [`notes.md`](notes.md) — Markdown subset, autosave rules, safe preview rendering, and regression checks
 - [`book-library.md`](book-library.md) — Library model, ratings, owned-first default view, Wishlist isolation, covers, caching, and regression checks
@@ -27,7 +27,7 @@ This directory contains current product/operations documentation plus a small am
 - [`authentication.md`](authentication.md) — owner bootstrap, invitations, sessions, revocation, and isolation
 - [`security-hardening.md`](security-hardening.md) — live Funnel security controls and repeatable audit
 - [`phone-deployment.md`](phone-deployment.md) — Raspberry Pi and Tailscale Funnel setup, phone validation, updates, and restore entry points
-- [`review-photo-storage.md`](review-photo-storage.md) — private upload storage for review photos and Library covers
+- [`review-photo-storage.md`](review-photo-storage.md) — private upload storage for Review photos, Library covers, and Food recipe photos
 - [`offsite-backups.md`](offsite-backups.md) — encrypted Cloudflare R2/restic backups and restore rehearsal
 - [`browser-only-development.md`](browser-only-development.md) — local UI/domain mode without PostgreSQL
 

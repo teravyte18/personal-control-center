@@ -1,6 +1,6 @@
 # Private upload storage
 
-This file keeps its original name for stable links, but it now documents both Weekly Review photos and Library book covers.
+This file keeps its original name for stable links, but it now documents Weekly Review photos, Library book covers, and Food recipe photos.
 
 Private uploads live outside the application container and are never exposed as unauthenticated static assets.
 
@@ -51,6 +51,22 @@ Authenticated display delivery rotates according to metadata, fits inside 900 ×
 
 Display variants are not stored as a second persistent file set. The original upload tree remains the recovery source.
 
+## Food recipe photos
+
+- Accepted formats: JPEG, PNG, WebP, and GIF.
+- Maximum size: 10 MB.
+- Storage path:
+
+  ```text
+  UPLOAD_ROOT/<user-id>/recipe-photos/<photo-id>
+  ```
+
+The recipe snapshot stores only the opaque photo UUID inside the recipe's serialized metadata. Recipe records and ordinary Notes remain separate despite both using the shared personal-data item model.
+
+Authenticated display delivery rotates according to metadata, fits inside 1200 × 1200 without enlargement, encodes WebP at quality 84, falls back to the original when optimisation fails, and uses private one-day caching, a seven-day stale-while-revalidate window, and ETag revalidation.
+
+Replacing a recipe photo stores the new file before the recipe points to it; the superseded file is then removed. A newly uploaded photo is also removed if the recipe save fails. Deleting a recipe removes its photo before removing the recipe record.
+
 ## Backup sets
 
 Every automatic or pre-deployment local backup contains a matching pair:
@@ -60,7 +76,7 @@ personal-control-center-YYYYMMDDTHHMMSSZ.dump
 personal-control-center-YYYYMMDDTHHMMSSZ.uploads.tar.gz
 ```
 
-The dump contains PostgreSQL state. The upload archive contains the complete user-scoped upload tree, including review photos and original book covers. Both files are validated before promotion from temporary paths.
+The dump contains PostgreSQL state. The upload archive contains the complete user-scoped upload tree, including review photos, original book covers, and original recipe photos. Both files are validated before promotion from temporary paths.
 
 Create another pair with:
 
@@ -78,4 +94,4 @@ sh scripts/restore-postgres.sh data/backups/personal-control-center-YYYYMMDDTHHM
 
 When the matching upload archive exists beside the dump, the script validates its paths and restores the upload tree as part of the same operation. Legacy database-only dumps remain supported but cannot restore missing files.
 
-After restoration, verify health/sign-in, one Review photo, one Library cover, cross-user file isolation, and replacement/removal of a temporary upload.
+After restoration, verify health/sign-in, one Review photo, one Library cover, one Food recipe photo, cross-user file isolation, and replacement/removal of a temporary upload.

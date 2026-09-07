@@ -1,6 +1,6 @@
 # Personal Control Center
 
-A phone-first private planning, reflection, reading, and personal-spending system that combines quick capture, projects, one-off tasks, thoughts, editable notes, weekly reviews, a personal book library, and lightweight expense tracking in one self-hosted application.
+A phone-first private planning, reflection, reading, cooking, and personal-spending system that combines quick capture, projects, one-off tasks, thoughts, editable notes, weekly reviews, a personal book library, a recipe book, and lightweight expense tracking in one self-hosted application.
 
 This repository targets a small personal deployment rather than a commercial product. Multiple invite-only accounts may use one application and PostgreSQL database, but each account has completely separate personal data.
 
@@ -9,7 +9,7 @@ This repository targets a small personal deployment rather than a commercial pro
 - Capture first; organise later.
 - Design for frequent phone use before optimising desktop layouts.
 - Show what matters now instead of everything stored.
-- Keep projects, one-off tasks, thoughts, notes, books, expenses, and future routines conceptually distinct.
+- Keep projects, one-off tasks, thoughts, notes, books, recipes, expenses, and future routines conceptually distinct.
 - Let new modules grow through All Spaces without crowding the mobile dock.
 - Keep external services as optional projections or assistants rather than hidden sources of truth.
 - Keep AI suggestions optional and never silently change user data.
@@ -24,6 +24,7 @@ This repository targets a small personal deployment rather than a commercial pro
 - Editable Notes with compact cards, persistent manual ordering, debounced autosave, and a safe Markdown formatting/preview subset
 - Fixed Saturday-to-Friday Weekly Review periods with generated context, draft persistence, durable photos, expanded history, and in-app reminders
 - A books-first Library whose default My library view contains Owned books only, with explicit Wishlist access, search, generated views, 0–10 ratings, manual Up next ordering, private covers, and review context
+- A Food recipe book with title/tag search, copyable Markdown-style ingredient lists, steps, source links, optional timings/servings/tags/rating/make-again notes, and private recipe photos
 - Personal Expenses with fast manual expense/income entry, fixed 50/30/20 reference amounts, outflow-share cards, a rolling Fun Fund, editable transaction history, and filtered Insights analytics
 - Four configurable mobile quick-access slots, a dock-attached Spaces handle, a compact All Spaces directory, and an expanded desktop rail
 - A neutral Default appearance plus Pokémon, Hades, Hades II, Hollow Knight, Silksong, Elden Ring, Cyberpunk 2077, The Witcher 3, and Stardew Valley themes
@@ -50,6 +51,7 @@ Review (/review)
   - Current
   - History
 Library (/library)
+Food (/food)
 Expenses (/expenses)
   - Month
   - Insights
@@ -137,7 +139,7 @@ npm install
 npm run dev:network -- --port 3001
 ```
 
-This mode bypasses authentication only outside production and stores data in that browser's `localStorage`. It does not provide shared phone/desktop state, durable uploads, production Calendar behaviour, real notification behaviour, or server-persistence testing. Personal Expenses uses the authenticated server snapshot and should be tested against the full stack rather than relying on browser-only persistence.
+This mode bypasses authentication only outside production and stores data in that browser's `localStorage`. It does not provide shared phone/desktop state, durable uploads, production Calendar behaviour, real notification behaviour, or server-persistence testing. Personal Expenses uses the authenticated server snapshot and should be tested against the full stack rather than relying on browser-only persistence. Food recipe metadata can be explored in browser-only mode, but recipe photo persistence requires the full authenticated stack.
 
 See [`docs/browser-only-development.md`](docs/browser-only-development.md).
 
@@ -178,9 +180,19 @@ See [`docs/phone-deployment.md`](docs/phone-deployment.md).
 
 The complete authenticated application remains online-first. After one successful online sign-in and service-worker preparation, a cold-started installed PWA can fall back to a dedicated Capture-only screen when the server or network is unavailable.
 
-Pending captures remain device-local until PostgreSQL confirms them. Stable client-generated IDs make retries duplicate-safe. Notes, Library, Expenses, Inbox organisation, Projects, Tasks, Thoughts, Review, Account, uploads, and Calendar settings remain online-only.
+Pending captures remain device-local until PostgreSQL confirms them. Stable client-generated IDs make retries duplicate-safe. Notes, Library, Food, Expenses, Inbox organisation, Projects, Tasks, Thoughts, Review, Account, uploads, and Calendar settings remain online-only.
 
 See [`docs/offline-capture.md`](docs/offline-capture.md).
+
+## Food
+
+Food v1 is a lightweight personal recipe book rather than a nutrition tracker or meal planner. Recipes keep a name, multiline ingredients, steps, and optional source, photo, servings, prep/cook time, tags, 0–10 rating, make-again signal, and cooking notes.
+
+Ingredients remain plain text so list markers such as `- garlic` are preserved exactly. **Copy ingredients** copies the block as written for immediate pasting into a Note or shopping list. Recipe photos are private, user-scoped uploads stored separately from Library covers.
+
+Nutrition/macros, weekly meal planning, prepared-food inventory, pantry/grocery databases, recipe scraping, AI meal generation, and routine scheduling are intentionally outside Food v1.
+
+See [`docs/food.md`](docs/food.md).
 
 ## Personal Expenses
 
@@ -212,7 +224,7 @@ See [`docs/interface-rules.md`](docs/interface-rules.md).
 
 ## Backups and recovery
 
-The backup service creates a validated PostgreSQL custom-format dump and paired upload archive on startup and every 24 hours by default. The upload archive includes review photos and original Library cover uploads. Expense state is part of the PostgreSQL personal-data snapshot and therefore requires no separate backup path.
+The backup service creates a validated PostgreSQL custom-format dump and paired upload archive on startup and every 24 hours by default. The upload archive includes review photos, original Library cover uploads, and original Food recipe photos. Expense and Recipe structured state are part of the PostgreSQL personal-data snapshot and therefore require no separate database backup path.
 
 Create another local backup manually:
 

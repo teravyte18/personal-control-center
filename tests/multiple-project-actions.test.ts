@@ -9,6 +9,7 @@ import {
   updateProjectAction,
   type Item,
 } from "../src/domain/personal-data.ts";
+import { normalizePersonalDataMutation } from "../src/domain/personal-data-snapshot.ts";
 import { isProjectPastCheckIn } from "../src/domain/project-dates.ts";
 import { buildGoogleCalendarProjections } from "../src/domain/google-calendar.ts";
 
@@ -38,6 +39,40 @@ test("a project can keep dated and undated open actions", () => {
       ["Undated parallel action", ""],
     ],
   );
+});
+
+test("project actions preserve optional multiline details through edits and persistence normalization", () => {
+  const details = "Build/setup dependencies\n\n1. Run one provided example\n2. Record command, inputs, output, runtime, and any setup problems";
+  const project = addProjectAction(
+    baseProject,
+    "Run the phylogenetic placement code end-to-end",
+    "",
+    new Date("2026-09-09T15:00:00.000Z"),
+    details,
+  );
+  const action = getOpenProjectActions(project)[0];
+  assert.equal(action.details, details);
+
+  const edited = updateProjectAction(
+    project,
+    action.id,
+    { title: action.title, targetDate: "", details: `${details}\n3. Save the baseline result` },
+    new Date("2026-09-09T15:10:00.000Z"),
+  );
+  const editedAction = getOpenProjectActions(edited)[0];
+  assert.match(editedAction.details ?? "", /Save the baseline result/);
+
+  const restored = normalizeItem(JSON.parse(JSON.stringify(edited)));
+  assert.ok(restored);
+  assert.equal(getOpenProjectActions(restored)[0].details, editedAction.details);
+
+  const mutation = normalizePersonalDataMutation({
+    type: "add-project-action",
+    projectId: baseProject.id,
+    action: editedAction,
+  });
+  assert.ok(mutation && mutation.type === "add-project-action");
+  assert.equal(mutation.action.details, editedAction.details);
 });
 
 test("completing one parallel action leaves the project and its other actions active", () => {
@@ -72,7 +107,7 @@ test("a project cannot be moved to waiting while another action remains open", (
   );
 });
 
-test("a successor action may be created without a date", () => {
+test("a successor action may be created without a date and with details", () => {
   const project = addProjectAction(baseProject, "Current action", "2026-08-02", new Date("2026-07-20T10:00:00.000Z"));
   const current = getOpenProjectActions(project)[0];
   const updated = completeProjectAction(
@@ -83,10 +118,12 @@ test("a successor action may be created without a date", () => {
     "Undated successor",
     "",
     new Date("2026-07-29T12:00:00.000Z"),
+    "Run the next benchmark and record the output.",
   );
 
   assert.equal(getOpenProjectActions(updated)[0].title, "Undated successor");
   assert.equal(getOpenProjectActions(updated)[0].targetDate, "");
+  assert.equal(getOpenProjectActions(updated)[0].details, "Run the next benchmark and record the output.");
 });
 
 test("rescheduling records notes when dates are changed, removed, or set", () => {

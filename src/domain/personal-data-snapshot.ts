@@ -172,6 +172,7 @@ function normalizeAction(value: unknown): ProjectAction | null {
 
   const title = value.title.trim();
   if (!title) return null;
+  const details = typeof value.details === "string" ? value.details.trim() : "";
 
   const completedAt = value.completedAt === undefined
     ? undefined
@@ -188,6 +189,7 @@ function normalizeAction(value: unknown): ProjectAction | null {
     id: value.id,
     title,
     targetDate: value.targetDate,
+    details: details || undefined,
     openedAt: value.openedAt,
     updatedAt: value.updatedAt,
     completedAt,
@@ -243,10 +245,12 @@ function normalizeProjectActionUpdates(value: unknown): ProjectActionUpdates | n
     || typeof value.title !== "string"
     || !value.title.trim()
     || !isDateOnlyOrEmpty(value.targetDate)) return null;
+  if (value.details !== undefined && typeof value.details !== "string") return null;
   if (value.rescheduleNote !== undefined && typeof value.rescheduleNote !== "string") return null;
   return {
     title: value.title,
     targetDate: value.targetDate,
+    details: typeof value.details === "string" ? value.details : undefined,
     rescheduleNote: typeof value.rescheduleNote === "string" ? value.rescheduleNote : undefined,
   };
 }

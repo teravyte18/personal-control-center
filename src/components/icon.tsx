@@ -38,6 +38,8 @@ export function Icon({ name, className = "h-5 w-5" }: IconProps) {
       return <svg {...common}><path d="M4 7h16v13H4z" /><path d="M3 4h18v3H3zM9 11h6" /></svg>;
     case "library":
       return <svg {...common}><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11v17H6.5A2.5 2.5 0 0 0 4 22V5.5Z" /><path d="M20 5.5A2.5 2.5 0 0 0 17.5 3H13v17h4.5A2.5 2.5 0 0 1 20 22V5.5Z" /></svg>;
+    case "food":
+      return <svg {...common}><circle cx="12" cy="12" r="7" /><path d="M4 4v7a2 2 0 0 0 2 2h1M6 4v16M9 4v7M18 4v16M18 4c2.2 2 2.2 6 0 8" /></svg>;
     case "expenses":
       return <svg {...common}><rect x="3" y="5" width="18" height="14" rx="2.5" /><path d="M3 9h18M7 14h4" /><circle cx="17" cy="14" r="1.5" /></svg>;
     case "keychain":

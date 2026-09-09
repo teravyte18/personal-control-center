@@ -9,6 +9,7 @@ export type IconName =
   | "spaces"
   | "archive"
   | "library"
+  | "food"
   | "expenses"
   | "keychain"
   | "trips"
@@ -105,6 +106,15 @@ export const destinations: Destination[] = [
     href: "/library",
     icon: "library",
     description: "Organise books, reading plans, ratings, and takeaways.",
+    available: true,
+    pinnable: true,
+  },
+  {
+    id: "food",
+    label: "Food",
+    href: "/food",
+    icon: "food",
+    description: "Keep personal recipes, ingredients, cooking steps, and make-again notes.",
     available: true,
     pinnable: true,
   },

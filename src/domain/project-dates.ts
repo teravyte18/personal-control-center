@@ -25,6 +25,11 @@ export function isProjectActionDueToday(action: ProjectActionWithDates, referenc
   return Boolean(!action.completedAt && action.targetDate && action.targetDate === localDateKey(reference));
 }
 
+export function getProjectActionsDueToday(item: ProjectWithActions, reference = new Date()) {
+  if (item.kind !== "project" || ["waiting", "completed", "archived"].includes(item.status)) return [];
+  return item.actions.filter((action) => isProjectActionDueToday(action, reference));
+}
+
 export function isProjectPastCheckIn(item: ProjectWithActions, reference = new Date()) {
   if (item.kind !== "project" || ["waiting", "completed", "archived"].includes(item.status)) return false;
   return item.actions.some((action) => isProjectActionPastCheckIn(action, reference));

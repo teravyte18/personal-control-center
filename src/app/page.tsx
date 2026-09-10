@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useMemo, useState, useSyncExternalStore } from "react";
-import { isProjectPastCheckIn } from "@/domain/project-dates";
+import { isProjectActionDueToday, isProjectPastCheckIn } from "@/domain/project-dates";
 import { isTaskDueToday, isTaskOverdue, usePersonalData } from "@/lib/personal-data";
 import { useOfflineCapture } from "@/providers/offline-capture-provider";
 
@@ -74,6 +74,13 @@ export default function CapturePage() {
     [items, pendingNotInSnapshot.length],
   );
   const overdueProjects = useMemo(() => items.filter((item) => isProjectPastCheckIn(item)), [items]);
+  const dueProjectActions = useMemo(
+    () => items.flatMap((item) => {
+      if (item.kind !== "project" || ["waiting", "completed", "archived"].includes(item.status)) return [];
+      return item.actions.filter((action) => isProjectActionDueToday(action));
+    }),
+    [items],
+  );
   const overdueTasks = useMemo(() => items.filter((item) => isTaskOverdue(item)), [items]);
   const dueTasks = useMemo(() => items.filter((item) => isTaskDueToday(item)), [items]);
 
@@ -116,6 +123,16 @@ export default function CapturePage() {
             plural="tasks are overdue"
             detail="Reschedule them or complete them from Tasks."
             tone="red"
+          />
+        ) : null}
+        {dueProjectActions.length > 0 ? (
+          <AttentionLink
+            href="/projects"
+            count={dueProjectActions.length}
+            singular="project action is due today"
+            plural="project actions are due today"
+            detail="These check-ins have reached their date."
+            tone="amber"
           />
         ) : null}
         {dueTasks.length > 0 ? (

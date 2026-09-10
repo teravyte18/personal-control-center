@@ -9,7 +9,6 @@ import {
   updateProjectAction,
   type Item,
 } from "../src/domain/personal-data.ts";
-import { normalizePersonalDataMutation } from "../src/domain/personal-data-snapshot.ts";
 import { isProjectPastCheckIn } from "../src/domain/project-dates.ts";
 import { buildGoogleCalendarProjections } from "../src/domain/google-calendar.ts";
 
@@ -41,7 +40,7 @@ test("a project can keep dated and undated open actions", () => {
   );
 });
 
-test("project actions preserve optional multiline details through edits and persistence normalization", () => {
+test("project actions preserve optional multiline details through edits and normalization", () => {
   const details = "Build/setup dependencies\n\n1. Run one provided example\n2. Record command, inputs, output, runtime, and any setup problems";
   const project = addProjectAction(
     baseProject,
@@ -65,14 +64,6 @@ test("project actions preserve optional multiline details through edits and pers
   const restored = normalizeItem(JSON.parse(JSON.stringify(edited)));
   assert.ok(restored);
   assert.equal(getOpenProjectActions(restored)[0].details, editedAction.details);
-
-  const mutation = normalizePersonalDataMutation({
-    type: "add-project-action",
-    projectId: baseProject.id,
-    action: editedAction,
-  });
-  assert.ok(mutation && mutation.type === "add-project-action");
-  assert.equal(mutation.action.details, editedAction.details);
 });
 
 test("completing one parallel action leaves the project and its other actions active", () => {

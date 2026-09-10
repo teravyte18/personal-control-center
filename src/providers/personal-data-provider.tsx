@@ -39,7 +39,7 @@ const MIGRATION_BACKUP_KEY = "pcc-browser-migration-backup-v1";
 
 type ItemUpdates = Partial<Omit<Item, "id" | "createdAt">>;
 type AddItemOptions = Partial<Pick<Item, "description" | "kind" | "status" | "area">>;
-type ProjectActionUpdates = Pick<ProjectAction, "title" | "targetDate">;
+type ProjectActionUpdates = Pick<ProjectAction, "title" | "targetDate" | "details">;
 type DataMode = "loading" | "server" | "local-migration" | "local-fallback";
 
 type ServerStatePayload = {
@@ -61,7 +61,7 @@ type PersonalDataContextValue = {
   archiveItem: (id: string) => void;
   restoreArchivedItem: (id: string) => void;
   deleteItem: (id: string) => void;
-  addProjectAction: (projectId: string, title: string, targetDate: string) => void;
+  addProjectAction: (projectId: string, title: string, targetDate: string, details?: string) => void;
   updateProjectAction: (projectId: string, actionId: string, updates: ProjectActionUpdates) => void;
   completeProjectAction: (
     projectId: string,
@@ -70,6 +70,7 @@ type PersonalDataContextValue = {
     resolution: ActionCompletionResolution,
     nextActionTitle?: string,
     nextTargetDate?: string,
+    nextActionDetails?: string,
   ) => void;
   draft: ReviewDraft;
   history: ReviewEntry[];
@@ -390,8 +391,8 @@ export function PersonalDataProvider({ children }: { children: ReactNode }) {
     commitMutation({ type: "delete-item", id });
   }, [commitMutation]);
 
-  const addProjectAction = useCallback((projectId: string, title: string, targetDate: string) => {
-    const action = createProjectAction(title, targetDate);
+  const addProjectAction = useCallback((projectId: string, title: string, targetDate: string, details = "") => {
+    const action = createProjectAction(title, targetDate, new Date(), details);
     if (!action) return;
     commitMutation({ type: "add-project-action", projectId, action });
   }, [commitMutation]);
@@ -413,10 +414,11 @@ export function PersonalDataProvider({ children }: { children: ReactNode }) {
     resolution: ActionCompletionResolution,
     nextActionTitle = "",
     nextTargetDate = "",
+    nextActionDetails = "",
   ) => {
     const now = new Date();
     const nextAction = resolution === "next-action"
-      ? createProjectAction(nextActionTitle, nextTargetDate, now) ?? undefined
+      ? createProjectAction(nextActionTitle, nextTargetDate, now, nextActionDetails) ?? undefined
       : undefined;
     if (resolution === "next-action" && !nextAction) return;
 

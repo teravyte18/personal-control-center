@@ -31,6 +31,7 @@ export type ProjectAction = {
   id: string;
   title: string;
   targetDate: string;
+  details?: string;
   openedAt: string;
   updatedAt: string;
   completedAt?: string;
@@ -39,6 +40,7 @@ export type ProjectAction = {
 };
 
 export type ProjectActionUpdates = Pick<ProjectAction, "title" | "targetDate"> & {
+  details?: string;
   rescheduleNote?: string;
 };
 
@@ -172,6 +174,7 @@ function normalizeProjectAction(value: unknown, fallbackTimestamp: string): Proj
   if (!title) return null;
   const targetDate = normalizeOptionalDateOnly(value.targetDate);
   if (targetDate === null) return null;
+  const details = stringOrEmpty(value.details).trim();
   const openedAt = validDateOrFallback(value.openedAt, fallbackTimestamp);
   const completedAt = typeof value.completedAt === "string" && !Number.isNaN(Date.parse(value.completedAt))
     ? value.completedAt
@@ -182,6 +185,7 @@ function normalizeProjectAction(value: unknown, fallbackTimestamp: string): Proj
     id: value.id,
     title,
     targetDate,
+    details: details || undefined,
     openedAt,
     updatedAt: validDateOrFallback(value.updatedAt, openedAt),
     completedAt,
@@ -197,7 +201,6 @@ function normalizeProjectActions(value: unknown, fallbackTimestamp: string) {
     return action ? [action] : [];
   });
 }
-
 function normalizeProjectWorkflowStatus(kind: ItemKind, status: ItemStatus, actions: ProjectAction[]): ItemStatus {
   if (kind !== "project" || !["active", "in-progress", "waiting"].includes(status)) return status;
   const hasOpenActions = actions.some((action) => !action.completedAt);
@@ -453,15 +456,17 @@ export function isTaskOverdue(item: Item, reference = new Date()) {
   return checkInDate < formatLocalDate(reference);
 }
 
-export function createProjectAction(title: string, targetDate = "", now = new Date()): ProjectAction | null {
+export function createProjectAction(title: string, targetDate = "", now = new Date(), details = ""): ProjectAction | null {
   const trimmedTitle = title.trim();
   const normalizedDate = validDateOnlyOrEmpty(targetDate);
   if (!trimmedTitle || (targetDate && !normalizedDate)) return null;
   const timestamp = now.toISOString();
+  const trimmedDetails = details.trim();
   return {
     id: createId(),
     title: trimmedTitle,
     targetDate: normalizedDate,
+    details: trimmedDetails || undefined,
     openedAt: timestamp,
     updatedAt: timestamp,
   };
@@ -488,9 +493,9 @@ export function getCompletedProjectActions(item: Item) {
     .sort((a, b) => Date.parse(b.completedAt ?? b.updatedAt) - Date.parse(a.completedAt ?? a.updatedAt));
 }
 
-export function addProjectAction(item: Item, title: string, targetDate = "", now = new Date()): Item {
+export function addProjectAction(item: Item, title: string, targetDate = "", now = new Date(), details = ""): Item {
   if (item.kind !== "project") return item;
-  const action = createProjectAction(title, targetDate, now);
+  const action = createProjectAction(title, targetDate, now, details);
   if (!action) return item;
   return {
     ...item,
@@ -513,7 +518,8 @@ export function updateProjectAction(
   let changed = false;
   const actions = item.actions.map((action) => {
     if (action.id !== actionId || action.completedAt) return action;
-    if (action.title === title && action.targetDate === targetDate) return action;
+    const details = updates.details === undefined ? action.details ?? "" : updates.details.trim();
+    if (action.title === title && action.targetDate === targetDate && (action.details ?? "") === details) return action;
     changed = true;
     const dateChanged = action.targetDate !== targetDate;
     const note = updates.rescheduleNote?.trim();
@@ -521,6 +527,7 @@ export function updateProjectAction(
       ...action,
       title,
       targetDate,
+      details: details || undefined,
       updatedAt: timestamp,
       reschedules: dateChanged
         ? [
@@ -546,13 +553,14 @@ export function completeProjectAction(
   nextActionTitle = "",
   nextTargetDate = "",
   now = new Date(),
+  nextActionDetails = "",
 ): Item {
   const action = item.actions.find((candidate) => candidate.id === actionId && !candidate.completedAt);
   if (!action) return item;
   const hasOtherOpenActions = item.actions.some((candidate) => candidate.id !== actionId && !candidate.completedAt);
   if (resolution === "keep-active" && !hasOtherOpenActions) return item;
   if (["waiting", "complete-project"].includes(resolution) && hasOtherOpenActions) return item;
-  if (resolution === "next-action" && !createProjectAction(nextActionTitle, nextTargetDate, now)) return item;
+  if (resolution === "next-action" && !createProjectAction(nextActionTitle, nextTargetDate, now, nextActionDetails)) return item;
 
   const timestamp = now.toISOString();
   const actions = item.actions.map((candidate) => (
@@ -568,7 +576,7 @@ export function completeProjectAction(
 
   let updatedItem: Item = { ...item, actions, updatedAt: timestamp };
   if (resolution === "next-action") {
-    const nextAction = createProjectAction(nextActionTitle, nextTargetDate, now);
+    const nextAction = createProjectAction(nextActionTitle, nextTargetDate, now, nextActionDetails);
     if (nextAction) {
       updatedItem = transitionItemStatus({ ...updatedItem, actions: [nextAction, ...actions] }, "active", now);
     }

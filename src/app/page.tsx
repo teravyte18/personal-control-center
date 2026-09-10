@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useMemo, useState, useSyncExternalStore } from "react";
-import { isProjectActionDueToday, isProjectPastCheckIn } from "@/domain/project-dates";
+import { getProjectActionsDueToday, isProjectPastCheckIn } from "@/domain/project-dates";
 import { isTaskDueToday, isTaskOverdue, usePersonalData } from "@/lib/personal-data";
 import { useOfflineCapture } from "@/providers/offline-capture-provider";
 
@@ -75,10 +75,7 @@ export default function CapturePage() {
   );
   const overdueProjects = useMemo(() => items.filter((item) => isProjectPastCheckIn(item)), [items]);
   const dueProjectActions = useMemo(
-    () => items.flatMap((item) => {
-      if (item.kind !== "project" || ["waiting", "completed", "archived"].includes(item.status)) return [];
-      return item.actions.filter((action) => isProjectActionDueToday(action));
-    }),
+    () => items.flatMap((item) => getProjectActionsDueToday(item)),
     [items],
   );
   const overdueTasks = useMemo(() => items.filter((item) => isTaskOverdue(item)), [items]);

@@ -20,7 +20,12 @@ import {
   updateItemFields,
   type Item,
 } from "../src/domain/personal-data.ts";
-import { isProjectActionPastCheckIn, isProjectPastCheckIn } from "../src/domain/project-dates.ts";
+import {
+  getProjectActionsDueToday,
+  isProjectActionDueToday,
+  isProjectActionPastCheckIn,
+  isProjectPastCheckIn,
+} from "../src/domain/project-dates.ts";
 
 const baseItem: Item = {
   id: "item-1",
@@ -230,7 +235,7 @@ test("weekly action calculations use Monday as the start of the week", () => {
   assert.equal(isProjectActionTargetReached(action, reference), false);
 });
 
-test("a check-in becomes overdue only after its target date", () => {
+test("project action check-ins distinguish due today from overdue", () => {
   const action = {
     id: "action-overdue",
     title: "Neutral action",
@@ -240,12 +245,20 @@ test("a check-in becomes overdue only after its target date", () => {
   };
   const project = { ...baseItem, status: "active" as const, actions: [action] };
 
+  assert.equal(isProjectActionDueToday(action, new Date(2026, 6, 16, 12)), false);
+  assert.equal(isProjectActionDueToday(action, new Date(2026, 6, 17, 23, 59)), true);
+  assert.equal(isProjectActionDueToday(action, new Date(2026, 6, 18, 0, 1)), false);
   assert.equal(isProjectActionPastCheckIn(action, new Date(2026, 6, 16, 12)), false);
   assert.equal(isProjectActionPastCheckIn(action, new Date(2026, 6, 17, 23, 59)), false);
   assert.equal(isProjectActionPastCheckIn(action, new Date(2026, 6, 18, 0, 1)), true);
+  assert.equal(isProjectActionDueToday({ ...action, targetDate: "" }, new Date(2026, 6, 17)), false);
   assert.equal(isProjectActionPastCheckIn({ ...action, targetDate: "" }, new Date(2026, 6, 18, 0, 1)), false);
+  assert.equal(getProjectActionsDueToday(project, new Date(2026, 6, 17)).length, 1);
+  assert.equal(getProjectActionsDueToday({ ...project, status: "waiting" }, new Date(2026, 6, 17)).length, 0);
+  assert.equal(getProjectActionsDueToday({ ...project, status: "completed" }, new Date(2026, 6, 17)).length, 0);
   assert.equal(isProjectPastCheckIn(project, new Date(2026, 6, 18)), true);
   assert.equal(isProjectPastCheckIn({ ...project, status: "completed" }, new Date(2026, 6, 18)), false);
+  assert.equal(isProjectActionDueToday({ ...action, completedAt: "2026-07-17T08:00:00.000Z" }, new Date(2026, 6, 17)), false);
   assert.equal(isProjectActionPastCheckIn({ ...action, completedAt: "2026-07-18T08:00:00.000Z" }, new Date(2026, 6, 19)), false);
 });
 

@@ -5,7 +5,7 @@ This directory contains current product/operations documentation plus a small am
 ## Current product direction
 
 - [`product-spec.md`](product-spec.md) — current product model, workflows, boundaries, and success criteria
-- [`roadmap.md`](roadmap.md) — completed slices, open observations, and the selected Food → Media → Weekly Rhythm → Personal Advisor direction
+- [`roadmap.md`](roadmap.md) — completed slices, Media v1 as the selected next slice, and the shift toward shared context, Personal Advisor, Weekly Rhythm, and targeted cross-space integration
 - [`architecture.md`](architecture.md) — deployed stack, persistence, navigation, PWA, themes, integrations, and security boundaries
 - [`interface-rules.md`](interface-rules.md) — current UI, copy, navigation, theme, and semantic-colour rules
 

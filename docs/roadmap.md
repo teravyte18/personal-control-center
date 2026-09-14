@@ -2,6 +2,8 @@
 
 This roadmap tracks delivered slices and the current product direction. Sequence matters more than fixed dates, and a structurally obvious feature should not outrank a workflow that is actually useful.
 
+The project is now moving out of its module-building phase. After Media v1, the default question should no longer be **“what new space should we add?”** but **“how can the information already in Personal Control Center work together?”** New standalone domains should require a clear recurring need; shared context, cross-space workflows, and useful synthesis should take priority.
+
 ## Progress at a glance
 
 ```mermaid
@@ -13,31 +15,32 @@ graph LR
     S4["Slice 4<br/>Tasks and Weekly Review<br/>✅ PR #20, #22"]
     S5["Slice 5<br/>Google Calendar<br/>✅ PR #25"]
     S6["Slice 6<br/>Offline capture<br/>✅ PR #27"]
-    EXT["Workflow extensions<br/>projects and Notes<br/>✅ PR #29, #30"]
+    EXT["Workflow extensions<br/>projects and Notes<br/>✅ PR #29, #30, #61, #62"]
     S7["Slice 7<br/>Book Library<br/>✅ PR #32"]
     S8["Slice 8<br/>UI and themes<br/>✅ PR #34, #35, #36"]
     S9["Slice 9<br/>Personal Expenses<br/>✅ PR #45, #47, #48"]
     S10["Slice 10<br/>Encrypted Keychain<br/>✅ PR #55, #56, #58"]
-    S11["Slice 11<br/>Food v1<br/>recipe book"]
+    S11["Slice 11<br/>Food v1<br/>✅ PR #60"]
     S12["Slice 12<br/>Media Library<br/>films + series"]
-    S13["Slice 13<br/>Weekly Rhythm<br/>design before build"]
-    S14["Slice 14<br/>Personal Advisor v1<br/>opt-in LLM context"]
+    INT["Integration phase<br/>shared context<br/>+ cross-space workflows"]
+    ADV["Personal Advisor v1<br/>read-only synthesis"]
+    RHY["Weekly Rhythm<br/>connected planning"]
 
-    S1 --> S2 --> S3 --> HARDEN --> S4 --> S5 --> S6 --> EXT --> S7 --> S8 --> S9 --> S10 --> S11 --> S12 --> S13 --> S14
+    S1 --> S2 --> S3 --> HARDEN --> S4 --> S5 --> S6 --> EXT --> S7 --> S8 --> S9 --> S10 --> S11 --> S12 --> INT --> ADV --> RHY
 
     classDef done fill:#ecfdf5,stroke:#10b981,color:#065f46;
     classDef selected fill:#eff6ff,stroke:#3b82f6,color:#1e3a8a;
     classDef planned fill:#f8fafc,stroke:#94a3b8,color:#334155;
-    class S1,S2,S3,HARDEN,S4,S5,S6,EXT,S7,S8,S9,S10 done;
-    class S11 selected;
-    class S12,S13,S14 planned;
+    class S1,S2,S3,HARDEN,S4,S5,S6,EXT,S7,S8,S9,S10,S11 done;
+    class S12 selected;
+    class INT,ADV,RHY planned;
 ```
 
 ## Slice 1 — Phone-first foundation
 
 **Status: complete in PR #7.**
 
-Delivered the initial Next.js application shell, Capture, Inbox, Projects, Thoughts, Review, All Spaces, browser-local prototype persistence, basic completion, initial PWA metadata, and Docker-ready runtime.
+Delivered the initial application shell, Capture, Inbox, Projects, Thoughts, Review, All Spaces, browser-local prototype persistence, basic completion, initial PWA metadata, and Docker-ready runtime.
 
 ## Slice 2 — Make projects actionable
 
@@ -107,7 +110,13 @@ Delivered parallel/sequential actions, optional dates and first actions, resched
 
 Delivered direct and Inbox-to-Note creation, implicit first-line titles, compact two-column cards, full-screen editing, persistent phone-safe drag ordering, permanent deletion, and strict separation from Thoughts.
 
-PR #42 later removed the lossy Cancel flow, added debounced autosave and safe Markdown formatting/preview, and kept existing plain-text storage compatible.
+PR #42 later removed the lossy Cancel flow, added debounced autosave and safe Markdown formatting/preview, and kept existing plain-text storage compatible. PRs #50 and #51 later added preserved single line breaks and two-space nested Markdown lists.
+
+### Project action refinements
+
+**Status: complete in PRs #61 and #62.**
+
+Project actions now support optional multiline Details for setup notes, bullets, commands, or other lightweight context without becoming a subtask system. Open project actions whose check-in date is today also surface on Home alongside due-today Tasks, while existing overdue behaviour remains unchanged.
 
 ## Slice 7 — Book Library
 
@@ -141,7 +150,7 @@ This UI slice is complete. Future visual work should be selected independently r
 
 **Status: complete in PR #45, with the current model finalized through PRs #47 and #48.**
 
-PR #45 established the manual expense/income records, detailed categories mapped to Essentials/Fun/Future You, monthly summary, editable transaction history, authenticated snapshot persistence, navigation, and the original weekly-reconciliation concept.
+PR #45 established manual expense/income records, detailed categories mapped to Essentials/Fun/Future You, monthly summary, editable transaction history, authenticated snapshot persistence, navigation, and the original weekly-reconciliation concept.
 
 PR #47 refined the financial model:
 
@@ -169,20 +178,9 @@ The current boundary remains deliberately lightweight:
 - legacy reconciliation snapshot state remains readable for compatibility but is not exposed in the UI;
 - expense data continues to use the normal authenticated snapshot/export/backup boundary and does not trigger Google Calendar reconciliation.
 
+Expenses may remain relatively independent even during the integration phase. Its data can still be useful to the Personal Advisor for spending questions and broader context without creating artificial links to every other space. For example, a recipe's expected cost and an actual supermarket transaction are different facts and should not be coupled without a concrete workflow.
+
 See [`expenses.md`](expenses.md) for the detailed current behaviour.
-
-## Current selection
-
-Slice 10 Keychain is complete. The current product direction is:
-
-1. **Slice 11 — Food v1: personal Recipe Book** — selected next implementation slice;
-2. **Slice 12 — Media Library for Films and Series** — planned after Food;
-3. **Slice 13 — Weekly Rhythm** — promising direction that needs more product design before implementation;
-4. **Slice 14 — Personal Advisor v1** — planned after the system has more useful lifestyle and preference context.
-
-This sequence is based on expected daily value rather than catalogue completeness. Food can immediately reduce friction around cooking and preserving recipes worth repeating. Media remains a useful missing preference/history domain. Weekly Rhythm may later add loose structure around where and how days are spent without becoming a streak tracker. The Personal Advisor becomes more useful after these domains exist because it can reason across practical routines, food, media, projects, tasks, thoughts, reviews, and books when the user explicitly enables those domains.
-
-Small fixes and operational observations may still land between these slices. Only Food v1 is committed as the immediate implementation slice; the later ordering can still change if real use shows a stronger need.
 
 ## Slice 10 — Encrypted Password Keychain
 
@@ -206,32 +204,26 @@ The implementation documents its residual boundary: a compromised browser/device
 
 ## Slice 11 — Food v1: Recipe Book
 
-**Status: selected next; product boundary defined, implementation not started.**
+**Status: complete in PR #60.**
 
 See [`food.md`](food.md).
 
-Food v1 is deliberately a recipe book rather than a nutrition tracker or meal-planning system. A recipe should support:
+Food v1 deliberately shipped as a recipe book rather than a nutrition tracker or meal-planning system. It includes:
 
-- required name;
-- ingredients as multiline plain text, normally using `- item` lines;
-- a one-tap **Copy ingredients** action so the text can be pasted directly into Notes as a shopping list;
-- cooking steps;
-- optional source URL to a website, YouTube video, Instagram post, or other reference;
-- optional private photo, often the user's own photo after making the dish;
-- optional servings and practical prep/cooking time;
-- optional tags for retrieval;
-- optional rating or make-again signal;
-- optional cooking notes for substitutions, quantity adjustments, temperature changes, or lessons from previous attempts.
+- user-scoped recipes with required name, multiline ingredients, cooking steps, and cooking notes;
+- exact **Copy ingredients** support for Notes/shopping-list reuse;
+- optional source URL, private recipe photo, servings, prep/cook time, tags, 0–10 half-step rating, and make-again signal;
+- search and tag filtering;
+- authenticated persistence, user isolation, import/export compatibility, and normal backup/restore coverage;
+- Food as an available/pinnable navigation destination.
 
-The first version should prioritize fast phone retrieval and editing, reuse proven private-upload and persistence patterns, and remain fully usable without external recipe services.
+Nutrition, weekly meal planning, Prep Sunday, prepared-food inventory, pantry/grocery tracking, recipe scraping, AI meal generation, and routine features remain intentionally deferred until real usage shows which of them are actually valuable.
 
-Explicitly deferred from v1 are nutrition tracking, weekly meal planning, Prep Sunday calculations, prepared-food inventory, pantry inventory, grocery-database behaviour, recipe scraping, AI meal generation, and routine/streak features.
-
-Nutrition remains a future option only if it becomes useful in real use. If added later, begin with a small understandable optional set such as calories, protein, fibre, and saturated fat per serving rather than a complete nutrition label or health-scoring system.
+The next step for Food is **use**, not immediate expansion. Real meal-prep use should tell us whether prepared portions, freezer inventory, weekly meal expectations, or other integrations deserve promotion.
 
 ## Slice 12 — Media Library for Films and Series
 
-**Status: planned after Food; product boundary defined, implementation not started.**
+**Status: selected next; product boundary defined, implementation not started.**
 
 See [`media-library.md`](media-library.md).
 
@@ -244,38 +236,77 @@ The first version is a lightweight personal Media space, not a general entertain
 - optional poster and start/finish dates;
 - lightweight season/episode position for series.
 
-The slice should reuse proven Book Library patterns where sensible and remain fully usable without external metadata services. Exhaustive cast, genre, provider, episode, and catalogue data is intentionally deferred.
+The slice should reuse proven Book Library patterns where sensible and remain fully usable without external metadata services. Exhaustive cast, genre, provider, episode, catalogue, streaming-service, and recommendation data is intentionally deferred.
 
-## Slice 13 — Weekly Rhythm
+Media is currently the last clearly selected standalone domain. After it ships, product work should default to integration and synthesis unless a new module solves an observed recurring problem.
 
-**Status: direction selected for later exploration; requires more design before implementation.**
+## Current selection — shift from modules to integration
 
-Weekly Rhythm is intentionally not a generic habit or streak tracker. The current idea is to give loose structure to days when no external schedule provides it, for example describing a day as Home, Library, Café, Flexible, Meal prep, or another useful recurring context.
+The current product direction is:
 
-Potential value includes:
+1. **Slice 12 — Media Library for Films and Series** — selected next implementation slice;
+2. **Integration foundation** — make existing domains expose useful, bounded context and common date/time signals without forcing direct relationships between every space;
+3. **Personal Advisor v1** — use that shared context as the first major cross-space integration point for questions, summaries, recommendations, and prioritisation;
+4. **Weekly Rhythm / connected planning** — design a richer planning layer using the dated and recurring information already present across Tasks, Projects, Calendar, Reviews, Food, and future routine data;
+5. **Targeted cross-space workflows** — only add direct links when a real workflow benefits from them.
 
-- planning a few recurring out-of-home work days without scheduling every hour;
-- attaching a loose main intent or context to a day;
-- distinguishing intended structure from one-off Tasks or calendar Events;
-- eventually giving Food useful context such as whether a meal is likely to be at home or out;
-- giving the Personal Advisor better context about intended versus actual weekly patterns.
+This is a deliberate change in product mindset. Personal Control Center already has enough useful domains that another sequence of isolated modules would increasingly resemble a collection of unrelated mini-apps. The next value comes from helping the existing data work together.
 
-Recurrence, exceptions, completion semantics, review integration, and the boundary between Weekly Rhythm, Routines/Habits, and Events/Appointments still need brainstorming. Do not implement this slice until those rules are clearer.
+### Integration principle: shared context before hard coupling
 
-## Slice 14 — Personal Advisor v1
+Do not create database relationships merely because two spaces could theoretically be connected. Prefer a reusable context layer and explicit workflows.
 
-**Status: planned after the preceding context-building slices; architecture and privacy boundary defined, implementation not started.**
+Examples:
+
+- Food can contribute saved recipes, ratings, make-again signals, cooking notes, and later meal expectations without directly owning expense transactions.
+- Expenses can answer spending questions through the Advisor without needing links from every purchase to another domain.
+- Books and Media can share recommendation context without becoming one catalogue.
+- Projects, Tasks, Calendar dates, and Weekly Review history can contribute to a common view of current workload without changing their canonical ownership.
+- Thoughts may later be surfaced as context or suggested for conversion into a Task, Project, or Note, but AI should not silently mutate them.
+
+### Integration foundation
+
+Before or alongside Personal Advisor v1, establish small reusable domain-level context representations rather than giving integrations generic database access.
+
+Conceptually, each eligible domain should be able to expose a compact, user-scoped representation of the information another feature may need. The exact API does not need to use these names, but the shape should resemble domain-specific providers such as project context, task context, review context, food context, media context, library context, and expense context.
+
+The foundation should support:
+
+- explicit user/domain scope;
+- bounded recent/current data rather than indiscriminate full-database dumps;
+- common date/time semantics where useful;
+- compact summaries plus selected details when a workflow needs them;
+- deterministic application queries as the source of truth;
+- reuse by Advisor, Weekly Rhythm, Home summaries, future search, or other integrations;
+- no dependency on Keychain data.
+
+A generic “LLM can query the database” tool is explicitly not the target architecture.
+
+## Integration phase — Personal Advisor v1
+
+**Status: architecture and privacy boundary defined; promoted to the first major integration feature after Media/context groundwork.**
 
 See [`personal-advisor.md`](personal-advisor.md).
 
-The Personal Advisor is a read-only, opt-in LLM layer over selected Personal Control Center domains. It is intended to make the existing spaces more useful together, not to make AI the source of truth for the system.
+The Personal Advisor is a read-only, opt-in LLM layer over selected Personal Control Center domains. It is intended to demonstrate the value of combining the existing spaces rather than making AI the source of truth for the system.
+
+Useful first-version questions include:
+
+- what should I focus on this week?
+- what active projects or commitments appear neglected?
+- recommend a film, series, book, or recipe using what I actually liked or dropped;
+- what should I cook this weekend from recipes I already saved?
+- what has changed or stood out over the last week or month?
+- what patterns keep appearing in Weekly Reviews or Thoughts?
+- what have I been spending most on recently?
+- if I have a free block of time, what existing plans, saved media, books, or tasks make sense?
 
 The first version should:
 
-- support free-form questions plus a few useful shortcuts such as recommendations or project focus;
+- support free-form questions plus a few useful shortcuts such as recommendations, recap, or project focus;
 - allow AI access by explicit user-scoped data domain;
-- build compact structured context from normal application queries;
-- use ratings, completion/drop state, reflections, recency, active state, and recent history as high-value signals;
+- build compact structured context through the shared context layer;
+- use ratings, completion/drop state, reflections, recency, active state, dates, and recent history as high-value signals;
 - send only relevant enabled context to a hosted model;
 - explain the personal evidence behind recommendations when practical;
 - avoid recommending books/media already recorded unless requested;
@@ -283,11 +314,51 @@ The first version should:
 - keep provider credentials server-side and apply request-size, timeout, rate-limit, and cost controls;
 - avoid storing raw generated context in logs.
 
-Food may later become another explicit opt-in Advisor domain, using saved recipes, personal ratings/make-again decisions, and cooking notes rather than inferred health goals. Weekly Rhythm may also become an opt-in context domain once its product model exists.
-
 **Keychain is permanently excluded from AI.** The Advisor context builder must not depend on Keychain tables, APIs, ciphertext, metadata, or decrypted client state. This must be enforced structurally rather than by telling the model not to access secrets.
 
 Embeddings, vector search, long-term Advisor memory, autonomous agents, and generic database tools are explicitly not required for v1. Direct structured queries plus bounded recent context should be tried first. If real data volume later makes retrieval necessary, PostgreSQL plus `pgvector` is the likely incremental path.
+
+## Integration phase — Weekly Rhythm and connected planning
+
+**Status: direction selected for later exploration; requires product design before implementation.**
+
+Weekly Rhythm should evolve from the earlier loose Home/Library/Café idea into a connected model of **the expected shape of a week**. It remains intentionally different from a generic habit or streak tracker and should not become an hour-by-hour scheduling system.
+
+Potential inputs include:
+
+- Google Calendar events and future Events/Appointments if that domain is added;
+- dated Tasks and project actions;
+- Weekly Review context and recent workload;
+- recurring work/study commitments;
+- training or other routine days;
+- preferred working locations or day types such as Home, Library, Café, Flexible, or Meal prep;
+- expected at-home versus out-of-home meals and later Food planning context;
+- exceptions for unusually busy, free, travel, or recovery days.
+
+Potential value includes:
+
+- seeing which days are already structurally busy before adding more work;
+- varying expected workload by day rather than pretending every day has equal capacity;
+- planning recurring out-of-home work or training without creating repetitive Tasks;
+- connecting meal-prep or expected meals to the Food domain without turning Food itself into a calendar;
+- distinguishing intended weekly structure from one-off Tasks and appointments;
+- giving the Personal Advisor better context about intended versus actual weekly patterns.
+
+Recurrence, exceptions, completion semantics, Calendar ownership, review integration, meal planning, and the boundary between Weekly Rhythm, Routines/Habits, and Events/Appointments still need brainstorming. Do not implement this as a generic routine tracker merely to fill those gaps.
+
+## Targeted cross-space integrations
+
+After the shared context layer exists, direct cross-space behaviour should be added only when it removes real friction. Plausible examples include:
+
+- Food → expected meal or meal-prep block → Weekly Rhythm;
+- Media → current watching / “watch tonight” context → Advisor;
+- Library → current reading / Up next → Advisor;
+- Project actions and Tasks → Home, Calendar, Advisor, and Weekly Rhythm;
+- Weekly Review → Advisor recaps and pattern detection;
+- Thoughts → Advisor context and explicit user-approved conversion suggestions;
+- Expenses → Advisor financial summaries while otherwise remaining largely standalone.
+
+These are examples rather than commitments. Shared context does not require every domain to be directly connected to every other domain.
 
 ## Other future candidates and follow-ups
 
@@ -299,37 +370,39 @@ Candidate behaviour:
 
 - Today, Tomorrow, and two-days-ahead filters;
 - dated open Tasks and dated open project actions;
+- later, relevant calendar/rhythm context if that improves the view;
 - no invented dates merely to make uncertain work appear;
 - undated projects/actions/tasks remain valid and continue to surface through their normal spaces and Weekly Review.
 
-This remains a useful planning-focused candidate after or between the selected direction if real use shows that near-term visibility has become more valuable than the planned work.
+This may become more naturally useful as part of the integration phase rather than as another standalone destination.
 
 ### Food follow-ups
 
 After the Recipe Book has been used with real recipes, reassess:
 
 - prepared batches/portions with made date, remaining portions, fridge/freezer location, and optional use-by date;
-- a lightweight weekly meal plan that may contain a recipe, prepared portion, eating out, or nothing;
+- a lightweight weekly meal expectation/plan that may contain a recipe, prepared portion, eating out, or nothing;
 - a prep-oriented view derived from an established meal plan;
+- integration with Weekly Rhythm when meal-at-home versus meal-out context proves useful;
 - optional nutrition metadata only if it becomes understandable and useful in practice.
 
-Do not promote raw pantry inventory or a grocery database without observed maintenance value.
+Do not promote raw pantry inventory, a grocery database, or theoretical recipe-to-expense accounting without observed maintenance value.
 
 ### Routines/Habits
 
-Recurring responsibilities and practices beyond the looser Weekly Rhythm concept should wait until recurrence, completion, pause, exception, and review rules are concrete enough to avoid building a generic streak tracker.
+Recurring responsibilities and practices should be considered as inputs to Weekly Rhythm rather than automatically becoming their own space. Recurrence, completion, pause, exception, and review rules must be concrete enough to avoid building a generic streak tracker.
 
 ### Events/Appointments
 
-Time-specific commitments with start/end time, location, attendance, and preparation context. This may become the strongest reason to revisit inbound Calendar synchronisation.
+Time-specific commitments with start/end time, location, attendance, and preparation context. This may become the strongest reason to revisit inbound Calendar synchronisation and a useful Weekly Rhythm input.
 
 ### Trips
 
-Ideas, dates, budgets, options, decision deadlines, and supported monitoring.
+Ideas, dates, budgets, options, decision deadlines, and supported monitoring. Prefer integration with existing dates, Expenses, Tasks, or Advisor context over immediately creating a large travel-management module.
 
 ### Fitness
 
-Imported activity and trend summaries without turning the app into a manual workout logger.
+Imported activity and trend summaries without turning the app into a manual workout logger. Recurring training days may be useful Weekly Rhythm inputs before a dedicated Fitness space is justified.
 
 ### Library follow-ups
 
@@ -337,11 +410,11 @@ Photo-assisted identification is tracked in issue #33. Metadata lookup, progress
 
 ### Notification observation
 
-Issue #21 remains open for real installed-PWA behaviour when foregrounded, backgrounded, fully closed, battery-optimised, or restarted. This is an observation/validation item, not the selected next product slice.
+Issue #21 remains open for real installed-PWA behaviour when foregrounded, backgrounded, fully closed, battery-optimised, or restarted. This is an observation/validation item, not the selected next product work.
 
 ### Optional two-way Calendar
 
-Issue #26 remains deliberately unselected until supported record types, inbound fields, conflict rules, delivery mechanism, and failure behaviour are explicit.
+Issue #26 remains deliberately unselected until supported record types, inbound fields, conflict rules, delivery mechanism, and failure behaviour are explicit. Weekly Rhythm or a future Events/Appointments model may provide a clearer reason to revisit it.
 
 ### Advanced art-direction themes
 
@@ -354,6 +427,9 @@ A later theme may add restrained texture, painterly borders, or decorative layer
 - External services do not silently become canonical.
 - Offline claims remain narrower than the actual supported workflow.
 - New modules should enter through All Spaces and shared navigation configuration.
+- After Media, prefer integrating existing domains over adding new spaces unless observed use clearly justifies another module.
+- Shared context should come before hard coupling; do not invent cross-domain relationships without a useful workflow.
+- Domain-specific context providers are preferred over generic database access for integrations and AI.
 - Themes may add personality but not engagement pressure or ambiguous semantic states.
 - Features should be selected from observed friction or value, not simply because they are common in planning apps.
 - AI is advisory and opt-in by data domain; deterministic application state remains canonical.

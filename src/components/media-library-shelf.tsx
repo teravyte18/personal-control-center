@@ -320,8 +320,14 @@ function MediaEditor({
                 <Field label="Title" wide><input className="input" value={title} onChange={(event) => setTitle(event.target.value)} required autoFocus /></Field>
                 <Field label="Status"><select className="input" value={details.status} onChange={(event) => setDetails((current) => ({ ...current, status: event.target.value as MediaStatus }))}>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></Field>
                 <Field label="Rating"><select className="input" value={details.rating ?? ""} onChange={(event) => setDetails((current) => ({ ...current, rating: event.target.value === "" ? undefined : Number(event.target.value) }))}><option value="">Unrated</option>{ratingValues.map((value) => <option key={value} value={value}>{value.toFixed(1)}</option>)}</select></Field>
-                <Field label="Start date"><input type="date" className="input" value={details.startDate} onChange={(event) => setDetails((current) => ({ ...current, startDate: event.target.value }))} /></Field>
-                <Field label="Finish date"><input type="date" className="input" value={details.finishDate} onChange={(event) => setDetails((current) => ({ ...current, finishDate: event.target.value }))} /></Field>
+                {type === "film" ? (
+                  <Field label="Watched on"><input type="date" className="input" value={details.watchedDate} onChange={(event) => setDetails((current) => ({ ...current, watchedDate: event.target.value }))} /></Field>
+                ) : (
+                  <>
+                    <Field label="Start date"><input type="date" className="input" value={details.startDate} onChange={(event) => setDetails((current) => ({ ...current, startDate: event.target.value }))} /></Field>
+                    <Field label="Finish date"><input type="date" className="input" value={details.finishDate} onChange={(event) => setDetails((current) => ({ ...current, finishDate: event.target.value }))} /></Field>
+                  </>
+                )}
               </div>
             </section>
 

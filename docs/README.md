@@ -5,7 +5,7 @@ This directory contains current product/operations documentation plus a small am
 ## Current product direction
 
 - [`product-spec.md`](product-spec.md) — current product model, workflows, boundaries, and success criteria
-- [`roadmap.md`](roadmap.md) — completed slices, Media v1 as the selected next slice, and the shift toward shared context, Personal Advisor, Weekly Rhythm, and targeted cross-space integration
+- [`roadmap.md`](roadmap.md) — completed slices, Media v1, and the shift toward shared context, Personal Advisor, Weekly Rhythm, and targeted cross-space integration
 - [`architecture.md`](architecture.md) — deployed stack, persistence, navigation, PWA, themes, integrations, and security boundaries
 - [`interface-rules.md`](interface-rules.md) — current UI, copy, navigation, theme, and semantic-colour rules
 
@@ -14,8 +14,8 @@ This directory contains current product/operations documentation plus a small am
 - [`food.md`](food.md) — implemented Food v1 recipe book, ingredient-copy workflow, private photos, explicit exclusions, and deferred meal-prep/routine follow-ups
 - [`expenses.md`](expenses.md) — manual expense capture, fixed 50/30/20 reference, rolling Fun Fund, Insights analytics, persistence, and current boundaries
 - [`notes.md`](notes.md) — Markdown subset, autosave rules, safe preview rendering, and regression checks
-- [`book-library.md`](book-library.md) — Library model, ratings, owned-first default view, Wishlist isolation, covers, caching, and regression checks
-- [`media-library.md`](media-library.md) — implemented Media v1 for films and series, viewing state, ratings, lightweight progress, private posters, and integration boundaries
+- [`book-library.md`](book-library.md) — Books shelf model, ratings, owned-first default view, Wishlist isolation, covers, caching, and regression checks
+- [`media-library.md`](media-library.md) — unified Library navigation for Books, Movies, and Series; separate media wishlists/state, ratings, Series resume progress, private posters, and integration boundaries
 - [`personal-advisor.md`](personal-advisor.md) — planned opt-in LLM layer, per-domain data permissions, context construction, Keychain exclusion, and read-only v1 boundary
 - [`google-calendar.md`](google-calendar.md) — one-way Calendar setup, projection rules, and troubleshooting
 - [`offline-capture.md`](offline-capture.md) — Capture-only offline boundary, device queue, service worker, and recovery tests
@@ -27,7 +27,7 @@ This directory contains current product/operations documentation plus a small am
 - [`authentication.md`](authentication.md) — owner bootstrap, invitations, sessions, revocation, and isolation
 - [`security-hardening.md`](security-hardening.md) — live Funnel security controls and repeatable audit
 - [`phone-deployment.md`](phone-deployment.md) — Raspberry Pi and Tailscale Funnel setup, phone validation, updates, and restore entry points
-- [`review-photo-storage.md`](review-photo-storage.md) — private upload storage for Review photos, Library covers, Food recipe photos, and Media posters
+- [`review-photo-storage.md`](review-photo-storage.md) — private upload storage for Review photos, Library book covers, Food recipe photos, and Movie/Series posters
 - [`offsite-backups.md`](offsite-backups.md) — encrypted Cloudflare R2/restic backups and restore rehearsal
 - [`browser-only-development.md`](browser-only-development.md) — local UI/domain mode without PostgreSQL
 

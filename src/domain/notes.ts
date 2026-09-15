@@ -5,6 +5,7 @@ const SPECIAL_NOTE_DESCRIPTION_PREFIXES = [
   "__pcc_book_v1__\n",
   "__pcc_book_v2__\n",
   "__pcc_recipe_v1__\n",
+  "__pcc_media_v1__\n",
 ];
 
 export type ParsedNoteContent = {

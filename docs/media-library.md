@@ -40,15 +40,22 @@ Movie records support:
 - Wishlist, Watching, Completed, or Dropped status;
 - optional 0–10 half-step rating;
 - optional personal thoughts;
-- optional start and finish dates;
+- optional single **Watched on** date;
 - optional private poster.
+
+A movie deliberately does not track separate start and finish dates. Most films are watched in one sitting, and preserving a single approximate viewing date is enough for personal history even when a film is finished a few days after it was started.
 
 Movie browsing includes My movies, Watching, Completed, Wishlist, and Dropped. Search is title-based.
 
 ## Series
 
-Series records support the same status, rating, thoughts, dates, and private-poster fields as Movies plus lightweight resume position:
+Series records support:
 
+- Wishlist, Watching, Completed, or Dropped status;
+- optional 0–10 half-step rating;
+- optional personal thoughts;
+- optional start and finish dates;
+- optional private poster;
 - optional current season;
 - optional current episode.
 
@@ -68,6 +75,8 @@ Reusing the authenticated personal-data snapshot means Movie and Series records 
 - PostgreSQL backup and restore behaviour.
 
 No additional database table is required for Media v1.
+
+The Movie model also accepts the earlier PR's temporary start/finish-date representation when parsing and converts the available value into `watchedDate`, so the v1 schema remains tolerant while the feature is being finalized.
 
 ## Private posters
 
@@ -97,7 +106,7 @@ For a future Personal Advisor, the useful Movie/Series signals are:
 4. recency and current Watching state;
 5. Series resume position where relevant.
 
-A personal explanation of why something worked or did not work is more valuable than collecting exhaustive public catalogue metadata.
+A personal explanation of why something worked or did not work is more valuable than collecting exhaustive public catalogue metadata. Historical completeness is not required: the Advisor should remain useful when the user records only current and future viewing rather than backfilling everything previously watched.
 
 Media data may become an Advisor context domain only when explicitly enabled. Keychain remains structurally excluded from AI context.
 
@@ -108,7 +117,7 @@ Media v1:
 - participates in normal export, backup, and restore;
 - does not project to Google Calendar;
 - does not add general offline editing;
-- does not yet contribute start/finish activity to Weekly Review;
+- does not yet contribute viewing activity to Weekly Review;
 - does not perform recommendations inside Library itself.
 
 Those integrations should be added only when they support a concrete cross-space workflow.
@@ -137,5 +146,5 @@ Only after real use demonstrates value, consider:
 - streaming availability;
 - watch-history import from supported services;
 - richer Series progress if season/episode is insufficient;
-- Weekly Review start/finish activity;
+- Weekly Review viewing activity;
 - recommendation shortcuts powered by the Personal Advisor.

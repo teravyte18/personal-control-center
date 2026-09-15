@@ -14,6 +14,7 @@ export type MediaDetails = {
   rating?: number;
   thoughts: string;
   posterId: string;
+  watchedDate: string;
   startDate: string;
   finishDate: string;
   currentSeason?: number;
@@ -66,6 +67,7 @@ export function createMediaDetails(): MediaDetails {
     status: "wishlist",
     thoughts: "",
     posterId: "",
+    watchedDate: "",
     startDate: "",
     finishDate: "",
   };
@@ -76,14 +78,16 @@ export function normalizeMediaDetails(value: unknown): MediaDetails {
   if (!isRecord(value)) return defaults;
 
   const type = isMediaType(value.type) ? value.type : defaults.type;
+  const legacyMovieDate = normalizeDate(value.finishDate) || normalizeDate(value.startDate);
   return {
     type,
     status: isMediaStatus(value.status) ? value.status : defaults.status,
     rating: normalizeRating(value.rating),
     thoughts: stringOrEmpty(value.thoughts).replace(/\r\n?/g, "\n"),
     posterId: stringOrEmpty(value.posterId).trim(),
-    startDate: normalizeDate(value.startDate),
-    finishDate: normalizeDate(value.finishDate),
+    watchedDate: type === "film" ? normalizeDate(value.watchedDate) || legacyMovieDate : "",
+    startDate: type === "series" ? normalizeDate(value.startDate) : "",
+    finishDate: type === "series" ? normalizeDate(value.finishDate) : "",
     currentSeason: type === "series" ? normalizePositiveInteger(value.currentSeason) : undefined,
     currentEpisode: type === "series" ? normalizePositiveInteger(value.currentEpisode) : undefined,
   };

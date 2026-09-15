@@ -54,20 +54,37 @@ test("normalizes rating, dates, status, type, and series progress", () => {
     type: "series",
     status: "completed",
     rating: 8.26,
+    watchedDate: "2026-08-31",
     startDate: "2026-09-01",
     finishDate: "2026-02-31",
     currentSeason: 3.9,
     currentEpisode: 7.8,
   });
   assert.equal(normalized.rating, 8.5);
+  assert.equal(normalized.watchedDate, "");
   assert.equal(normalized.startDate, "2026-09-01");
   assert.equal(normalized.finishDate, "");
   assert.equal(normalized.currentSeason, 3);
   assert.equal(normalized.currentEpisode, 7);
 
-  const film = normalizeMediaDetails({ type: "film", currentSeason: 2, currentEpisode: 5 });
+  const film = normalizeMediaDetails({
+    type: "film",
+    watchedDate: "2026-09-14",
+    startDate: "2026-09-01",
+    finishDate: "2026-09-02",
+    currentSeason: 2,
+    currentEpisode: 5,
+  });
+  assert.equal(film.watchedDate, "2026-09-14");
+  assert.equal(film.startDate, "");
+  assert.equal(film.finishDate, "");
   assert.equal(film.currentSeason, undefined);
   assert.equal(film.currentEpisode, undefined);
+});
+
+test("legacy movie start or finish dates migrate into watched date", () => {
+  assert.equal(normalizeMediaDetails({ type: "film", finishDate: "2026-09-10" }).watchedDate, "2026-09-10");
+  assert.equal(normalizeMediaDetails({ type: "film", startDate: "2026-09-09" }).watchedDate, "2026-09-09");
 });
 
 test("media list ignores ordinary notes and inactive media records", () => {

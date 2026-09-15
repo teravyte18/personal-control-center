@@ -2,11 +2,11 @@
 
 ## Problem
 
-Important responsibilities, projects, interests, reference information, personal spending, and future plans can live across memory and disconnected tools. This creates repeated mental review, makes it harder to focus, and allows useful ideas to compete with urgent work.
+Important responsibilities, projects, interests, reference information, personal spending, media history, food ideas, and future plans can live across memory and disconnected tools. This creates repeated mental review, makes it harder to focus, and allows useful information to compete with urgent work.
 
 ## System goal
 
-Create one private control centre that answers:
+Create one private control centre that helps answer:
 
 1. What matters now?
 2. What requires an action or decision?
@@ -15,118 +15,171 @@ Create one private control centre that answers:
 5. What information should remain easy to retrieve?
 6. Which external views can be recreated from canonical application data?
 7. Where did personal money go, and what patterns are visible over time?
+8. How can information already stored in separate PCC domains work together without turning the product into one giant generic database?
 
 ## Scope
 
-This is a private personal system, not a commercial or collaborative product. One deployment may host a small invite-only set of independent accounts, but each account has completely separate data. Shared workspaces, teams, social features, monetisation, and growth-oriented requirements are out of scope.
+Personal Control Center is a private personal system, not a commercial or collaborative product.
 
-The repository is public, so code, documentation, fixtures, examples, issues, and commit messages must not contain private or identifying personal information.
+One deployment may host a small invite-only set of independent accounts, but each account has separate data. Shared workspaces, social features, monetisation, growth-oriented requirements, and public registration are out of scope.
+
+The repository is public. Code, documentation, fixtures, examples, issues, and commit messages must not contain private or identifying personal information.
 
 ## System principles
 
 - Capture first; organise later.
 - Remain useful without AI or external integrations.
 - Show what matters now instead of everything stored.
-- Keep projects, one-off tasks, thoughts, editable notes, books, personal expenses, recurring routines, and future time-specific events conceptually distinct.
+- Keep Projects, Tasks, Thoughts, Notes, Library records, Expenses, Food, Keychain secrets, recurring routines, and future time-specific events conceptually distinct.
 - Support reflection without turning every thought into an obligation.
-- Reconstruct the review period from recorded activity so the user does not need to remember every detail.
-- Make manual expense capture fast enough to happen alongside the bank notification; an occasional missed expense is acceptable and should not create a second reconciliation ritual.
-- Use expense analytics to learn from already-captured data rather than adding maintenance work.
+- Reconstruct the Weekly Review period from recorded activity instead of relying on memory alone.
 - Save long-form input without generating one server write per character.
 - Design phone interactions first and progressively enhance desktop use.
-- Keep external calendars as projections of application data unless a later feature explicitly defines inbound conflict handling.
-- Keep Quick Capture usable through temporary connection loss without pretending the entire application works offline.
+- Keep external Calendar events as projections of PCC data unless a later feature explicitly defines inbound ownership/conflict handling.
+- Keep Quick Capture usable through temporary connection loss without pretending the entire application is offline-first.
 - Allow visual personality without manipulative engagement mechanics.
-- Keep future AI advisory rather than canonical, and require explicit user-scoped data-domain permission before personal data is sent to an external model.
-- Keep Keychain secrets outside every AI context path by construction, not merely through prompt instructions.
+- Prefer observed friction and real use over speculative feature completeness.
+- After the main module-building phase, prefer coherent context and targeted integration over adding more isolated spaces.
+- Keep deterministic application state canonical.
+- Treat AI as experimental/advisory until repeated value is demonstrated.
+- Keep Keychain secrets outside every AI/context path by construction.
 
 ## Current page map
 
-### Capture
+### Capture / Home
 
-A quiet landing page centred on one input. Online operation is visually silent. Offline, pending, syncing, retry, and failure states appear only when they affect the capture workflow.
+A quiet landing page centred on fast capture.
 
-One short greeting is selected for the browser session. Capture also shows compact Inbox and due/overdue attention where useful.
+Online operation is visually silent. Offline, pending, syncing, retry, and failure states appear only when they matter.
+
+Capture also surfaces compact Inbox attention plus dated Tasks/project actions due today and existing overdue attention where useful.
 
 When the server cannot be reached, new captures may enter a durable device-local queue and synchronise exactly once after reconnection. A prepared installed PWA can cold-start into a dedicated Capture-only fallback.
 
 ### Inbox
 
-The processing space for new captures. An item can be expanded, edited, assigned a supported type and area, and moved into its appropriate workflow.
+The processing space for new captures.
 
-Continuously edited title and context fields update immediately in the browser and persist after a short idle delay or on blur. Classification, area, dates, and the final Organise action remain discrete saves.
+Items can be expanded, edited, assigned a supported type/area, and moved into their appropriate workflow. Continuously edited text persists after an idle delay or on relevant blur/exit boundaries rather than one request per character.
 
 Inbox can create Projects, Tasks, Thoughts, Notes, and Books.
 
 ### Projects
 
-Finite outcomes that require more than one action. Work, Education, Personal, and Uncategorised are areas within Projects; Active, In progress, Waiting, and Incubating describe lifecycle state.
+Finite outcomes that require more than one action.
 
-A project may contain several open actions. Each action has a title and optional date. A project with no open actions becomes Waiting; adding an action returns it to Active. Completing an action can optionally create a successor, but project completion remains a separate explicit action with takeaways.
+Projects may contain several independently open actions. Each action has a title, optional Details, and optional check-in date. A project with no open actions becomes Waiting; adding an action reactivates it.
+
+Completed/rescheduled actions retain their history. Completing one action never completes the project implicitly. Project completion remains an explicit action with takeaways.
 
 ### Tasks
 
-Concrete one-off actions that do not justify a project timeline. A task has a title, optional notes, an area, and an optional check-in date.
+Concrete one-off actions that do not justify a project timeline.
 
-An undated task stays open indefinitely without an age-based warning. Recurring responsibilities belong to a future Routines space rather than Tasks. Time-specific commitments such as appointments may later belong to Events/Appointments.
+A Task has a title, optional notes, area, and optional check-in date. Undated Tasks remain valid and do not receive arbitrary age-based warnings.
 
 ### Thoughts
 
-Observations and ideas retained without being forced into task or completion workflows. Thought cards are read-only by default, show their creation date, use an explicit Edit action, avoid routine area labels, and do not expose deletion as a normal Thoughts-page action.
+Observations and ideas retained without being forced into task/completion workflows.
+
+Thoughts remain distinct from editable Notes and are not automatically converted into obligations.
 
 ### Notes
 
-Editable reference material with a safe Markdown subset. The first line is the implicit title, cards remain compact, editing opens a complete phone-first editor, and manual ordering persists through server snapshots, exports, backups, and restores.
+Editable reference material with a constrained Markdown subset.
 
-Notes autosave after a short idle delay and on relevant exit/blur boundaries rather than relying on a lossy Cancel flow. Formatting is stored as ordinary text and rendered through the constrained Markdown preview, so existing plain-text notes remain compatible. Notes may be created directly or from Inbox and remain distinct from Thoughts.
+The first line is the implicit title. Notes autosave, support useful formatting and two-space nested lists, preserve manual ordering, and remain separate from Thoughts throughout Inbox organisation, export, backup, and restore.
 
 ### Review
 
-One top-level section with Current and History views. The current review is tied to a fixed Saturday-to-Friday period and combines generated context with structured reflection, location, an optional durable photo, and next-week focus.
+One top-level section with Current and History views.
 
-Generated context includes project attention and activity, open/completed tasks, recent thoughts, and dated books started or finished during the period. Completed history entries can be expanded to read the full saved review rather than only a summary card.
+The current review is tied to a fixed Saturday-to-Friday period and combines generated context with structured reflection, location, optional private photo, and next-week focus.
+
+Generated context includes project attention/activity, open/completed Tasks, recent Thoughts, and dated Book activity. Completed reviews remain expandable in History.
 
 ### Library
 
-A books-first personal reading space. The default **My library** view contains only books marked Owned, so a large Wishlist never clutters the normal bookshelf. Rated Owned books are ordered from highest to lowest overall score; unrated Owned books follow in title order. Reading state remains visible on the cards rather than creating separate default sections.
+Library is one umbrella space with first-level **Books | Movies | Series** shelves.
 
-Wishlist is an explicit view. Wishlist books are also excluded from ordinary reading-state generated views so they do not leak into Currently reading, Finished, or Paused/abandoned.
+The unified navigation does not force the three media types into one generic schema.
 
-Other generated views include Currently reading, Up next, Owned unread, Finished, and Paused/abandoned. The Library also supports title/author search, expandable filters, independent reading state/ownership/priority, optional author and edition note, optional dates, 0–10 half-step ratings, optional overall override, Thoughts and takeaways, persistent Up next ordering, optional private covers, and direct or Inbox-to-Book creation.
+#### Books
 
-The first version is intentionally not a generic media catalogue; films and series are planned as a separate Media space rather than being folded into Books.
+Books retain the existing books-first model:
+
+- Owned/My library default view;
+- Wishlist isolated from the normal bookshelf;
+- Currently reading, Up next, Owned unread, Finished, and Paused/abandoned views;
+- independent reading state, ownership, and priority;
+- optional dates, 0–10 ratings, reflections, edition note, cover, and Up next ordering.
+
+#### Movies
+
+Movies support:
+
+- Wishlist, Watching, Completed, or Dropped state;
+- optional 0–10 rating;
+- optional thoughts;
+- one optional Watched on date;
+- optional private poster.
+
+Separate start/finish dates are deliberately unnecessary for the normal movie workflow.
+
+#### Series
+
+Series support:
+
+- Wishlist, Watching, Completed, or Dropped state;
+- optional 0–10 rating;
+- optional thoughts;
+- optional start/finish dates;
+- optional private poster;
+- optional current season/episode resume position.
+
+Series opens on Watching by default because preserving resume position is a high-value day-to-day use.
+
+Historical Media completeness is not required; current/future viewing can accumulate naturally.
+
+### Food
+
+Food v1 is a Recipe Book, not a nutrition tracker or meal-planning system.
+
+Recipes support required name, ingredients, cooking steps, and cooking notes plus optional source URL, private photo, servings, prep/cook time, tags, 0–10 rating, and make-again state.
+
+Copy ingredients supports lightweight shopping-list reuse without requiring a grocery database.
+
+Prepared portions, freezer inventory, weekly meal planning, Prep Sunday, pantry tracking, nutrition, and AI meal generation remain deferred until real use proves value.
 
 ### Expenses
 
-A phone-first manual personal-finance space. The page opens on data rather than an entry form; a compact `+` expands Quick Add for an expense or income using amount, category, date, and optional description. Detailed expense categories map automatically to Essentials, Fun, or Future You so capture does not require duplicate classification.
+A phone-first manual personal-finance space.
 
-The Month view derives:
+Quick Add records expense/income amount, category, date, and optional description. Expense categories map to Essentials/Fun/Future You.
 
-- recorded income;
-- ordinary spending (Essentials + Fun);
-- Future You allocation;
-- net cash flow;
-- each bucket's share of total monthly outflows;
-- fixed 50/30/20 euro reference targets derived from recorded income;
-- a rolling Fun Fund for unused discretionary allowance;
-- category totals;
-- editable transaction history.
+The Month view derives recorded income, ordinary spending, Future You allocation, net cash flow, bucket shares, fixed 50/30/20 euro reference targets, rolling Fun Fund, category totals, and editable history.
 
-The 50/30/20 reference is intentionally fixed in code rather than exposed as another routine setting. Actual bucket percentages describe where that month's outflows went; the euro targets remain income-based. The Fun Fund rolls unused Fun allowance forward and floors at zero so excess Fun spending never becomes debt against later months.
+Insights supports useful date ranges, category filtering, category/description breakdowns, summary metrics, donut visualisation, and monthly trends.
 
-The second top-level Expenses view is **Insights**, not a weekly reconciliation flow. Insights supports this month, recent 3/6-month windows, the current year, all time, and custom month ranges; category filtering; category-mix or description-level breakdowns; a donut chart; total/transaction/average metrics; and monthly trends. Selecting a category uses transaction descriptions for detail such as individual subscription names without introducing a second subcategory model.
+There is deliberately no weekly bank-reconciliation ritual. Occasional missed entries are acceptable.
 
-There is deliberately no weekly bank-check workflow. The intended habit is to add transactions when the bank notification arrives and accept occasional misses rather than create recurring reconciliation work. Legacy `expenseReconciliation` snapshot state remains readable for compatibility only and is not exposed in the UI.
+Expenses remains online-only and does not use bank credentials/Open Banking/automatic matching/autonomous categorisation.
 
-Expenses is online-only. Bank APIs, Open Banking, CSV import, automatic matching, autonomous categorisation, and multi-currency conversion are not part of the current boundary. See [`expenses.md`](expenses.md).
+### Keychain
+
+The encrypted Keychain is a separate secrets boundary rather than ordinary PCC item data.
+
+Secrets are encrypted/decrypted client-side, stored through dedicated tables/APIs, protected by a separate master/recovery model, and excluded from normal Inbox/Notes/Review/Calendar/import/export behaviour.
+
+Only ciphertext participates in its dedicated backup/export flows. Keychain data is never eligible for AI/context integrations.
 
 ### All Spaces
 
-A compact directory containing all implemented working spaces, Accomplishments, Archive, expandable mobile quick-access configuration, Account & access, and visible future placeholders.
+A compact directory for implemented spaces, Accomplishments, Archive, account/access controls, mobile quick-access configuration, and selected future/experimental destinations when appropriate.
 
 ### Account & access
 
-Contains the current account and data export, sign out, per-device theme selection, optional Google Calendar connection and sync state, and owner-only invitations, revocation, and re-invitation.
+Contains account/data export, sign out, per-device theme selection, optional Google Calendar connection/sync state, and owner-only account invitation/revocation controls.
 
 ## Navigation model
 
@@ -138,220 +191,227 @@ configurable | configurable | Capture | configurable | configurable
                     All Spaces
 ```
 
-Capture is permanent in the centre. Four other slots are chosen from available pinnable spaces; the defaults are Inbox, Projects, Tasks, and Review. Thoughts, Notes, Library, and Expenses are also pinnable. Configuration is stored per browser/device. A tappable upward handle beneath Capture opens All Spaces; no hidden gesture is required.
+Capture is permanent in the centre. Four other slots are configurable from available pinnable spaces. Configuration is device-local.
 
 ### Larger screens
 
-The desktop rail shows all available pinnable destinations rather than only the four mobile pins. Capture and All Spaces remain permanent.
+The desktop rail shows available destinations more broadly while retaining Capture and All Spaces.
 
 ## Core concepts
 
-### Area
-
-A long-lived responsibility or interest, such as Work, Education, Home, Health, Travel, or Personal Projects.
-
 ### Item
 
-A captured record with a shared lifecycle. Items specialise into projects, tasks, thoughts, notes, and books while preserving common identity, status, area, and timestamps.
+A captured record with shared identity/lifecycle fields. Projects, Tasks, Thoughts, Notes, and structured records reuse common personal-data storage where appropriate while preserving domain-specific behaviour.
 
-### Project
+### Project action
 
-A finite outcome requiring multiple actions. Projects preserve action timelines, date-change notes, completion notes, and project takeaways.
-
-### Task
-
-A one-off action that does not need an action timeline. Tasks may be dated or undated and disappear from the active Tasks view after completion.
-
-### Thought
-
-A retained observation that should not become an obligation merely because it was recorded.
-
-### Note
-
-Mutable reference information with an implicit first-line title, safe Markdown formatting/preview, autosave, and manual ordering.
-
-### Book
-
-A Library record with independent reading state, ownership, and priority plus optional dates, 0–10 ratings, reflection, cover, and Up next order.
-
-### Expense transaction
-
-A user-scoped income or expense record stored as integer cents with a category, calendar date, optional description, and stable timestamps. Expense categories map to a high-level allocation bucket; income categories do not.
-
-### Expense reconciliation compatibility marker
-
-Older snapshots may contain `expenseReconciliation.reconciledThrough` from the original weekly-check design. It continues to normalize and round-trip safely so existing data remains compatible, but it is no longer an active product concept or exposed workflow.
-
-### Fun Fund
-
-A derived discretionary balance. From the selected starting month onward, each month contributes 30% of recorded income and subtracts Fun spending; the balance can roll forward but never below zero. It is not stored as a separate ledger and can be recalculated from canonical transactions.
-
-### Event or appointment
-
-A future time-specific commitment with a start time and potentially an end time, location, preparation context, or attendance details. It remains distinct from Tasks unless the record is genuinely an action.
-
-### Pending offline capture
-
-A new Capture item created while the application cannot reach the server. It remains visibly unsynchronised on that device until an idempotent server write succeeds. Pending captures are not canonical server data and must never be silently duplicated or discarded.
-
-### Google Calendar projection
-
-A one-way external view of dated open Tasks and dated open project actions. Personal Control Center remains canonical and can recreate the events from stored records and mappings.
-
-### Theme preference
-
-A browser/device preference that changes shared colour tokens, restrained line treatment, and centre Capture artwork. It does not alter data, routes, touch targets, workflows, or semantic status meaning.
-
-### Status
-
-Current lifecycle statuses are Inbox, Active, In progress, Waiting, Incubating, Completed, and Archived. When an item is reopened or restored, the system returns it to its meaningful previous status where possible instead of always defaulting to Active.
+A lightweight next/action point belonging to a Project, with title, optional Details, optional date, status/history, and optional reschedule notes.
 
 ### Weekly Review
 
-Each Saturday opens the immediately preceding Saturday-to-Friday period. An unfinished draft remains tied to that period through Friday, completion closes the form until the following Saturday, and a new Saturday replaces an unfinished older draft.
+A fixed-period reflection record backed by generated deterministic context plus user-written reflection. It remains canonical PCC data rather than an AI summary.
 
-The review supports what happened, what went well, what felt difficult, what was learned or noticed, next-week attention, location, an optional durable photo, automatic draft persistence, and completed history. From Sunday through Friday after 08:00 local time, an unfinished review produces an in-app reminder. Browser/PWA delivery while fully closed remains best-effort and is tracked in issue #21.
+### Library records
+
+Books, Movies, and Series are browsed together under Library but retain domain-specific models/state where useful.
+
+### Expense transaction
+
+A user-scoped income/expense record stored as canonical server data with category, date, optional description, amount, and stable timestamps.
+
+### Fun Fund
+
+A derived discretionary balance: each month contributes 30% of recorded income and subtracts Fun spending, rolling forward but flooring at zero.
+
+### Pending offline capture
+
+A device-local new capture waiting for an idempotent server write. It is not canonical until the server confirms it.
+
+### Google Calendar projection
+
+A one-way external view of dated open Tasks and dated open project actions. PCC remains canonical and can recreate those events.
+
+### Personal Context Layer
+
+A planned reusable integration boundary that exposes compact, bounded, user-scoped representations of selected PCC domains.
+
+It is not a generic database API for models. It should be useful both to AI and non-AI cross-space features.
+
+### LLM experiment
+
+A future optional sandbox for learning/testing personalised LLM behavior against the Personal Context Layer. It is not currently a committed normal user-facing Advisor space.
 
 ## Primary workflows
 
-- **Capture:** add an item in seconds, online or into the device-local pending queue.
-- **Clarify:** expand an Inbox item and organise it into a supported workflow.
-- **Plan projects:** manage several dated or undated actions, automatic Waiting, and explicit project completion.
+- **Capture:** add something in seconds, including through temporary connection loss.
+- **Clarify:** organise Inbox records into the appropriate domain.
+- **Plan projects:** manage multiple open actions, Waiting, dates, Details, history, and explicit completion.
 - **Manage tasks:** create, date, reschedule, and complete one-off work without project ceremony.
-- **Keep reference material:** separate autosaving Markdown-capable Notes from non-actionable Thoughts.
-- **Manage reading:** use the owned-first Library, explicit Wishlist, generated views, Up next order, covers, dates, ratings, and reflections.
-- **Track spending:** record expenses quickly, inspect the monthly allocation/Fun Fund view, and use filtered Insights to understand categories and descriptions over longer periods.
-- **Reflect:** inspect generated Weekly Review context and complete the fixed period.
-- **Project externally:** let Google Calendar reflect dated Tasks and project actions without becoming canonical.
-- **Personalise:** choose theme and mobile quick-access preferences for the current device.
-- **Recover:** reopen/restore work, retry pending captures, migrate earlier browser data, and restore deployment data from validated backups.
+- **Keep reference material:** use Notes without forcing information into Thoughts/Tasks.
+- **Reflect:** complete Weekly Review with generated context and saved history.
+- **Track media:** maintain Books/Movies/Series state, ratings, progress, and optional reflection without exhaustive catalogue work.
+- **Keep recipes:** save repeatable cooking knowledge without prematurely building a full food-management system.
+- **Track spending:** capture transactions quickly and analyse already-recorded data without a reconciliation ritual.
+- **Protect secrets:** keep encrypted Keychain data in its own hardened boundary.
+- **Project externally:** let Google Calendar reflect dated canonical work.
+- **Personalise:** choose theme and mobile quick-access preferences per device.
+- **Recover:** restore canonical data and private uploads from validated backup paths.
 
 ## Delivered baseline
 
 The usable system now includes:
 
-1. quick capture, Inbox clarification, and Capture-only offline recovery;
-2. Projects with multiple open actions, automatic Waiting, history, completion, Accomplishments, and Archive;
+1. quick Capture, Inbox clarification, and Capture-only offline recovery;
+2. Projects with multiple open actions, Details, Waiting, history, completion, Accomplishments, and Archive;
 3. standalone Tasks;
-4. non-actionable Thoughts and autosaving Markdown-capable ordered Notes;
-5. fixed Weekly Review periods, expanded history, photos, and reminders;
-6. an owned-first books Library with explicit Wishlist, 0–10 ratings, generated views, covers, ordering, and review context;
-7. Personal Expenses with low-friction manual entry, monthly allocation/Fun Fund context, editable history, and filtered Insights analytics;
-8. configurable phone quick access, compact All Spaces, simplified headers, and expanded desktop navigation;
-9. Default and game-named visual themes;
-10. invite-only authentication and isolated multi-device persistence;
-11. one-way Google Calendar projection;
-12. installable PWA assets and public HTTPS ingress;
-13. validated local and encrypted off-site backups.
+4. Thoughts plus autosaving Markdown-capable ordered Notes;
+5. fixed Weekly Review periods, History, photos, and reminders;
+6. unified Library with Books, Movies, and Series;
+7. Food v1 Recipe Book;
+8. Personal Expenses with Month/Fun Fund and Insights;
+9. client-encrypted Keychain with dedicated security/backup boundaries;
+10. configurable phone quick access, compact All Spaces, and desktop navigation;
+11. Default and game-inspired themes;
+12. invite-only authentication and isolated multi-device persistence;
+13. one-way Google Calendar projection;
+14. installable PWA assets and public HTTPS ingress;
+15. validated local and encrypted off-site backups.
 
 ## Current roadmap state
 
-The next major product sequence is selected:
+The module-building sequence through Media is complete.
 
-1. **Encrypted Password Keychain** — next implementation slice, using the staged client-encrypted-vault design in [`password-keychain.md`](password-keychain.md);
-2. **Media Library for Films and Series** — selected after Keychain, using the lightweight personal-state model in [`media-library.md`](media-library.md);
-3. **Personal Advisor v1** — selected after Media, using the opt-in, read-only LLM boundary in [`personal-advisor.md`](personal-advisor.md).
+The selected direction is now:
 
-This sequence is intentional. Keychain is already fully designed and should be completed behind a strict security boundary. Media then fills an important missing personal-preference/history domain. The Advisor follows once the application has enough structured context across Books, Media, Projects, Tasks, Thoughts, and Reviews to make cross-space recommendations and reflection meaningfully personal.
+1. **Personal Context Layer** — build reusable bounded domain context with no LLM dependency;
+2. **Context Inspector** — make the integration boundary visible/auditable during development;
+3. **LLM sandbox (experimental)** — only after context exists, use PCC to learn/test provider API setup, model/effort, cost, token usage, conversation state, and later memory/tool ideas;
+4. **Evaluate from real usage** — decide whether anything deserves promotion into a normal Advisor, contextual AI feature, external-assistant connector, or no permanent AI product;
+5. **Weekly Rhythm / targeted integration** — continue designing cross-space planning only where it removes real friction.
 
-Small fixes and operational follow-ups may land between these slices without changing the selected direction.
+A polished Personal Advisor is **not currently a committed next feature**.
 
-Other candidates remain unselected:
+See [`roadmap.md`](roadmap.md) and [`personal-advisor.md`](personal-advisor.md).
 
-- **Today/Home horizon** — a focused Home-linked view for genuinely dated work due Today, Tomorrow, or two days ahead, without pressuring uncertain work to acquire invented dates;
-- **photo-assisted book identification** — issue #33, only if manual title/author entry remains recurring friction;
-- **Weekly Review notification observation** — issue #21, an operational observation rather than a major product slice;
-- **Routines/Habits**, **Trips**, **Fitness**, or **Events/Appointments** when one becomes immediately useful;
-- **optional two-way Google Calendar** — issue #26, deliberately unselected until supported record types and conflict rules are explicit;
-- **advanced art-direction themes** after the existing palette/icon system has proven stable.
+## Integration principle
+
+Prefer **shared context before hard coupling**.
+
+Do not create database relationships just because two domains could theoretically interact.
+
+The Personal Context Layer should let domains expose deliberate representations such as project context, task context, review context, library context, food context, and bounded expense context.
+
+Important rules:
+
+- authenticated user scope;
+- explicit domain selection;
+- bounded current/recent history;
+- deterministic source data;
+- stable identity where grounding matters;
+- sparse/missing data is not negative evidence;
+- no Keychain dependency;
+- reusable by AI and non-AI features.
+
+## AI / personalisation direction
+
+The AI work has two goals:
+
+1. investigate whether coherent PCC context enables conversations/interactions that are materially better than ordinary deterministic views or manually providing context to ChatGPT;
+2. use PCC as a hands-on environment for learning API authentication/billing, models, reasoning effort, tokens/cost, context engineering, memory, tools, privacy, and provider trade-offs.
+
+The first experiment should be deliberately inspectable and cheap rather than disguised as a finished assistant.
+
+Interesting conversations may include discussing a finished book, comparing a later reading experience with an older reflection, reconsidering a Weekly Review conclusion, or talking through a decision while the relevant PCC context is available.
+
+A recommendation engine alone is not the target product.
+
+### Memory direction
+
+If long-term conversational memory is explored, do not replay an ever-growing raw transcript.
+
+Separate:
+
+- fresh canonical PCC state;
+- recent conversation turns;
+- compact stable personal memory;
+- retrieved/summarised older relevant conversations.
+
+PCC should own durable memory/context so a later model/provider can consume the same history.
+
+### Write direction
+
+Initial experiments remain read-only.
+
+Future explicit actions may be useful, such as rescheduling work or saving a generated shopping list, but only through a specific structured proposal shown to the user and explicitly confirmed through normal deterministic PCC mutations.
+
+No unrestricted database write tool is allowed.
+
+### Promotion gate
+
+AI should become a polished PCC feature only if repeated real use proves value beyond:
+
+- normal deterministic PCC views;
+- occasional one-off recommendations;
+- ordinary ChatGPT with manually supplied context.
+
+Otherwise the experiment may remain internal, be removed, or become a PCC-to-external-assistant connector instead.
 
 ## Current non-goals
 
-- native iOS or Android applications;
-- social or collaboration features;
-- public registration or shared spaces;
-- full calendar replacement or two-way sync without explicit conflict rules;
-- full offline editing of every space or general cross-device conflict resolution;
-- automatic bank connections, Open Banking, or autonomous transaction categorisation;
-- mandatory bank reconciliation or accounting-grade completeness;
-- automatic travel booking or autonomous AI changes;
-- generic task-reminder or notification-centre behaviour;
-- exhaustive public media cataloguing, streaming-provider tracking, episode-by-episode history, page-by-page reading progress, highlights, or ebook ingestion;
-- complete routines, fitness, travel, or appointment modules;
-- autonomous AI agents, blanket database access for models, or AI becoming canonical application state;
-- voice or video reviews before the written workflow proves it is needed.
+- native iOS/Android applications;
+- social/collaboration features;
+- public registration or shared workspaces;
+- full Calendar replacement or two-way sync without explicit conflict rules;
+- general full offline editing/conflict resolution;
+- automatic bank connections/Open Banking/autonomous transaction categorisation;
+- accounting-grade expense completeness;
+- exhaustive public media cataloguing, streaming-provider tracking, or episode-by-episode history;
+- mandatory page-by-page reading progress/highlight ingestion;
+- complete pantry/grocery/nutrition management without observed need;
+- generic habit/streak mechanics;
+- autonomous AI agents;
+- blanket database access for models;
+- Keychain access by AI/context systems;
+- proactive periodic LLM polling merely to create the appearance of intelligence;
+- silent AI-created Tasks, Thoughts, Notes, Calendar changes, purchases, bookings, or messages;
+- AI becoming canonical application state.
 
-## Planned specialised modules and enhancements
+## Future candidates
 
-### Today/Home horizon
+These remain candidates rather than selected commitments:
 
-A focused view for near-term dated work, likely reached from a Home button rather than All Spaces. Candidate filters are Today, Tomorrow, and two days ahead. It should include only records with meaningful dates and must not pressure users to date uncertain work.
-
-### Encrypted Password Keychain
-
-The selected next slice is a client-encrypted secrets vault, not plaintext records in the normal personal-data snapshot and not a claim to replace an audited password manager. Its threat model, recovery model, cryptographic boundary, and staged implementation are defined in [`password-keychain.md`](password-keychain.md).
-
-Implementation remains separated into an encrypted foundation, locked phone-first experience, and hardening/review gate. Important credentials should not rely on the experimental vault as their only copy before the hardening/review stage is complete.
-
-### Media Library
-
-The selected Media slice adds one Films-and-Series space after Keychain. It records personal viewing state, 0–10 ratings, reflections, lightweight series progress, and optional dates/posters without requiring an external entertainment catalogue.
-
-Its first-version model and exclusions are defined in [`media-library.md`](media-library.md). The primary goal is useful personal history and preference signals, not exhaustive public metadata.
-
-### Personal Advisor
-
-The selected Personal Advisor follows Media. It is a read-only, opt-in LLM layer over explicitly enabled Personal Control Center domains and is defined in [`personal-advisor.md`](personal-advisor.md).
-
-Advisor v1 should use compact structured context from normal application queries before introducing embeddings or vector search. It may support recommendation, focus, project-review, and Weekly Review preparation questions, but model output remains advisory and cannot silently mutate stored records.
-
-Keychain is permanently excluded from Advisor context through code structure rather than prompt wording. Notes and Expenses require explicit permission and stronger privacy treatment; provider credentials remain server-side; raw generated context must not be written to normal logs.
-
-Embeddings or `pgvector` may be evaluated later only if real data volume shows that bounded structured/recent context misses relevant information.
-
-### Routines
-
-Recurring responsibilities and practices that should not be recreated as one-off Tasks. The recurrence, completion, pause, and review model must be defined before implementation.
-
-### Fitness
-
-Imported activities, weekly frequency, distance, and trend summaries without requiring manual activity entry.
-
-### Trips
-
-Trip ideas, possible dates, budget, transport and accommodation options, decision deadlines, and supported price monitoring.
-
-### Events or appointments
-
-A later time-specific space for commitments that benefit from start times, end times, locations, and appointment-oriented context. It may reuse the Google Calendar connection while remaining distinct from Tasks and Projects.
-
-### Library enhancements
-
-Possible later additions include photo-assisted identification, external metadata lookup, page progress, quotes/highlights, or richer book metadata. Cross-domain recommendations should live in the Personal Advisor rather than creating separate AI logic inside each library.
-
-### Advanced theme art direction
-
-A future theme may add restrained texture, irregular borders, or decorative layers when the source has a distinctive visual language. Layout, touch areas, readability, and semantic states remain fixed.
+- near-term Today/Tomorrow horizon reached from Home;
+- Weekly Rhythm / recurring weekly structure;
+- Events/Appointments;
+- Routines when recurrence semantics are actually needed;
+- Trips;
+- imported Fitness/activity summaries;
+- Food meal-prep/freezer/weekly-meal extensions after real Recipe Book use;
+- Library metadata/photo-assisted identification/highlights when friction justifies them;
+- optional inbound/two-way Calendar when ownership/conflict rules are clear;
+- advanced theme art direction.
 
 ## Success criteria
 
 The system is useful when:
 
-- new items can be captured in seconds from a phone, including during temporary connection loss;
-- active projects expose their open actions or become Waiting automatically;
-- one-off actions remain lightweight Tasks;
+- new items can be captured in seconds from a phone, including through temporary connection loss;
+- Projects expose actionable next work without forcing every action to have a date;
+- one-off Tasks remain lightweight;
 - Thoughts and editable Notes remain distinct;
 - long-form typing remains responsive while persistence happens safely;
-- Notes can use useful formatting without sacrificing plain-text compatibility or safe rendering;
-- Weekly Review provides enough recorded context to avoid reconstructing the week from memory;
-- books move between useful views without duplicate records or compulsory dates, and Wishlist does not clutter the normal owned bookshelf;
-- personal expenses can be entered in seconds without requiring a second reconciliation habit;
-- monthly spending separates ordinary consumption from Future You, preserves a clear 50/30/20 reference, and makes the rolling Fun Fund understandable;
-- Insights can explain category and description patterns over useful periods without another finance data model;
-- phone and desktop share canonical data while remaining isolated from other accounts;
-- navigation grows without redesigning the shell;
-- themes add personality without obscuring semantic state or creating engagement pressure;
+- Weekly Review provides enough recorded context to reduce reconstruction from memory;
+- Library lets Books, Movies, and Series remain useful without exhaustive metadata/backfilling;
+- Series progress prevents losing resume position across long breaks;
+- Food stores recipes worth making again without becoming maintenance-heavy;
+- expenses can be entered quickly and analysed without a second checking ritual;
+- Keychain secrets remain isolated from ordinary PCC state and all AI/context paths;
+- phone and desktop share canonical personal data while accounts remain isolated;
+- Calendar events can be recreated from canonical dated records;
+- backups can restore canonical data and private uploads;
+- navigation can grow without redesigning the shell;
+- themes add personality without obscuring semantic state;
 - the system remains useful when integrations, notifications, and AI are unavailable;
-- external Calendar events can be recreated from canonical records;
-- disconnected captures survive reloads and reach the server exactly once;
-- production data and private uploads can be restored from validated local and off-site backups.
+- future integrations consume deliberate bounded context rather than arbitrary database access;
+- experimental AI costs and data exposure remain visible and controlled;
+- no AI feature is promoted simply because the underlying API works.

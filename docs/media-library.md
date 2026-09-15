@@ -1,85 +1,107 @@
-# Media Library — Films and Series
+# Library — Books, Movies, and Series
 
 ## Status
 
-**Media v1 is implemented in PR #64.**
+**Media v1 is implemented in PR #64 as an extension of the existing Library space.**
 
-The Media space is intentionally small, phone-first, and focused on personal viewing state rather than reproducing IMDb, Letterboxd, or a streaming tracker.
+There is no separate top-level Media destination. Library is the umbrella for three first-level shelves:
+
+- **Books**;
+- **Movies**;
+- **Series**.
+
+The underlying Book and Media records remain separate domain models. The unification is a navigation and browsing decision, not an attempt to force books, films, and series into one generic schema.
 
 ## Product role
 
-A single **Media** space contains both films and series. It records the personal signals that are useful on their own and later for the Personal Advisor:
+Library is the place for personal media history, saved-for-later items, ratings, progress, and reflections. Each shelf keeps the concepts that are useful for that medium while sharing one top-level destination so All Spaces and mobile quick access do not become crowded.
 
-- whether something was saved, started, completed, or dropped;
-- an optional 0–10 half-step rating;
+The three shelves intentionally have independent browsing state. A Book Wishlist is not mixed with a Movie Wishlist or Series Wishlist.
+
+## Books
+
+The existing Books shelf keeps its current model and views, including:
+
+- My library / Owned;
+- Currently reading;
+- Up next;
+- Owned unread;
+- Wishlist;
+- Finished;
+- Paused / abandoned;
+- ownership, priority, ratings, dates, notes, and private covers.
+
+See [`book-library.md`](book-library.md) for the detailed Books model.
+
+## Movies
+
+Movie records support:
+
+- Wishlist, Watching, Completed, or Dropped status;
+- optional 0–10 half-step rating;
 - optional personal thoughts;
 - optional start and finish dates;
-- lightweight current season/episode position for series.
+- optional private poster.
 
-Personal state matters more than exhaustive catalogue metadata. The app remains fully usable without an external entertainment service.
+Movie browsing includes My movies, Watching, Completed, Wishlist, and Dropped. Search is title-based.
 
-## Data model
+## Series
 
-Common fields:
-
-- type: `Film` or `Series`;
-- title;
-- status: Wishlist, Watching, Completed, or Dropped;
-- optional 0–10 rating using the same half-step convention as Books;
-- optional personal thoughts;
-- optional private poster;
-- optional start date;
-- optional finish date.
-
-Series-only fields:
+Series records support the same status, rating, thoughts, dates, and private-poster fields as Movies plus lightweight resume position:
 
 - optional current season;
 - optional current episode.
 
-The first version deliberately does not store actors, directors, studios, genres, runtime, release dates, streaming-provider availability, or an episode catalogue.
+The Series shelf opens on **Watching** by default because resume position is one of its highest-value day-to-day uses. Watching cards surface the saved position as `Resume: Sx · Ex`, and the editor provides an explicit **Where are you?** section for season and episode. This is intended to preserve progress across long breaks or services that do not reliably remember it.
 
-## Views and interaction
+Series browsing includes Watching, My series, Completed, Wishlist, and Dropped. Search is title-based.
 
-The default **My media** view excludes Wishlist entries so saved-for-later titles do not dominate the normal library.
+## Persistence
 
-Available generated views are:
+Movie and Series metadata is serialized into active `note` items using the dedicated `__pcc_media_v1__` description prefix. Normal Notes explicitly exclude these records.
 
-- Watching;
-- Completed;
-- Wishlist;
-- Dropped;
-- Films;
-- Series.
+Reusing the authenticated personal-data snapshot means Movie and Series records inherit the existing:
 
-Search covers title. Cards show poster/title plus useful compact state such as type, status, rating, and series position. Add/edit uses a full-screen phone-first editor.
+- per-user isolation;
+- multi-device persistence;
+- export/import behaviour;
+- PostgreSQL backup and restore behaviour.
 
-## Persistence and private posters
+No additional database table is required for Media v1.
 
-Media metadata is serialized into active `note` items using the dedicated `__pcc_media_v1__` description prefix. Normal Notes explicitly exclude those records. Reusing the authenticated personal-data snapshot means Media participates in the existing account-isolation, persistence, export/import, database backup, and restore behaviour without adding another database table.
+## Private posters
 
-Poster uploads are optional and stored under each user's private upload root:
+Optional Movie and Series posters are stored under each user's private upload root:
 
 ```text
 UPLOAD_ROOT/<user-id>/media-posters/<poster-id>
 ```
 
-Uploads accept JPEG, PNG, WebP, or GIF images up to 10 MB. Display responses are authenticated, bounded to a poster-oriented display size, converted to WebP when possible, and privately cached with ETag revalidation. Replacing or deleting a poster removes the superseded upload; a newly uploaded poster is also cleaned up if saving the Media record fails.
+Uploads accept JPEG, PNG, WebP, or GIF images up to 10 MB. Display responses are authenticated, resized to a bounded poster-oriented display size, converted to WebP when possible, and privately cached with ETag revalidation.
 
-## Recommendation value
+Replacing or deleting a poster removes the superseded upload. If a new poster upload succeeds but saving the record fails, the unused upload is cleaned up.
 
-For the future Personal Advisor, the highest-value Media signals are:
+## Navigation boundary
 
-1. whether the user chose to start something;
-2. whether they completed or dropped it;
-3. their 0–10 rating;
-4. what they wrote about it;
-5. recency and current Watching state.
+Only **Library** appears in All Spaces, desktop navigation, and mobile quick-access configuration. The Books, Movies, and Series selectors live inside Library.
 
-A personal note explaining *why* something worked or did not work is intentionally treated as more valuable than collecting a large public metadata catalogue.
+The former `/media` route redirects to the Movies shelf for compatibility; it is not a separate product space.
 
-Media may become an Advisor context domain only when the user explicitly enables it. Keychain remains structurally excluded from all AI context.
+## Recommendation and integration value
 
-## Integration boundaries
+For a future Personal Advisor, the useful Movie/Series signals are:
+
+1. whether something was wishlisted, started, completed, or dropped;
+2. 0–10 rating;
+3. personal thoughts;
+4. recency and current Watching state;
+5. Series resume position where relevant.
+
+A personal explanation of why something worked or did not work is more valuable than collecting exhaustive public catalogue metadata.
+
+Media data may become an Advisor context domain only when explicitly enabled. Keychain remains structurally excluded from AI context.
+
+## Current integration boundaries
 
 Media v1:
 
@@ -87,33 +109,33 @@ Media v1:
 - does not project to Google Calendar;
 - does not add general offline editing;
 - does not yet contribute start/finish activity to Weekly Review;
-- does not perform recommendations inside the Media space itself.
+- does not perform recommendations inside Library itself.
 
-Those integrations should be added only when they serve a concrete cross-space workflow.
+Those integrations should be added only when they support a concrete cross-space workflow.
 
 ## Explicit exclusions
 
 Media v1 excludes:
 
-- automatic streaming-service tracking;
+- external entertainment catalogues as a runtime dependency;
+- automatic metadata or poster matching;
+- streaming-service tracking or availability;
 - watch-history import;
-- social profiles, followers, public reviews, or sharing;
 - episode-by-episode history;
-- automatic recommendations inside Media;
-- comprehensive entertainment metadata;
-- automatic poster/catalogue matching;
+- social profiles, public reviews, or sharing;
+- exhaustive cast/crew/genre metadata;
 - Calendar projection;
-- autonomous AI changes to Media records.
+- autonomous AI changes to Library records.
 
 ## Future enhancements
 
 Only after real use demonstrates value, consider:
 
-- external metadata lookup;
+- optional external metadata lookup;
 - automatic poster matching;
 - genre/creator metadata for richer Advisor analysis;
 - streaming availability;
 - watch-history import from supported services;
-- richer series progress;
+- richer Series progress if season/episode is insufficient;
 - Weekly Review start/finish activity;
 - recommendation shortcuts powered by the Personal Advisor.

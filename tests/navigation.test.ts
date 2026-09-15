@@ -40,10 +40,10 @@ test("Food can be pinned without changing the default quick access", () => {
   assert.deepEqual(normalizeMobilePinnedDestinationIds(null), [...defaultPinnedDestinationIds]);
 });
 
-test("Media can be pinned without changing the default quick access", () => {
+test("Library can be pinned without changing the default quick access", () => {
   assert.deepEqual(
-    normalizeMobilePinnedDestinationIds(["media", "inbox", "projects", "review"]),
-    ["media", "inbox", "projects", "review"],
+    normalizeMobilePinnedDestinationIds(["library", "inbox", "projects", "review"]),
+    ["library", "inbox", "projects", "review"],
   );
   assert.deepEqual(normalizeMobilePinnedDestinationIds(null), [...defaultPinnedDestinationIds]);
 });

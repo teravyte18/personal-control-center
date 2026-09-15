@@ -10,7 +10,6 @@ export type IconName =
   | "archive"
   | "library"
   | "food"
-  | "media"
   | "expenses"
   | "keychain"
   | "trips"

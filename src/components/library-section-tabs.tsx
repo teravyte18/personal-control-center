@@ -1,14 +1,22 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
-export type LibrarySection = "books" | "movies" | "series";
-
-const sections: { id: LibrarySection; label: string; href: string }[] = [
+const sections = [
   { id: "books", label: "Books", href: "/library" },
   { id: "movies", label: "Movies", href: "/library/movies" },
   { id: "series", label: "Series", href: "/library/series" },
-];
+] as const;
 
-export function LibrarySectionTabs({ active }: { active: LibrarySection }) {
+export function LibrarySectionTabs() {
+  const pathname = usePathname();
+  const active = pathname.startsWith("/library/movies")
+    ? "movies"
+    : pathname.startsWith("/library/series")
+      ? "series"
+      : "books";
+
   return (
     <nav aria-label="Library sections" className="mx-auto mb-5 max-w-6xl">
       <div className="grid grid-cols-3 rounded-2xl border border-slate-200 bg-white p-1 shadow-sm">

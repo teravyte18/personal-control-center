@@ -42,13 +42,6 @@ export function MediaLibraryShelf({ type }: { type: MediaType }) {
   const [openMediaId, setOpenMediaId] = useState<string | null>(null);
   const openMedia = media.find((entry) => entry.item.id === openMediaId);
 
-  useEffect(() => {
-    setView(type === "series" ? "watching" : "library");
-    setQuery("");
-    setCreating(false);
-    setOpenMediaId(null);
-  }, [type]);
-
   const visibleMedia = useMemo(() => sortMediaItems(media).filter((entry) => {
     if (!mediaMatchesQuery(entry, query)) return false;
     if (view === "library") return entry.details.status !== "wishlist";

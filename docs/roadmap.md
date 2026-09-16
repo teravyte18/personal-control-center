@@ -2,7 +2,9 @@
 
 This roadmap tracks delivered slices and the current product direction. Sequence matters more than fixed dates, and a structurally obvious feature should not outrank a workflow that is actually useful.
 
-The project is now moving out of its module-building phase. After Media v1, the default question should no longer be **“what new space should we add?”** but **“how can the information already in Personal Control Center work together?”** New standalone domains should require a clear recurring need; shared context, cross-space workflows, and useful synthesis should take priority.
+The project has now moved out of its module-building phase. The default question is no longer **“what new space should we add?”** but **“how can the information already in Personal Control Center work together?”** New standalone domains should require a clear recurring need.
+
+The next selected architectural step is a **Personal Context Layer**. AI remains exploratory: PCC may be used to learn how personalised LLM systems work, but a polished Personal Advisor is not currently a committed product slice.
 
 ## Progress at a glance
 
@@ -11,426 +13,382 @@ graph LR
     S1["Slice 1<br/>Phone-first foundation<br/>✅ PR #7"]
     S2["Slice 2<br/>Actionable projects<br/>✅ PR #10"]
     S3["Slice 3<br/>Durable deployment<br/>✅ PR #13"]
-    HARDEN["Hardening<br/>auth, uploads, R2<br/>✅ PR #14, #18"]
-    S4["Slice 4<br/>Tasks and Weekly Review<br/>✅ PR #20, #22"]
-    S5["Slice 5<br/>Google Calendar<br/>✅ PR #25"]
-    S6["Slice 6<br/>Offline capture<br/>✅ PR #27"]
-    EXT["Workflow extensions<br/>projects and Notes<br/>✅ PR #29, #30, #61, #62"]
+    S4["Slices 4–6<br/>Tasks, Review, Calendar,<br/>offline capture<br/>✅"]
+    EXT["Workflow extensions<br/>Projects + Notes<br/>✅"]
     S7["Slice 7<br/>Book Library<br/>✅ PR #32"]
-    S8["Slice 8<br/>UI and themes<br/>✅ PR #34, #35, #36"]
-    S9["Slice 9<br/>Personal Expenses<br/>✅ PR #45, #47, #48"]
-    S10["Slice 10<br/>Encrypted Keychain<br/>✅ PR #55, #56, #58"]
+    S8["Slice 8<br/>UI and themes<br/>✅"]
+    S9["Slice 9<br/>Personal Expenses<br/>✅"]
+    S10["Slice 10<br/>Encrypted Keychain<br/>✅"]
     S11["Slice 11<br/>Food v1<br/>✅ PR #60"]
-    S12["Slice 12<br/>Media Library<br/>films + series"]
-    INT["Integration phase<br/>shared context<br/>+ cross-space workflows"]
-    ADV["Personal Advisor v1<br/>read-only synthesis"]
-    RHY["Weekly Rhythm<br/>connected planning"]
+    S12["Slice 12<br/>Unified Library:<br/>Books + Movies + Series<br/>✅ PR #64"]
+    CTX["Selected next<br/>Personal Context Layer"]
+    LAB["Experiment<br/>LLM sandbox + memory<br/>only if useful"]
+    RHY["Later exploration<br/>Weekly Rhythm +<br/>targeted integrations"]
 
-    S1 --> S2 --> S3 --> HARDEN --> S4 --> S5 --> S6 --> EXT --> S7 --> S8 --> S9 --> S10 --> S11 --> S12 --> INT --> ADV --> RHY
+    S1 --> S2 --> S3 --> S4 --> EXT --> S7 --> S8 --> S9 --> S10 --> S11 --> S12 --> CTX --> LAB --> RHY
 
     classDef done fill:#ecfdf5,stroke:#10b981,color:#065f46;
     classDef selected fill:#eff6ff,stroke:#3b82f6,color:#1e3a8a;
+    classDef experimental fill:#fff7ed,stroke:#f59e0b,color:#78350f;
     classDef planned fill:#f8fafc,stroke:#94a3b8,color:#334155;
-    class S1,S2,S3,HARDEN,S4,S5,S6,EXT,S7,S8,S9,S10,S11 done;
-    class S12 selected;
-    class INT,ADV,RHY planned;
+    class S1,S2,S3,S4,EXT,S7,S8,S9,S10,S11,S12 done;
+    class CTX selected;
+    class LAB experimental;
+    class RHY planned;
 ```
 
-## Slice 1 — Phone-first foundation
+## Delivered foundation
+
+### Slice 1 — Phone-first foundation
 
 **Status: complete in PR #7.**
 
-Delivered the initial application shell, Capture, Inbox, Projects, Thoughts, Review, All Spaces, browser-local prototype persistence, basic completion, initial PWA metadata, and Docker-ready runtime.
+Delivered the initial shell, Capture, Inbox, Projects, Thoughts, Review, All Spaces, prototype persistence, early PWA support, and Docker-ready runtime.
 
-## Slice 2 — Make projects actionable
+### Slice 2 — Actionable projects
 
-**Status: complete in PR #10.**
+**Status: complete in PR #10, with later action refinements.**
 
-Delivered shared domain actions, dated project actions with history, compact cards and full detail views, completion notes, Waiting, overdue attention, Accomplishments, recoverable Archive, and focused lifecycle tests.
+Projects support action history, Waiting, overdue attention, completion notes, Accomplishments, Archive, multiple open actions, optional dates, optional Details, rescheduling history, and explicit project completion.
 
-The original Slice 2 planning document is now explicitly historical; later project-action changes supersede parts of its single-current-action model.
+PR #62 also surfaces project actions due today on Home alongside Tasks.
 
-## Slice 3 — Durable personal deployment
+### Slice 3 — Durable deployment
 
-**Status: complete in PR #13; production runs on Raspberry Pi.**
+**Status: complete in PR #13, with later hardening.**
 
-Delivered PostgreSQL canonical state, explicit browser-data migration, invite-only isolated accounts, sessions and revocation, user-scoped reads/mutations/import/export, Tailscale Funnel HTTPS, installable PWA assets, validated local backups, safe deployment/restore scripts, ARM64 production, and AMD64 CI validation.
+The application runs on a Raspberry Pi with PostgreSQL canonical state, invite-only isolated accounts, Tailscale Funnel, local backups, encrypted off-site R2/restic backups, restore tooling, and production validation.
 
-### Deployment hardening
+### Slices 4–6 — Tasks, Weekly Review, Calendar, and offline Capture
 
-PR #14 added login throttling, account-enumeration timing protection, durable private review photos, paired database/upload backup and restore, production security checks, and zero-warning lint.
+**Status: complete.**
 
-PR #18 added client-side encrypted Cloudflare R2/restic snapshots, retention/pruning, visible backup health, staged restore preparation, and a successful isolated restore rehearsal.
+Delivered standalone Tasks, fixed Saturday-to-Friday Weekly Review, History, reminders, review photos, one-way Google Calendar projection for dated Tasks/project actions, and Capture-only offline recovery through the PWA/service worker.
 
-Current optional infrastructure backlog:
+### Workflow extensions — Projects and Notes
 
-- repeat disaster recovery on a genuinely separate clean host periodically;
-- add a second local copy on USB storage or a future NAS;
-- evaluate published immutable multi-architecture images only if host build time or rollback needs justify the added release infrastructure.
+**Status: complete.**
 
-## Slice 4 — Standalone Tasks and scheduled Weekly Review
+Notes provide autosaving editable reference text, safe Markdown, compact cards, ordering, and separation from Thoughts. Projects support multiple open actions and lightweight action Details without becoming a subtask system.
 
-**Status: complete in PR #20, with continuous-text persistence corrected in PR #22.**
-
-Delivered dated or undated Tasks, fixed Saturday-to-Friday Review periods, generated project/task/thought context, review history, in-app reminders, best-effort browser notifications, configurable mobile quick access, and debounced long-form persistence.
-
-PR #42 later added expandable full Review-history reading plus optimized private photo delivery with browser caching and ETag revalidation.
-
-Real background notification behaviour remains a non-blocking observation in issue #21.
-
-## Slice 5 — Google Calendar bridge
-
-**Status: complete and live-tested in PR #25.**
-
-Delivered per-user OAuth, encrypted refresh-token storage, a separate application-created calendar, one-way all-day projection, durable event mappings, duplicate-safe reconciliation, visible sync/error state, manual recovery, and clean disconnect/reconnect behaviour.
-
-PR #29 later expanded the projection from one current project action to every dated open project action.
-
-Two-way synchronisation remains optional future evaluation in issue #26.
-
-## Slice 6 — Offline Quick Capture
-
-**Status: complete and phone-tested in PR #27.**
-
-Delivered a root-scope service worker, dedicated pre-cached Capture-only cold-start fallback, durable per-user device queues, stable client-generated IDs, duplicate-safe retry, online/offline/pending/error states, automatic recovery, and production-image checks proving the offline assets are deployed.
-
-The boundary remains narrow: other spaces and authenticated editing remain online-only.
-
-## Post-Slice-6 workflow extensions
-
-### Multiple open project actions
-
-**Status: complete in PR #29.**
-
-Delivered parallel/sequential actions, optional dates and first actions, reschedule notes/history, automatic Active/Waiting transitions, explicit project completion with takeaways, and correct Home, Review, Calendar, import/export, backup, and restore behaviour.
-
-### Editable Notes
-
-**Status: complete in PR #30.**
-
-Delivered direct and Inbox-to-Note creation, implicit first-line titles, compact two-column cards, full-screen editing, persistent phone-safe drag ordering, permanent deletion, and strict separation from Thoughts.
-
-PR #42 later removed the lossy Cancel flow, added debounced autosave and safe Markdown formatting/preview, and kept existing plain-text storage compatible. PRs #50 and #51 later added preserved single line breaks and two-space nested Markdown lists.
-
-### Project action refinements
-
-**Status: complete in PRs #61 and #62.**
-
-Project actions now support optional multiline Details for setup notes, bullets, commands, or other lightweight context without becoming a subtask system. Open project actions whose check-in date is today also surface on Home alongside due-today Tasks, while existing overdue behaviour remains unchanged.
-
-## Slice 7 — Book Library
+### Slice 7 — Book Library
 
 **Status: complete in PR #32, with later refinements.**
 
-Delivered an available and pinnable Library; direct and Inbox-to-Book creation; independent reading state, ownership, and priority; generated views; title/author search and expandable filters; persistent Up next ordering; optional metadata, dates, ratings, overall override, and Thoughts and takeaways; private user-scoped covers; dated reading activity in Weekly Review; and import/export/backup/restore compatibility.
+Books support ownership, reading state, Wishlist, Up next, private covers, dates, 0–10 ratings, reflections, ordering, and review context. The normal bookshelf remains owned-first rather than mixing Wishlist records into everyday browsing.
 
-PR #35 added bounded WebP display responses, private caching, and ETag revalidation while preserving original uploads.
+### Slice 8 — Interface simplification and themes
 
-PR #44 moved ratings from 0–5 to 0–10 with safe legacy conversion and added the one-off Amazon Library importer.
+**Status: complete.**
 
-PR #48 made **My library** the default owned-only view, isolated Wishlist entries from the normal bookshelf and reading-state views, and sorted rated owned books from highest to lowest while retaining title ordering for unrated books.
+The app uses compact phone-first navigation, configurable mobile pins, All Spaces, shared semantic styles, and optional game-inspired themes without changing workflow semantics.
 
-Future Library enhancement issue #33 tracks photo-assisted title/author recognition after enough real use exists to judge the value.
+### Slice 9 — Personal Expenses
 
-## Slice 8 — Interface simplification and game themes
+**Status: complete.**
 
-**Status: complete in PRs #34, #35, and #36.**
+Expenses support fast manual entry, fixed 50/30/20 reference targets, rolling Fun Fund, editable history, and filtered Insights without imposing a weekly bank-reconciliation ritual.
 
-PR #34 documented the structural rules.
+### Slice 10 — Encrypted Password Keychain
 
-PR #35 delivered removal of the overlapping mobile Spaces button and wasted top area, a tappable dock-attached Spaces handle, compact directory rows, title-focused headers, consistent top spacing and icon treatment, silent normal online state, session-stable Home greetings, and the Library cover-delivery performance fix.
+**Status: complete in PRs #55, #56, and #58.**
 
-PR #36 delivered Default plus Pokémon, Hades, Hades II, Hollow Knight, Silksong, Elden Ring, Cyberpunk 2077, The Witcher 3, and Stardew Valley themes; per-browser/device persistence before first paint; shared palette/surface/accent/line tokens; theme-specific centre Capture artwork on phone and desktop; an optimised artwork sprite plus vector Poké Ball; and preservation of layout, workflows, touch targets, and semantic status meaning.
+The Keychain is a client-encrypted vault with its own security boundary, recovery flow, isolated tables/APIs, ciphertext-only backup/export behavior, and explicit browser-delivered-code limitations.
 
-PR #42 later centralized semantic foreground and divider rules so overdue, Waiting, success, and error cards remain readable across themes.
+Keychain is permanently excluded from every AI/context path.
 
-This UI slice is complete. Future visual work should be selected independently rather than treated as unfinished acceptance criteria.
-
-## Slice 9 — Personal Expenses
-
-**Status: complete in PR #45, with the current model finalized through PRs #47 and #48.**
-
-PR #45 established manual expense/income records, detailed categories mapped to Essentials/Fun/Future You, monthly summary, editable transaction history, authenticated snapshot persistence, navigation, and the original weekly-reconciliation concept.
-
-PR #47 refined the financial model:
-
-- actual Essentials/Fun/Future You percentages describe shares of total monthly outflows;
-- absolute euro targets remain the fixed 50/30/20 percentages of recorded income;
-- the in-app target editor was removed;
-- Remaining became Net cash flow;
-- a rolling Fun Fund was added, with unused 30% income allowance rolling forward and the balance never carrying negative debt.
-
-PR #48 then aligned the workflow with real use:
-
-- Quick Add remains compact behind `+` rather than permanently occupying the page;
-- the weekly bank-check workflow was removed entirely;
-- the intended habit is to record from the bank notification when practical, with occasional missed entries accepted;
-- Weekly check was replaced with **Insights**;
-- Insights supports This month, 3 months, 6 months, This year, All time, and custom month ranges;
-- Insights can filter by category, show category-mix or description-level breakdowns, render a donut summary, and show monthly trends;
-- the first Fun Fund month uses the whole starting calendar month, so its first balance matches that month's Fun target minus all Fun spending.
-
-The current boundary remains deliberately lightweight:
-
-- EUR and online-only expense entry;
-- no bank credentials, Open Banking, automatic statement matching, autonomous categorisation, or CSV import;
-- no requirement for accounting-grade completeness;
-- legacy reconciliation snapshot state remains readable for compatibility but is not exposed in the UI;
-- expense data continues to use the normal authenticated snapshot/export/backup boundary and does not trigger Google Calendar reconciliation.
-
-Expenses may remain relatively independent even during the integration phase. Its data can still be useful to the Personal Advisor for spending questions and broader context without creating artificial links to every other space. For example, a recipe's expected cost and an actual supermarket transaction are different facts and should not be coupled without a concrete workflow.
-
-See [`expenses.md`](expenses.md) for the detailed current behaviour.
-
-## Slice 10 — Encrypted Password Keychain
-
-**Status: implementation complete in PRs #55, #56, and #58.**
-
-PR #43 closed the design/evaluation issue and documented the accepted boundary in [`password-keychain.md`](password-keychain.md).
-
-The implemented boundary includes:
-
-- separate Keychain master password plus a separately stored recovery key;
-- random per-user vault key wrapped client-side with an Argon2id-derived key;
-- independently authenticated-encrypted records with labels, usernames, URLs, notes, and secrets hidden from the server;
-- dedicated user-scoped tables and endpoints, excluded from Inbox, Notes, Review, Calendar, normal import/export, logs, and service-worker caching;
-- masked values, deliberate reveal/copy, automatic re-hiding, memory-only unlock state, and fixed inactivity/background locking;
-- ciphertext-only dedicated export/restore and backup behaviour;
-- atomic vault-key rotation and recovery flows;
-- explicit no-store/CSP/framing/referrer/permissions protections and same-origin mutation guards;
-- wrong-key, tamper, rotation, restore, cross-user, and cross-origin tests plus a PostgreSQL restore rehearsal.
-
-The implementation documents its residual boundary: a compromised browser/device or malicious application code delivered at unlock can still capture decrypted data. PR #58 completes the implementation-side hardening gate; an independent professional security review remains an optional external assurance step rather than something the implementation author can self-certify.
-
-## Slice 11 — Food v1: Recipe Book
+### Slice 11 — Food v1
 
 **Status: complete in PR #60.**
 
-See [`food.md`](food.md).
+Food shipped as a lightweight Recipe Book with recipes, ingredients, steps, notes, photos, tags, ratings, make-again state, and Copy ingredients. Meal planning, nutrition, freezer inventory, and other routine features remain deferred until real use justifies them.
 
-Food v1 deliberately shipped as a recipe book rather than a nutrition tracker or meal-planning system. It includes:
+### Slice 12 — Library: Books, Movies, and Series
 
-- user-scoped recipes with required name, multiline ingredients, cooking steps, and cooking notes;
-- exact **Copy ingredients** support for Notes/shopping-list reuse;
-- optional source URL, private recipe photo, servings, prep/cook time, tags, 0–10 half-step rating, and make-again signal;
-- search and tag filtering;
-- authenticated persistence, user isolation, import/export compatibility, and normal backup/restore coverage;
-- Food as an available/pinnable navigation destination.
+**Status: complete in PR #64.**
 
-Nutrition, weekly meal planning, Prep Sunday, prepared-food inventory, pantry/grocery tracking, recipe scraping, AI meal generation, and routine features remain intentionally deferred until real usage shows which of them are actually valuable.
+Library is now one umbrella space with first-level **Books | Movies | Series** shelves rather than a separate top-level Media destination.
 
-The next step for Food is **use**, not immediate expansion. Real meal-prep use should tell us whether prepared portions, freezer inventory, weekly meal expectations, or other integrations deserve promotion.
+Movies support independent status/wishlist browsing, rating, thoughts, one optional Watched on date, and private posters.
 
-## Slice 12 — Media Library for Films and Series
+Series support independent status/wishlist browsing, rating, thoughts, optional start/finish dates, private posters, and lightweight current season/episode resume position. Series opens on Watching by default.
 
-**Status: selected next; product boundary defined, implementation not started.**
+Historical completeness is not required. New Media data can accumulate naturally instead of becoming a backfilling task.
 
 See [`media-library.md`](media-library.md).
 
-The first version is a lightweight personal Media space, not a general entertainment catalogue. Films and series share one top-level space and capture the preference signals that are most useful both directly and for later recommendations:
+## Current selection — Personal Context Layer
 
-- Film or Series type;
-- Wishlist, Watching, Completed, or Dropped state;
-- optional 0–10 half-step rating;
-- optional thoughts/takeaways;
-- optional poster and start/finish dates;
-- lightweight season/episode position for series.
+**Status: selected next architectural work; not yet implemented.**
 
-The slice should reuse proven Book Library patterns where sensible and remain fully usable without external metadata services. Exhaustive cast, genre, provider, episode, catalogue, streaming-service, and recommendation data is intentionally deferred.
+The next step is not another standalone space. Existing domains should expose small, reusable, bounded representations of the information another feature may need.
 
-Media is currently the last clearly selected standalone domain. After it ships, product work should default to integration and synthesis unless a new module solves an observed recurring problem.
+Conceptually, this may look like domain-specific providers such as:
 
-## Current selection — shift from modules to integration
+```text
+getProjectContext(...)
+getTaskContext(...)
+getReviewContext(...)
+getLibraryContext(...)
+getFoodContext(...)
+getThoughtContext(...)
+getExpenseContext(...)
+```
 
-The current product direction is:
+and a composition boundary such as:
 
-1. **Slice 12 — Media Library for Films and Series** — selected next implementation slice;
-2. **Integration foundation** — make existing domains expose useful, bounded context and common date/time signals without forcing direct relationships between every space;
-3. **Personal Advisor v1** — use that shared context as the first major cross-space integration point for questions, summaries, recommendations, and prioritisation;
-4. **Weekly Rhythm / connected planning** — design a richer planning layer using the dated and recurring information already present across Tasks, Projects, Calendar, Reviews, Food, and future routine data;
-5. **Targeted cross-space workflows** — only add direct links when a real workflow benefits from them.
+```text
+buildPersonalContext({ domains, purpose, limits })
+```
 
-This is a deliberate change in product mindset. Personal Control Center already has enough useful domains that another sequence of isolated modules would increasingly resemble a collection of unrelated mini-apps. The next value comes from helping the existing data work together.
+The exact API can differ. The architectural rule is more important: integrations should consume deliberate domain context rather than arbitrary database access.
 
-### Integration principle: shared context before hard coupling
+### Context-layer requirements
 
-Do not create database relationships merely because two spaces could theoretically be connected. Prefer a reusable context layer and explicit workflows.
+The Personal Context Layer should:
 
-Examples:
+- use normal deterministic application state as the source of truth;
+- be scoped to the authenticated user;
+- expose only explicitly selected domains;
+- prefer relevant current/open state, dates, ratings, reflections, and bounded recent history;
+- preserve record identity where useful for grounding;
+- distinguish missing information from negative evidence;
+- tolerate sparse history rather than requiring exhaustive backfilling;
+- have predictable size limits;
+- be usable by non-AI features;
+- never depend on Keychain data.
 
-- Food can contribute saved recipes, ratings, make-again signals, cooking notes, and later meal expectations without directly owning expense transactions.
-- Expenses can answer spending questions through the Advisor without needing links from every purchase to another domain.
-- Books and Media can share recommendation context without becoming one catalogue.
-- Projects, Tasks, Calendar dates, and Weekly Review history can contribute to a common view of current workload without changing their canonical ownership.
-- Thoughts may later be surfaced as context or suggested for conversion into a Task, Project, or Note, but AI should not silently mutate them.
+A generic model-facing database query tool is explicitly not the target architecture.
 
-### Integration foundation
+### Context Inspector
 
-Before or alongside Personal Advisor v1, establish small reusable domain-level context representations rather than giving integrations generic database access.
+A small development-only **Context Inspector** is a useful companion to the layer.
 
-Conceptually, each eligible domain should be able to expose a compact, user-scoped representation of the information another feature may need. The exact API does not need to use these names, but the shape should resemble domain-specific providers such as project context, task context, review context, food context, media context, library context, and expense context.
+It may show:
 
-The foundation should support:
+- selected domain;
+- the exact context representation;
+- applied record/recency limits;
+- approximate size/token count;
+- which records were included or excluded.
 
-- explicit user/domain scope;
-- bounded recent/current data rather than indiscriminate full-database dumps;
-- common date/time semantics where useful;
-- compact summaries plus selected details when a workflow needs them;
-- deterministic application queries as the source of truth;
-- reuse by Advisor, Weekly Rhythm, Home summaries, future search, or other integrations;
-- no dependency on Keychain data.
+This makes privacy and context selection inspectable before any LLM is introduced.
 
-A generic “LLM can query the database” tool is explicitly not the target architecture.
-
-## Integration phase — Personal Advisor v1
-
-**Status: architecture and privacy boundary defined; promoted to the first major integration feature after Media/context groundwork.**
+## AI direction — experiment, not committed product slice
 
 See [`personal-advisor.md`](personal-advisor.md).
 
-The Personal Advisor is a read-only, opt-in LLM layer over selected Personal Control Center domains. It is intended to demonstrate the value of combining the existing spaces rather than making AI the source of truth for the system.
+The earlier roadmap promoted a read-only Personal Advisor directly after Media. That is no longer the current commitment.
 
-Useful first-version questions include:
+The stronger reason to explore AI is twofold:
 
-- what should I focus on this week?
-- what active projects or commitments appear neglected?
-- recommend a film, series, book, or recipe using what I actually liked or dropped;
-- what should I cook this weekend from recipes I already saved?
-- what has changed or stood out over the last week or month?
-- what patterns keep appearing in Weekly Reviews or Thoughts?
-- what have I been spending most on recently?
-- if I have a free block of time, what existing plans, saved media, books, or tasks make sense?
+1. test whether coherent PCC context enables genuinely better conversations or interactions than ordinary deterministic views;
+2. use PCC as a practical environment for learning how API authentication, billing, model selection, reasoning effort, token usage, memory, tools, safety, and provider choice work in a real personalised system.
 
-The first version should:
+### Experimental LLM sandbox
 
-- support free-form questions plus a few useful shortcuts such as recommendations, recap, or project focus;
-- allow AI access by explicit user-scoped data domain;
-- build compact structured context through the shared context layer;
-- use ratings, completion/drop state, reflections, recency, active state, dates, and recent history as high-value signals;
-- send only relevant enabled context to a hosted model;
-- explain the personal evidence behind recommendations when practical;
-- avoid recommending books/media already recorded unless requested;
-- remain suggestion-only with no silent mutations;
-- keep provider credentials server-side and apply request-size, timeout, rate-limit, and cost controls;
-- avoid storing raw generated context in logs.
+After the Personal Context Layer exists, an internal LLM sandbox may be added.
 
-**Keychain is permanently excluded from AI.** The Advisor context builder must not depend on Keychain tables, APIs, ciphertext, metadata, or decrypted client state. This must be enforced structurally rather than by telling the model not to access secrets.
+A useful experiment would expose:
 
-Embeddings, vector search, long-term Advisor memory, autonomous agents, and generic database tools are explicitly not required for v1. Direct structured queries plus bounded recent context should be tried first. If real data volume later makes retrieval necessary, PostgreSQL plus `pgvector` is the likely incremental path.
+- free-form and multi-turn conversation;
+- selected context domains;
+- model and reasoning/effort configuration;
+- input/output token usage;
+- approximate request cost;
+- latency and errors;
+- the exact context sent to the provider.
 
-## Integration phase — Weekly Rhythm and connected planning
+Calls should initially happen only when explicitly requested by the user. There is no reason to pay for periodic background inference just to make PCC appear intelligent.
 
-**Status: direction selected for later exploration; requires product design before implementation.**
+### What is worth testing
 
-Weekly Rhythm should evolve from the earlier loose Home/Library/Café idea into a connected model of **the expected shape of a week**. It remains intentionally different from a generic habit or streak tracker and should not become an hour-by-hour scheduling system.
+The experiment should not be reduced to recommendation buttons.
+
+Potentially meaningful uses include:
+
+- discussing a book after finishing it;
+- returning months later to compare a new reading experience with an older book and previous reflection;
+- discussing a Weekly Review conclusion from another perspective;
+- talking through a work/study/life decision while relevant Projects and recent reflections are available;
+- asking a broad question without first manually reconstructing the relevant PCC context.
+
+The model may bring broader public/general knowledge into the conversation while PCC contributes private structured context.
+
+This is closer to the long-term idea of a conversational personal counterpart than a recommendation engine, but it must prove value through real use.
+
+### Memory is a separate design problem
+
+Do not implement long-term personalisation by replaying an unbounded transcript.
+
+If memory is explored, separate:
+
+- **canonical PCC state** — queried fresh from Projects, Tasks, Library, Reviews, Food, etc.;
+- **short-term conversation state** — recent turns sent verbatim for follow-ups;
+- **stable personal memory** — a compact PCC-owned store of durable preferences or conclusions;
+- **episodic conversation memory** — summaries/retrieval of older relevant discussions.
+
+A useful request should eventually be closer to:
+
+```text
+recent conversation
++ relevant older conversation summaries
++ compact stable memory
++ fresh relevant PCC context
+```
+
+rather than months of raw transcript.
+
+Persistent memory, if implemented, needs explicit retention, editing, deletion, export, backup, and privacy rules.
+
+### Model independence
+
+Durable PCC context and memory should be owned by PCC rather than one model generation. A later model should be able to consume the same personal history even if the provider or model changes.
+
+### Promotion gate
+
+Do not promote the sandbox into a polished Advisor merely because the API works.
+
+A permanent AI product should show repeated value beyond:
+
+- what Home/Review/Library can already show deterministically;
+- what a normal ChatGPT conversation can provide with manually supplied context;
+- occasional one-off recommendations.
+
+Good evidence would include repeated use where stored PCC history materially improves the conversation, meaningful continuity from memory, cross-domain reasoning that is inconvenient to assemble manually, or confirmed-action workflows that remove real friction.
+
+If those signals do not appear, the experiment can remain internal, be removed, or evolve into a PCC-to-external-assistant connector.
+
+### Read/write boundary
+
+Initial experiments remain read-only with respect to canonical PCC data.
+
+Future model-assisted writes may be useful, for example:
+
+- rescheduling a Task/project action from natural language;
+- saving a generated shopping list as a Note;
+- adding a proposed item to a wishlist.
+
+If explored, the model should propose a specific structured mutation, PCC should show it, and the user must explicitly confirm it through the normal deterministic mutation path.
+
+Do not give an LLM unrestricted database-write access or allow ordinary conversation to silently create Thoughts, Notes, Tasks, or other records.
+
+### Proactivity
+
+A future Jarvis-like direction may include proactive observations, but deterministic software should detect simple facts first.
+
+For example, PCC can identify overdue actions, repeated reschedules, unfinished Reviews, or projects with no open actions without spending model tokens. AI should be invoked only if interpretation adds value.
+
+Proactivity must prove that it is helpful rather than noisy before becoming recurring behavior.
+
+### External-assistant option
+
+PCC may eventually expose the same carefully scoped context/tools to an external conversational product such as ChatGPT through an appropriate connector/tool protocol.
+
+That route may be preferable if ChatGPT remains a better conversational environment while PCC remains the canonical personal-data source.
+
+The architecture should therefore avoid tying the Personal Context Layer specifically to one PCC chat page.
+
+## Integration principle — shared context before hard coupling
+
+Do not create database relationships merely because two spaces could theoretically be connected.
+
+Examples:
+
+- Food can expose saved recipes, ratings, make-again state, and cooking notes without directly owning supermarket transactions.
+- Expenses can expose bounded spending context without linking every purchase to another domain.
+- Library can expose ratings, reflections, Wishlist/current state, and sparse history without becoming an AI recommendation engine itself.
+- Projects, Tasks, dates, and Weekly Review can contribute to a common workload view without changing canonical ownership.
+- Thoughts can be context without silently becoming obligations.
+
+Shared context should make later integrations possible without forcing them.
+
+## Later exploration — Weekly Rhythm and connected planning
+
+**Status: concept retained; requires product design before implementation.**
+
+Weekly Rhythm may eventually describe the expected shape of a week without becoming a generic habit tracker or hour-by-hour calendar.
 
 Potential inputs include:
 
-- Google Calendar events and future Events/Appointments if that domain is added;
 - dated Tasks and project actions;
-- Weekly Review context and recent workload;
-- recurring work/study commitments;
-- training or other routine days;
-- preferred working locations or day types such as Home, Library, Café, Flexible, or Meal prep;
-- expected at-home versus out-of-home meals and later Food planning context;
+- Calendar events;
+- recent Weekly Review context;
+- recurring work/study/training commitments;
+- preferred working locations/day types;
+- later Food/meal-prep expectations;
 - exceptions for unusually busy, free, travel, or recovery days.
 
-Potential value includes:
-
-- seeing which days are already structurally busy before adding more work;
-- varying expected workload by day rather than pretending every day has equal capacity;
-- planning recurring out-of-home work or training without creating repetitive Tasks;
-- connecting meal-prep or expected meals to the Food domain without turning Food itself into a calendar;
-- distinguishing intended weekly structure from one-off Tasks and appointments;
-- giving the Personal Advisor better context about intended versus actual weekly patterns.
-
-Recurrence, exceptions, completion semantics, Calendar ownership, review integration, meal planning, and the boundary between Weekly Rhythm, Routines/Habits, and Events/Appointments still need brainstorming. Do not implement this as a generic routine tracker merely to fill those gaps.
+Its value must come from reducing planning friction rather than duplicating Calendar or Tasks.
 
 ## Targeted cross-space integrations
 
-After the shared context layer exists, direct cross-space behaviour should be added only when it removes real friction. Plausible examples include:
+Direct cross-space behavior should be added only when a real workflow benefits from it.
 
-- Food → expected meal or meal-prep block → Weekly Rhythm;
-- Media → current watching / “watch tonight” context → Advisor;
-- Library → current reading / Up next → Advisor;
-- Project actions and Tasks → Home, Calendar, Advisor, and Weekly Rhythm;
-- Weekly Review → Advisor recaps and pattern detection;
-- Thoughts → Advisor context and explicit user-approved conversion suggestions;
-- Expenses → Advisor financial summaries while otherwise remaining largely standalone.
+Possible later examples:
 
-These are examples rather than commitments. Shared context does not require every domain to be directly connected to every other domain.
+- Food → planned meal/prep context → Weekly Rhythm;
+- Library → current reading/watching context → conversation or planning;
+- Tasks/project actions → Home, Calendar, Weekly Rhythm, or confirmed natural-language control;
+- Weekly Review → context for later reflection or pattern discussions;
+- Thoughts → context or explicit user-approved conversion suggestions;
+- Expenses → bounded financial context while otherwise remaining largely standalone.
+
+These are examples, not commitments.
 
 ## Other future candidates and follow-ups
 
 ### Today/Home horizon
 
-A focused near-term view reached through a Home button rather than listed as a normal All Spaces module.
-
-Candidate behaviour:
-
-- Today, Tomorrow, and two-days-ahead filters;
-- dated open Tasks and dated open project actions;
-- later, relevant calendar/rhythm context if that improves the view;
-- no invented dates merely to make uncertain work appear;
-- undated projects/actions/tasks remain valid and continue to surface through their normal spaces and Weekly Review.
-
-This may become more naturally useful as part of the integration phase rather than as another standalone destination.
+A focused near-term view for genuinely dated work may still be useful, likely from Home rather than All Spaces. It should not pressure uncertain work to acquire invented dates.
 
 ### Food follow-ups
 
-After the Recipe Book has been used with real recipes, reassess:
-
-- prepared batches/portions with made date, remaining portions, fridge/freezer location, and optional use-by date;
-- a lightweight weekly meal expectation/plan that may contain a recipe, prepared portion, eating out, or nothing;
-- a prep-oriented view derived from an established meal plan;
-- integration with Weekly Rhythm when meal-at-home versus meal-out context proves useful;
-- optional nutrition metadata only if it becomes understandable and useful in practice.
-
-Do not promote raw pantry inventory, a grocery database, or theoretical recipe-to-expense accounting without observed maintenance value.
+Use the Recipe Book first. Revisit prepared portions/freezer inventory, weekly meal expectations, Prep Sunday, nutrition, or grocery workflows only after real meal-prep usage shows which information is worth maintaining.
 
 ### Routines/Habits
 
-Recurring responsibilities and practices should be considered as inputs to Weekly Rhythm rather than automatically becoming their own space. Recurrence, completion, pause, exception, and review rules must be concrete enough to avoid building a generic streak tracker.
+Consider recurring responsibilities as possible Weekly Rhythm inputs before automatically creating another standalone space. Avoid generic streak mechanics without a real planning need.
 
 ### Events/Appointments
 
-Time-specific commitments with start/end time, location, attendance, and preparation context. This may become the strongest reason to revisit inbound Calendar synchronisation and a useful Weekly Rhythm input.
+A future time-specific commitment model could justify start/end times, locations, preparation context, and perhaps a clearer reason to revisit inbound Calendar synchronization.
 
 ### Trips
 
-Ideas, dates, budgets, options, decision deadlines, and supported monitoring. Prefer integration with existing dates, Expenses, Tasks, or Advisor context over immediately creating a large travel-management module.
+Prefer integration with existing dates, Tasks, Expenses, and context before building a large travel-management module.
 
 ### Fitness
 
-Imported activity and trend summaries without turning the app into a manual workout logger. Recurring training days may be useful Weekly Rhythm inputs before a dedicated Fitness space is justified.
+Prefer imported activity/trend summaries over a manual workout logger. Recurring training structure may be useful before a dedicated space is justified.
 
 ### Library follow-ups
 
-Photo-assisted identification is tracked in issue #33. Metadata lookup, progress, and highlights should wait for a specific observed need. Cross-domain book/media recommendations belong to the Personal Advisor rather than being implemented as isolated Library intelligence.
+Photo-assisted book identification remains tracked in issue #33. Metadata lookup, richer progress, highlights, streaming availability, and automatic catalog imports should wait for observed need.
 
-### Notification observation
+### Notifications
 
-Issue #21 remains open for real installed-PWA behaviour when foregrounded, backgrounded, fully closed, battery-optimised, or restarted. This is an observation/validation item, not the selected next product work.
+Issue #21 remains an operational observation for installed-PWA Weekly Review notifications rather than major product work.
 
 ### Optional two-way Calendar
 
-Issue #26 remains deliberately unselected until supported record types, inbound fields, conflict rules, delivery mechanism, and failure behaviour are explicit. Weekly Rhythm or a future Events/Appointments model may provide a clearer reason to revisit it.
-
-### Advanced art-direction themes
-
-A later theme may add restrained texture, painterly borders, or decorative layers—for example a Clair Obscur: Expedition 33-inspired brush treatment—without changing layout, control meaning, or semantic states.
+Issue #26 remains unselected until record ownership, inbound fields, conflicts, and failure behavior are explicit.
 
 ## Product rules that continue to constrain future work
 
 - Phone usability comes before desktop decoration.
-- Personal Control Center remains useful without integrations, notifications, or AI.
+- PCC remains useful without integrations, notifications, or AI.
 - External services do not silently become canonical.
 - Offline claims remain narrower than the actual supported workflow.
-- New modules should enter through All Spaces and shared navigation configuration.
-- After Media, prefer integrating existing domains over adding new spaces unless observed use clearly justifies another module.
-- Shared context should come before hard coupling; do not invent cross-domain relationships without a useful workflow.
-- Domain-specific context providers are preferred over generic database access for integrations and AI.
-- Themes may add personality but not engagement pressure or ambiguous semantic states.
-- Features should be selected from observed friction or value, not simply because they are common in planning apps.
-- AI is advisory and opt-in by data domain; deterministic application state remains canonical.
-- Keychain secrets are never part of AI context.
+- New modules should solve observed recurring needs.
+- Shared context should come before hard coupling.
+- Domain-specific context providers are preferred over generic database access.
+- Missing/sparse personal history must not be treated as negative evidence.
+- AI is exploratory and advisory until proven otherwise.
+- No polished Advisor is currently committed.
+- Model calls should not be spent on facts deterministic code can compute.
+- Any future model-assisted mutation must be explicit and user-confirmed.
+- Keychain secrets are never part of AI/context paths.
+- Features should be selected from observed friction or value, not because they are common in planning apps.
+
+The current selected next step is therefore simple: **make PCC's existing information coherently accessible before deciding what intelligence, if any, should sit on top of it.**

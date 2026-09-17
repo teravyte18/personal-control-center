@@ -134,6 +134,23 @@ function eventToForm(event: AgendaEvent): EventFormState {
   };
 }
 
+async function fetchAgenda() {
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 90);
+  const query = new URLSearchParams({
+    timeMin: start.toISOString(),
+    timeMax: end.toISOString(),
+  });
+  const response = await fetch(`/api/integrations/google-calendar/events?${query.toString()}`, { cache: "no-store" });
+  const body = await response.json() as AgendaResponse | { error?: string };
+  if (!response.ok || !("events" in body)) {
+    throw new Error(errorMessage(body, "Agenda could not be loaded."));
+  }
+  return body;
+}
+
 export default function AgendaPage() {
   const [agenda, setAgenda] = useState<AgendaResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -144,25 +161,15 @@ export default function AgendaPage() {
   const [form, setForm] = useState<EventFormState>(() => initialFormState());
 
   const loadAgenda = useCallback(async () => {
-    const start = new Date();
-    start.setHours(0, 0, 0, 0);
-    const end = new Date(start);
-    end.setDate(end.getDate() + 90);
-    const query = new URLSearchParams({
-      timeMin: start.toISOString(),
-      timeMax: end.toISOString(),
-    });
-    const response = await fetch(`/api/integrations/google-calendar/events?${query.toString()}`, { cache: "no-store" });
-    const body = await response.json() as AgendaResponse | { error?: string };
-    if (!response.ok || !("events" in body)) {
-      throw new Error(errorMessage(body, "Agenda could not be loaded."));
-    }
-    setAgenda(body);
+    setAgenda(await fetchAgenda());
   }, []);
 
   useEffect(() => {
     let cancelled = false;
-    void loadAgenda()
+    void fetchAgenda()
+      .then((body) => {
+        if (!cancelled) setAgenda(body);
+      })
       .catch((loadError) => {
         if (!cancelled) setError(loadError instanceof Error ? loadError.message : "Agenda could not be loaded.");
       })
@@ -172,7 +179,7 @@ export default function AgendaPage() {
     return () => {
       cancelled = true;
     };
-  }, [loadAgenda]);
+  }, []);
 
   const groups = useMemo(() => {
     const grouped = new Map<string, AgendaEvent[]>();

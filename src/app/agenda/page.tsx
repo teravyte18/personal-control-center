@@ -144,7 +144,6 @@ export default function AgendaPage() {
   const [form, setForm] = useState<EventFormState>(() => initialFormState());
 
   const loadAgenda = useCallback(async () => {
-    setError("");
     const start = new Date();
     start.setHours(0, 0, 0, 0);
     const end = new Date(start);
@@ -214,7 +213,7 @@ export default function AgendaPage() {
     try {
       const start = form.allDay ? form.date : new Date(`${form.date}T${form.startTime}`).toISOString();
       const end = form.allDay ? nextDate(form.date) : new Date(`${form.date}T${form.endTime}`).toISOString();
-      if (!form.allDay && new Date(end) <= new Date(start)) {
+      if (!form.allDay && new Date(end).getTime() <= new Date(start).getTime()) {
         throw new Error("End time must be after the start time.");
       }
       const draft = {
@@ -262,6 +261,15 @@ export default function AgendaPage() {
     }
   }
 
+  async function refreshAgenda() {
+    setError("");
+    try {
+      await loadAgenda();
+    } catch (refreshError) {
+      setError(refreshError instanceof Error ? refreshError.message : "Agenda could not be refreshed.");
+    }
+  }
+
   return (
     <section className="mx-auto max-w-4xl">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -276,7 +284,7 @@ export default function AgendaPage() {
             type="button"
             className="min-h-11 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-60"
             disabled={loading || working}
-            onClick={() => void loadAgenda().catch((refreshError) => setError(refreshError instanceof Error ? refreshError.message : "Agenda could not be refreshed."))}
+            onClick={() => void refreshAgenda()}
           >
             Refresh
           </button>

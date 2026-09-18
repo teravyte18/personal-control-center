@@ -12,6 +12,7 @@ export type IconName =
   | "library"
   | "food"
   | "expenses"
+  | "markets"
   | "keychain"
   | "trips"
   | "fitness"
@@ -134,6 +135,15 @@ export const destinations: Destination[] = [
     href: "/expenses",
     icon: "expenses",
     description: "Capture spending, review monthly allocations, and explore longer-term insights.",
+    available: true,
+    pinnable: true,
+  },
+  {
+    id: "markets",
+    label: "Markets",
+    href: "/markets",
+    icon: "markets",
+    description: "Keep a lightweight stock and ETF watchlist with current price and daily movement.",
     available: true,
     pinnable: true,
   },

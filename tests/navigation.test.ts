@@ -24,6 +24,14 @@ test("Expenses can be pinned without changing the default quick access", () => {
   assert.deepEqual(normalizeMobilePinnedDestinationIds(null), [...defaultPinnedDestinationIds]);
 });
 
+test("Markets can be pinned without changing the default quick access", () => {
+  assert.deepEqual(
+    normalizeMobilePinnedDestinationIds(["markets", "inbox", "projects", "review"]),
+    ["markets", "inbox", "projects", "review"],
+  );
+  assert.deepEqual(normalizeMobilePinnedDestinationIds(null), [...defaultPinnedDestinationIds]);
+});
+
 test("Keychain can be pinned without changing the default quick access", () => {
   assert.deepEqual(
     normalizeMobilePinnedDestinationIds(["keychain", "inbox", "projects", "review"]),

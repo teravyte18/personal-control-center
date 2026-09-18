@@ -20,8 +20,12 @@ import { loadPersonalDataState } from "@/server/personal-data-store";
 const GOOGLE_AUTHORIZATION_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
 const GOOGLE_CALENDAR_API = "https://www.googleapis.com/calendar/v3";
-const GOOGLE_CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.app.created";
+const GOOGLE_CALENDAR_SCOPES = [
+  "https://www.googleapis.com/auth/calendar.app.created",
+  "https://www.googleapis.com/auth/calendar.readonly",
+];
 const DEFAULT_CALENDAR_NAME = "Personal Control Center";
+const AGENDA_EVENT_MARKER = "pccAgendaEvent";
 
 type GoogleCalendarConnectionRow = {
   user_id: string;
@@ -56,8 +60,48 @@ type GoogleCalendarResource = {
   summary?: string;
 };
 
+type GoogleCalendarListEntry = {
+  id?: string;
+  summary?: string;
+  primary?: boolean;
+  selected?: boolean;
+};
+
+type GoogleCalendarListResponse = {
+  items?: GoogleCalendarListEntry[];
+  nextPageToken?: string;
+};
+
+type GoogleEventDate = {
+  date?: string;
+  dateTime?: string;
+  timeZone?: string;
+};
+
 type GoogleEventResource = {
   id?: string;
+  summary?: string;
+  description?: string;
+  location?: string;
+  htmlLink?: string;
+  hangoutLink?: string;
+  status?: string;
+  start?: GoogleEventDate;
+  end?: GoogleEventDate;
+  extendedProperties?: {
+    private?: Record<string, string>;
+  };
+  conferenceData?: {
+    entryPoints?: Array<{
+      entryPointType?: string;
+      uri?: string;
+    }>;
+  };
+};
+
+type GoogleEventsResponse = {
+  items?: GoogleEventResource[];
+  nextPageToken?: string;
 };
 
 export type GoogleCalendarStatus = {
@@ -70,6 +114,41 @@ export type GoogleCalendarStatus = {
   lastError: string;
   projectedEventCount: number;
   syncedEventCount: number;
+};
+
+export type AgendaEventSource = "google" | "agenda" | "task" | "project-action" | "pcc";
+
+export type AgendaEvent = {
+  id: string;
+  calendarId: string;
+  calendarName: string;
+  title: string;
+  description: string;
+  location: string;
+  htmlLink: string;
+  meetLink: string;
+  start: string;
+  end: string;
+  allDay: boolean;
+  editable: boolean;
+  source: AgendaEventSource;
+};
+
+export type AgendaEventDraft = {
+  title: string;
+  description?: string;
+  location?: string;
+  start: string;
+  end: string;
+  allDay: boolean;
+};
+
+export type AgendaEventsResult = {
+  configured: boolean;
+  connected: boolean;
+  needsReconnect: boolean;
+  calendarName: string;
+  events: AgendaEvent[];
 };
 
 const globalForGoogleCalendar = globalThis as typeof globalThis & {
@@ -129,7 +208,7 @@ export function createGoogleAuthorizationUrl(state: string, loginHint?: string) 
   url.searchParams.set("client_id", requiredEnvironment("PCC_GOOGLE_CLIENT_ID"));
   url.searchParams.set("redirect_uri", googleCalendarRedirectUri());
   url.searchParams.set("response_type", "code");
-  url.searchParams.set("scope", GOOGLE_CALENDAR_SCOPE);
+  url.searchParams.set("scope", GOOGLE_CALENDAR_SCOPES.join(" "));
   url.searchParams.set("access_type", "offline");
   url.searchParams.set("include_granted_scopes", "true");
   url.searchParams.set("prompt", "consent");
@@ -238,7 +317,7 @@ async function createCalendar(accessToken: string) {
     method: "POST",
     body: JSON.stringify({
       summary: DEFAULT_CALENDAR_NAME,
-      description: "All-day dates projected from Personal Control Center.",
+      description: "Tasks, project actions, and Agenda events from Personal Control Center.",
     }),
   });
   if (!calendar?.id) throw new Error("Google Calendar was created without an identifier.");
@@ -476,6 +555,266 @@ export async function getGoogleCalendarStatus(userId: string): Promise<GoogleCal
     projectedEventCount: buildGoogleCalendarProjections(state.snapshot).length,
     syncedEventCount: mappings.length,
   };
+}
+
+function agendaMeetLink(event: GoogleEventResource) {
+  if (event.hangoutLink) return event.hangoutLink;
+  return event.conferenceData?.entryPoints?.find((entry) => entry.entryPointType === "video")?.uri ?? "";
+}
+
+function agendaSource(event: GoogleEventResource, calendarId: string, pccCalendarId: string): AgendaEventSource {
+  if (calendarId !== pccCalendarId) return "google";
+  const privateProperties = event.extendedProperties?.private;
+  if (privateProperties?.[AGENDA_EVENT_MARKER] === "true") return "agenda";
+  if (privateProperties?.pccSourceType === "task") return "task";
+  if (privateProperties?.pccSourceType === "project-action") return "project-action";
+  return "pcc";
+}
+
+function normalizeAgendaEvent(
+  event: GoogleEventResource,
+  calendarId: string,
+  calendarName: string,
+  pccCalendarId: string,
+): AgendaEvent | null {
+  if (!event.id || event.status === "cancelled") return null;
+  const allDay = Boolean(event.start?.date);
+  const start = event.start?.date ?? event.start?.dateTime ?? "";
+  const end = event.end?.date ?? event.end?.dateTime ?? "";
+  if (!start || !end) return null;
+  const source = agendaSource(event, calendarId, pccCalendarId);
+  return {
+    id: event.id,
+    calendarId,
+    calendarName,
+    title: event.summary?.trim() || "Untitled event",
+    description: event.description ?? "",
+    location: event.location ?? "",
+    htmlLink: event.htmlLink ?? "",
+    meetLink: agendaMeetLink(event),
+    start,
+    end,
+    allDay,
+    editable: source === "agenda",
+    source,
+  };
+}
+
+async function listGoogleCalendars(accessToken: string) {
+  const calendars: GoogleCalendarListEntry[] = [];
+  let pageToken = "";
+  do {
+    const query = new URLSearchParams({
+      minAccessRole: "reader",
+      showHidden: "false",
+      maxResults: "250",
+    });
+    if (pageToken) query.set("pageToken", pageToken);
+    const response = await googleRequest<GoogleCalendarListResponse>(
+      accessToken,
+      `/users/me/calendarList?${query.toString()}`,
+    );
+    calendars.push(...(response.items ?? []).filter((calendar) => calendar.id));
+    pageToken = response.nextPageToken ?? "";
+  } while (pageToken);
+  return calendars;
+}
+
+async function listGoogleEvents(
+  accessToken: string,
+  calendarId: string,
+  calendarName: string,
+  pccCalendarId: string,
+  timeMin: string,
+  timeMax: string,
+) {
+  const events: AgendaEvent[] = [];
+  let pageToken = "";
+  do {
+    const query = new URLSearchParams({
+      singleEvents: "true",
+      orderBy: "startTime",
+      showDeleted: "false",
+      timeMin,
+      timeMax,
+      maxResults: "2500",
+    });
+    if (pageToken) query.set("pageToken", pageToken);
+    const response = await googleRequest<GoogleEventsResponse>(
+      accessToken,
+      `/calendars/${encodeURIComponent(calendarId)}/events?${query.toString()}`,
+    );
+    for (const event of response.items ?? []) {
+      const normalized = normalizeAgendaEvent(event, calendarId, calendarName, pccCalendarId);
+      if (normalized) events.push(normalized);
+    }
+    pageToken = response.nextPageToken ?? "";
+  } while (pageToken);
+  return events;
+}
+
+function validRangeValue(value: string) {
+  return Number.isFinite(new Date(value).getTime());
+}
+
+export async function getAgendaEvents(userId: string, timeMin: string, timeMax: string): Promise<AgendaEventsResult> {
+  const configured = isGoogleCalendarConfigured();
+  const connection = await loadConnection(userId);
+  if (!connection) {
+    return {
+      configured,
+      connected: false,
+      needsReconnect: false,
+      calendarName: DEFAULT_CALENDAR_NAME,
+      events: [],
+    };
+  }
+  if (!validRangeValue(timeMin) || !validRangeValue(timeMax) || new Date(timeMax) <= new Date(timeMin)) {
+    throw new Error("Agenda date range is invalid.");
+  }
+
+  const accessToken = await refreshAccessToken(decryptRefreshToken(connection.encrypted_refresh_token));
+  try {
+    const calendars = await listGoogleCalendars(accessToken);
+    if (!calendars.some((calendar) => calendar.id === connection.calendar_id)) {
+      calendars.push({ id: connection.calendar_id, summary: DEFAULT_CALENDAR_NAME, selected: true });
+    }
+
+    const events: AgendaEvent[] = [];
+    for (const calendar of calendars) {
+      if (!calendar.id) continue;
+      try {
+        events.push(...await listGoogleEvents(
+          accessToken,
+          calendar.id,
+          calendar.summary?.trim() || (calendar.primary ? "Primary calendar" : "Google Calendar"),
+          connection.calendar_id,
+          timeMin,
+          timeMax,
+        ));
+      } catch (error) {
+        if (error instanceof GoogleApiError && [403, 404].includes(error.status) && calendar.id !== connection.calendar_id) continue;
+        throw error;
+      }
+    }
+
+    events.sort((left, right) => {
+      const byStart = left.start.localeCompare(right.start);
+      if (byStart) return byStart;
+      const byAllDay = Number(right.allDay) - Number(left.allDay);
+      return byAllDay || left.title.localeCompare(right.title);
+    });
+
+    return {
+      configured,
+      connected: true,
+      needsReconnect: false,
+      calendarName: DEFAULT_CALENDAR_NAME,
+      events,
+    };
+  } catch (error) {
+    if (error instanceof GoogleApiError && error.status === 403) {
+      return {
+        configured,
+        connected: true,
+        needsReconnect: true,
+        calendarName: DEFAULT_CALENDAR_NAME,
+        events: [],
+      };
+    }
+    throw error;
+  }
+}
+
+function validatedAgendaDraft(input: AgendaEventDraft) {
+  const title = input.title?.trim();
+  if (!title) throw new Error("Event title is required.");
+  if (title.length > 300) throw new Error("Event title is too long.");
+
+  if (input.allDay) {
+    const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+    if (!datePattern.test(input.start) || !datePattern.test(input.end) || input.end <= input.start) {
+      throw new Error("All-day event dates are invalid.");
+    }
+  } else {
+    const start = new Date(input.start);
+    const end = new Date(input.end);
+    if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || end <= start) {
+      throw new Error("Event start and end times are invalid.");
+    }
+  }
+
+  return {
+    title,
+    description: input.description?.trim() ?? "",
+    location: input.location?.trim() ?? "",
+    start: input.start,
+    end: input.end,
+    allDay: Boolean(input.allDay),
+  };
+}
+
+function buildAgendaEventBody(input: AgendaEventDraft) {
+  const draft = validatedAgendaDraft(input);
+  return {
+    summary: draft.title,
+    ...(draft.description ? { description: draft.description } : {}),
+    ...(draft.location ? { location: draft.location } : {}),
+    start: draft.allDay ? { date: draft.start } : { dateTime: draft.start },
+    end: draft.allDay ? { date: draft.end } : { dateTime: draft.end },
+    extendedProperties: {
+      private: {
+        [AGENDA_EVENT_MARKER]: "true",
+      },
+    },
+  };
+}
+
+async function agendaConnection(userId: string) {
+  const connection = await loadConnection(userId);
+  if (!connection) throw new Error("Google Calendar is not connected.");
+  const accessToken = await refreshAccessToken(decryptRefreshToken(connection.encrypted_refresh_token));
+  return { connection, accessToken };
+}
+
+async function assertEditableAgendaEvent(accessToken: string, calendarId: string, eventId: string) {
+  const event = await googleRequest<GoogleEventResource>(
+    accessToken,
+    `/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`,
+  );
+  if (event.extendedProperties?.private?.[AGENDA_EVENT_MARKER] !== "true") {
+    throw new Error("Only standalone events created in Agenda can be changed here.");
+  }
+  return event;
+}
+
+export async function createAgendaEvent(userId: string, input: AgendaEventDraft) {
+  const { connection, accessToken } = await agendaConnection(userId);
+  const event = await googleRequest<GoogleEventResource>(
+    accessToken,
+    `/calendars/${encodeURIComponent(connection.calendar_id)}/events?sendUpdates=none`,
+    { method: "POST", body: JSON.stringify(buildAgendaEventBody(input)) },
+  );
+  if (!event.id) throw new Error("Google Calendar event was created without an identifier.");
+  return event.id;
+}
+
+export async function updateAgendaEvent(userId: string, eventId: string, input: AgendaEventDraft) {
+  if (!eventId.trim()) throw new Error("Event identifier is required.");
+  const { connection, accessToken } = await agendaConnection(userId);
+  await assertEditableAgendaEvent(accessToken, connection.calendar_id, eventId);
+  await googleRequest<GoogleEventResource>(
+    accessToken,
+    `/calendars/${encodeURIComponent(connection.calendar_id)}/events/${encodeURIComponent(eventId)}?sendUpdates=none`,
+    { method: "PATCH", body: JSON.stringify(buildAgendaEventBody(input)) },
+  );
+}
+
+export async function deleteAgendaEvent(userId: string, eventId: string) {
+  if (!eventId.trim()) throw new Error("Event identifier is required.");
+  const { connection, accessToken } = await agendaConnection(userId);
+  await assertEditableAgendaEvent(accessToken, connection.calendar_id, eventId);
+  await deleteEvent(accessToken, connection.calendar_id, eventId);
 }
 
 export async function disconnectGoogleCalendar(userId: string) {

@@ -134,7 +134,7 @@ export function GoogleCalendarSettings() {
         <div className="max-w-xl">
           <p className="text-sm font-semibold">Google Calendar</p>
           <p className="mt-2 text-sm leading-6 text-slate-500">
-            Dated Tasks and current project actions appear as all-day entries in a separate Personal Control Center calendar. Changes flow from this app to Google only.
+            Dated Tasks and project actions are projected into a separate Personal Control Center calendar. Agenda can also read your visible Google calendars and create standalone events in the Personal Control Center calendar.
           </p>
         </div>
         {status?.connected ? (
@@ -196,6 +196,12 @@ export function GoogleCalendarSettings() {
             >
               {working ? "Working…" : "Sync now"}
             </button>
+            <a
+              className="rounded-2xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50"
+              href="/api/integrations/google-calendar/connect"
+            >
+              Reconnect permissions
+            </a>
             <button
               className="rounded-2xl border border-red-200 px-4 py-2.5 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-60"
               type="button"

@@ -3,6 +3,7 @@ export type IconName =
   | "inbox"
   | "projects"
   | "tasks"
+  | "agenda"
   | "thoughts"
   | "notes"
   | "review"
@@ -52,6 +53,15 @@ export const destinations: Destination[] = [
     href: "/tasks",
     icon: "tasks",
     description: "Complete one-off actions that do not need a project timeline.",
+    available: true,
+    pinnable: true,
+  },
+  {
+    id: "agenda",
+    label: "Agenda",
+    href: "/agenda",
+    icon: "agenda",
+    description: "See Google Calendar events alongside dated Personal Control Center work and create standalone events.",
     available: true,
     pinnable: true,
   },

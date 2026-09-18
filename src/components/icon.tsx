@@ -26,6 +26,8 @@ export function Icon({ name, className = "h-5 w-5" }: IconProps) {
       return <svg {...common}><rect x="3" y="4" width="8" height="7" rx="2" /><rect x="13" y="4" width="8" height="7" rx="2" /><rect x="3" y="13" width="8" height="7" rx="2" /><path d="M13 16.5h8M17 13v7" /></svg>;
     case "tasks":
       return <svg {...common}><rect x="4" y="3" width="16" height="18" rx="2" /><path d="m8 8 1.5 1.5L12 7M14 9h3M8 14l1.5 1.5L12 13M14 15h3" /></svg>;
+    case "agenda":
+      return <svg {...common}><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M7 3v4M17 3v4M3 10h18M7 14h3M14 14h3M7 18h3" /></svg>;
     case "thoughts":
       return <svg {...common}><path d="M9 18h6M10 22h4" /><path d="M8.2 15.5A7 7 0 1 1 15.8 15.5C14.7 16.3 14 17.1 14 18h-4c0-.9-.7-1.7-1.8-2.5Z" /></svg>;
     case "notes":

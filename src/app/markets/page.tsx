@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import type { MarketQuote } from "@/domain/markets";
 
 type QuoteResult = {
@@ -14,6 +14,13 @@ type MarketsResponse = {
   fetchedAt?: string;
   error?: string;
 };
+
+async function requestMarkets(force = false): Promise<MarketsResponse> {
+  const response = await fetch(`/api/markets${force ? "?refresh=1" : ""}`, { cache: "no-store" });
+  const body = await response.json() as MarketsResponse;
+  if (!response.ok) throw new Error(body.error || "Markets could not be loaded.");
+  return body;
+}
 
 function formatNumber(value: number, digits: number) {
   return new Intl.NumberFormat(undefined, {
@@ -66,26 +73,45 @@ export default function MarketsPage() {
   const [removing, setRemoving] = useState<string | null>(null);
   const [error, setError] = useState("");
 
-  const load = useCallback(async (force = false) => {
-    if (force) setRefreshing(true);
-    try {
-      const response = await fetch(`/api/markets${force ? "?refresh=1" : ""}`, { cache: "no-store" });
-      const body = await response.json() as MarketsResponse;
-      if (!response.ok) throw new Error(body.error || "Markets could not be loaded.");
-      setQuotes(Array.isArray(body.quotes) ? body.quotes : []);
-      setFetchedAt(typeof body.fetchedAt === "string" ? body.fetchedAt : "");
-      setError("");
-    } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "Markets could not be loaded.");
-    } finally {
-      setLoaded(true);
-      setRefreshing(false);
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadInitial() {
+      try {
+        const body = await requestMarkets();
+        if (!cancelled) {
+          setQuotes(Array.isArray(body.quotes) ? body.quotes : []);
+          setFetchedAt(typeof body.fetchedAt === "string" ? body.fetchedAt : "");
+          setError("");
+        }
+      } catch (loadError) {
+        if (!cancelled) {
+          setError(loadError instanceof Error ? loadError.message : "Markets could not be loaded.");
+        }
+      } finally {
+        if (!cancelled) setLoaded(true);
+      }
     }
+
+    void loadInitial();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  async function refreshQuotes() {
+    setRefreshing(true);
+    setError("");
+    try {
+      const body = await requestMarkets(true);
+      setQuotes(Array.isArray(body.quotes) ? body.quotes : []);
+      setFetchedAt(typeof body.fetchedAt === "string" ? body.fetchedAt : "");
+    } catch (refreshError) {
+      setError(refreshError instanceof Error ? refreshError.message : "Markets could not be refreshed.");
+    } finally {
+      setRefreshing(false);
+    }
+  }
 
   const lastUpdated = useMemo(() => {
     if (!fetchedAt) return "";
@@ -155,7 +181,7 @@ export default function MarketsPage() {
         </div>
         <button
           type="button"
-          onClick={() => void load(true)}
+          onClick={() => void refreshQuotes()}
           disabled={!loaded || refreshing}
           className="min-h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-600 shadow-sm disabled:cursor-not-allowed disabled:opacity-40"
         >

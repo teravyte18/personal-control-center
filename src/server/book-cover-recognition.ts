@@ -4,6 +4,7 @@ import { spawn } from "node:child_process";
 import sharp from "sharp";
 import {
   chooseBookRecognition,
+  rankBookCandidates,
   recognitionSearchQueries,
   type BookRecognitionCandidate,
 } from "@/domain/book-recognition";
@@ -85,7 +86,13 @@ type OpenLibraryDocument = {
   author_name?: unknown;
 };
 
-async function searchOpenLibrary(query: string): Promise<BookRecognitionCandidate[]> {
+type SearchResult = {
+  query: string;
+  candidates: BookRecognitionCandidate[];
+  error?: string;
+};
+
+async function searchOpenLibrary(query: string): Promise<SearchResult> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), SEARCH_TIMEOUT_MS);
 
@@ -102,18 +109,25 @@ async function searchOpenLibrary(query: string): Promise<BookRecognitionCandidat
         "User-Agent": "Personal-Control-Center/1.0",
       },
     });
-    if (!response.ok) return [];
+    if (!response.ok) {
+      return { query, candidates: [], error: `Open Library returned HTTP ${response.status}.` };
+    }
 
     const body = await response.json() as { docs?: OpenLibraryDocument[] };
-    return (body.docs ?? []).flatMap((document) => {
+    const candidates = (body.docs ?? []).flatMap((document) => {
       const title = typeof document.title === "string" ? document.title.trim() : "";
       const author = Array.isArray(document.author_name)
         ? document.author_name.filter((value): value is string => typeof value === "string").slice(0, 2).join(" & ")
         : "";
       return title ? [{ title, author }] : [];
     });
-  } catch {
-    return [];
+    return { query, candidates };
+  } catch (error) {
+    return {
+      query,
+      candidates: [],
+      error: error instanceof Error ? error.message : "Open Library request failed.",
+    };
   } finally {
     clearTimeout(timeout);
   }
@@ -139,8 +153,9 @@ export async function recognizeBookCover(bytes: Uint8Array) {
     throw new BookRecognitionError("Not enough readable title text was found on this cover.");
   }
 
-  const candidateGroups = await Promise.all(queries.map((query) => searchOpenLibrary(query)));
-  const candidates = candidateGroups.flat();
+  const searchResults = await Promise.all(queries.map((query) => searchOpenLibrary(query)));
+  const candidates = searchResults.flatMap((result) => result.candidates);
+  const ranked = rankBookCandidates(ocrText, candidates);
   const suggestion = chooseBookRecognition(ocrText, candidates);
 
   return {
@@ -151,5 +166,15 @@ export async function recognizeBookCover(bytes: Uint8Array) {
           confidence: Math.round(suggestion.score * 100) / 100,
         }
       : null,
+    diagnostics: {
+      ocrText: ocrText.slice(0, 2000),
+      queries,
+      candidates: ranked.slice(0, 5).map((candidate) => ({
+        title: candidate.title,
+        author: candidate.author,
+        score: Math.round(candidate.score * 100) / 100,
+      })),
+      searchErrors: searchResults.flatMap((result) => result.error ? [`${result.query}: ${result.error}`] : []),
+    },
   };
 }

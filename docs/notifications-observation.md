@@ -60,6 +60,10 @@ Redeploy after changing the environment.
 
 Each browser/device opts in independently.
 
+### Brave desktop
+
+Brave may reject `PushManager.subscribe()` with `Registration failed - push service error` when **Use Google Services for Push Messaging** is disabled. Enable that option under **Settings → Privacy and security**, restart Brave, and retry the subscription. PCC surfaces a targeted hint for this browser error rather than the raw DOM exception.
+
 ## Security boundary
 
 - Push subscriptions are scoped to authenticated PCC users.

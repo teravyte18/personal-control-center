@@ -93,44 +93,52 @@ type SearchResult = {
 };
 
 async function searchOpenLibrary(query: string): Promise<SearchResult> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), SEARCH_TIMEOUT_MS);
+  let lastError = "Open Library request failed.";
 
-  try {
-    const params = new URLSearchParams({
-      q: query,
-      fields: "title,author_name",
-      limit: "8",
-    });
-    const response = await fetch(`https://openlibrary.org/search.json?${params}`, {
-      signal: controller.signal,
-      headers: {
-        Accept: "application/json",
-        "User-Agent": "Personal-Control-Center/1.0",
-      },
-    });
-    if (!response.ok) {
-      return { query, candidates: [], error: `Open Library returned HTTP ${response.status}.` };
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), SEARCH_TIMEOUT_MS);
+
+    try {
+      const params = new URLSearchParams({
+        q: query,
+        fields: "title,author_name",
+        limit: "8",
+      });
+      const response = await fetch(`https://openlibrary.org/search.json?${params}`, {
+        signal: controller.signal,
+        headers: {
+          Accept: "application/json",
+          "User-Agent": "Personal-Control-Center/1.0",
+        },
+      });
+      if (!response.ok) {
+        lastError = `Open Library returned HTTP ${response.status}.`;
+        if (response.status < 500 && response.status !== 429) {
+          return { query, candidates: [], error: lastError };
+        }
+        continue;
+      }
+
+      const body = await response.json() as { docs?: OpenLibraryDocument[] };
+      const candidates = (body.docs ?? []).flatMap((document) => {
+        const title = typeof document.title === "string" ? document.title.trim() : "";
+        const author = Array.isArray(document.author_name)
+          ? document.author_name.filter((value): value is string => typeof value === "string").slice(0, 2).join(" & ")
+          : "";
+        return title ? [{ title, author }] : [];
+      });
+      return { query, candidates };
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : "Open Library request failed.";
+    } finally {
+      clearTimeout(timeout);
     }
 
-    const body = await response.json() as { docs?: OpenLibraryDocument[] };
-    const candidates = (body.docs ?? []).flatMap((document) => {
-      const title = typeof document.title === "string" ? document.title.trim() : "";
-      const author = Array.isArray(document.author_name)
-        ? document.author_name.filter((value): value is string => typeof value === "string").slice(0, 2).join(" & ")
-        : "";
-      return title ? [{ title, author }] : [];
-    });
-    return { query, candidates };
-  } catch (error) {
-    return {
-      query,
-      candidates: [],
-      error: error instanceof Error ? error.message : "Open Library request failed.",
-    };
-  } finally {
-    clearTimeout(timeout);
+    if (attempt === 0) await new Promise((resolve) => setTimeout(resolve, 250));
   }
+
+  return { query, candidates: [], error: lastError };
 }
 
 export async function recognizeBookCover(bytes: Uint8Array) {
@@ -153,7 +161,18 @@ export async function recognizeBookCover(bytes: Uint8Array) {
     throw new BookRecognitionError("Not enough readable title text was found on this cover.");
   }
 
-  const searchResults = await Promise.all(queries.map((query) => searchOpenLibrary(query)));
+  const searchResults: SearchResult[] = [];
+  for (const query of queries) {
+    const result = await searchOpenLibrary(query);
+    searchResults.push(result);
+
+    const rankedSoFar = rankBookCandidates(
+      ocrText,
+      searchResults.flatMap((candidateResult) => candidateResult.candidates),
+    );
+    const leader = rankedSoFar[0];
+    if (leader && leader.titleCoverage >= 0.95 && leader.score >= 0.72) break;
+  }
   const candidates = searchResults.flatMap((result) => result.candidates);
   const ranked = rankBookCandidates(ocrText, candidates);
   const suggestion = chooseBookRecognition(ocrText, candidates);

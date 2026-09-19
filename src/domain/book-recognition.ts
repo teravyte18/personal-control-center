@@ -83,24 +83,29 @@ export function chooseBookRecognition(
 }
 
 export function recognitionSearchQueries(ocrText: string) {
-  const lines = ocrText
+  const cleanedLines = ocrText
     .split(/\r?\n/)
-    .map((line) => line.replace(/\s+/g, " ").trim())
-    .filter((line) => line.length >= 3 && line.length <= 100)
-    .filter((line) => /[A-Za-z]/.test(line))
+    .map((line) => tokens(line).join(" "))
+    .filter((line) => line.length >= 3)
     .slice(0, 10);
 
   const queries: string[] = [];
   const add = (value: string) => {
-    const normalized = value.replace(/\s+/g, " ").trim();
+    const normalized = tokens(value).join(" ");
     if (normalized.length < 3 || queries.includes(normalized)) return;
     queries.push(normalized);
   };
 
-  for (const line of lines.slice(0, 4)) add(line);
-  for (let index = 0; index < Math.min(lines.length - 1, 3); index += 1) {
-    add(`${lines[index]} ${lines[index + 1]}`);
+  // Start with the strongest combined clues from the whole cover.
+  add(tokens(ocrText).slice(0, 8).join(" "));
+
+  // Adjacent OCR lines often reconstruct a stylised multi-line title.
+  for (let index = 0; index < cleanedLines.length - 1; index += 1) {
+    add(`${cleanedLines[index]} ${cleanedLines[index + 1]}`);
   }
+
+  // Individual cleaned lines remain useful fallbacks for simple covers.
+  for (const line of cleanedLines) add(line);
 
   return queries.slice(0, 5);
 }

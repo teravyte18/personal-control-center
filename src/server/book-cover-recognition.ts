@@ -44,9 +44,9 @@ async function prepareForOcr(bytes: Uint8Array): Promise<OcrVariant[]> {
     ]);
 
     return [
+      { label: "contrast-sparse", bytes: highContrast, psm: 11 },
       { label: "normalized-sparse", bytes: normalized, psm: 11 },
       { label: "normalized-block", bytes: normalized, psm: 6 },
-      { label: "contrast-sparse", bytes: highContrast, psm: 11 },
     ];
   } catch {
     throw new BookRecognitionError("The cover image could not be read.");

@@ -50,8 +50,8 @@ self.addEventListener("fetch", (event) => {
 });
 
 self.addEventListener("push", (event) => {
-  event.waitUntil(self.registration.showNotification("Weekly Review is still open", {
-    body: "If you skipped Saturday, this is your daily catch-up reminder.",
+  event.waitUntil(self.registration.showNotification("Weekly Review is due", {
+    body: "This week’s review has not been submitted yet.",
     icon: "/api/pwa-icon/192",
     badge: "/api/pwa-icon/192",
     tag: "pcc-weekly-review",

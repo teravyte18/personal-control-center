@@ -53,8 +53,11 @@ test("cover OCR lines generate a bounded set of useful metadata queries", () => 
     "THE COURAGE TO BE DISLIKED\nICHIRO KISHIMI\nFUMITAKE KOGA\nA Japanese phenomenon",
   );
 
-  assert.ok(queries.includes("THE COURAGE TO BE DISLIKED"));
-  assert.ok(queries.some((query) => query.includes("ICHIRO KISHIMI")));
+  assert.ok(queries[0]?.includes("courage"));
+  assert.ok(queries[0]?.includes("disliked"));
+  assert.ok(queries[0]?.includes("ichiro"));
+  assert.ok(queries.includes("courage be disliked"));
+  assert.ok(queries.some((query) => query.includes("ichiro kishimi")));
   assert.ok(queries.length <= 5);
 });
 

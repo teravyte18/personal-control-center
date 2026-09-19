@@ -195,10 +195,24 @@ export const destinations: Destination[] = [
 ];
 
 export const mobilePinnedDestinationLimit = 4;
+export const desktopPinnedDestinationLimit = 7;
 export const defaultPinnedDestinationIds = ["inbox", "projects", "tasks", "review"] as const;
+export const defaultDesktopPinnedDestinationIds = [
+  "inbox",
+  "projects",
+  "tasks",
+  "agenda",
+  "review",
+  "library",
+  "expenses",
+] as const;
 export const primaryDestinations = destinations.filter((destination) => destination.available && destination.pinnable);
 
-export function normalizeMobilePinnedDestinationIds(value: unknown) {
+function normalizePinnedDestinationIds(
+  value: unknown,
+  limit: number,
+  defaults: readonly string[],
+) {
   const validIds = new Set(primaryDestinations.map((destination) => destination.id));
   const normalized: string[] = [];
 
@@ -206,17 +220,25 @@ export function normalizeMobilePinnedDestinationIds(value: unknown) {
     for (const candidate of value) {
       if (typeof candidate !== "string" || !validIds.has(candidate) || normalized.includes(candidate)) continue;
       normalized.push(candidate);
-      if (normalized.length === mobilePinnedDestinationLimit) return normalized;
+      if (normalized.length === limit) return normalized;
     }
   }
 
-  for (const candidate of [...defaultPinnedDestinationIds, ...primaryDestinations.map((destination) => destination.id)]) {
+  for (const candidate of [...defaults, ...primaryDestinations.map((destination) => destination.id)]) {
     if (!validIds.has(candidate) || normalized.includes(candidate)) continue;
     normalized.push(candidate);
-    if (normalized.length === mobilePinnedDestinationLimit) break;
+    if (normalized.length === limit) break;
   }
 
   return normalized;
+}
+
+export function normalizeMobilePinnedDestinationIds(value: unknown) {
+  return normalizePinnedDestinationIds(value, mobilePinnedDestinationLimit, defaultPinnedDestinationIds);
+}
+
+export function normalizeDesktopPinnedDestinationIds(value: unknown) {
+  return normalizePinnedDestinationIds(value, desktopPinnedDestinationLimit, defaultDesktopPinnedDestinationIds);
 }
 
 export function resolveDestinations(ids: readonly string[]) {
@@ -227,6 +249,7 @@ export function resolveDestinations(ids: readonly string[]) {
 }
 
 export const defaultPinnedDestinations = resolveDestinations(defaultPinnedDestinationIds);
+export const defaultDesktopPinnedDestinations = resolveDestinations(defaultDesktopPinnedDestinationIds);
 
 export function isDestinationActive(pathname: string, href: string) {
   return href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);

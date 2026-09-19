@@ -157,6 +157,8 @@ jobs:
           grep -Eqi '^content-type:.*javascript' pwa-static-worker.headers
           grep -Eq 'pcc-offline-capture-v[0-9]+' pwa-static-worker.js
           grep -q '/offline-capture.html' pwa-static-worker.js
+          grep -q 'addEventListener("push"' pwa-static-worker.js
+          grep -q 'pcc-weekly-review' pwa-static-worker.js
 
           curl --fail --silent --show-error --dump-header pwa-static-script.headers --output pwa-static-script.js http://127.0.0.1:3000/offline-capture.js
           grep -Eqi '^content-type:.*javascript' pwa-static-script.headers

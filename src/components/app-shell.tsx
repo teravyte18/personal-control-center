@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { DataStatusBanner } from "@/components/data-status-banner";
 import { Icon } from "@/components/icon";
-import { ReviewReminderController } from "@/components/review-reminder";
+import { ReviewPeriodController } from "@/components/review-reminder";
 import { ThemeCaptureIcon } from "@/components/theme-capture-icon";
 import { isDestinationActive, type Destination } from "@/lib/navigation";
 import { useDesktopQuickAccess, useMobileQuickAccess } from "@/lib/navigation-preferences";
@@ -43,7 +43,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div className="md:pl-24">
         <main className="mx-auto min-h-screen max-w-6xl px-4 pb-[calc(env(safe-area-inset-bottom)+7.5rem)] pt-[calc(env(safe-area-inset-top)+1.5rem)] sm:px-6 md:px-8 md:pb-10 md:pt-8">
           <DataStatusBanner />
-          <ReviewReminderController />
+          <ReviewPeriodController />
           {children}
         </main>
       </div>

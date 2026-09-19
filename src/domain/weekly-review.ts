@@ -41,24 +41,6 @@ export function isDateInReviewPeriod(date: string, period: ReviewPeriod) {
   return /^\d{4}-\d{2}-\d{2}$/.test(date) && date >= period.start && date <= period.end;
 }
 
-export function isReviewReminderDue(
-  reference: Date,
-  draft: ReviewDraft,
-  history: ReviewEntry[],
-) {
-  const period = getCurrentReviewPeriod(reference);
-  if (!isReviewDraftForPeriod(draft, period) || isReviewCompletedForPeriod(history, period)) return false;
-
-  const day = reference.getDay();
-  if (day === 6) return false;
-  if (reference.getHours() < 8) return false;
-  return true;
-}
-
-export function reviewReminderDateKey(reference: Date, period = getCurrentReviewPeriod(reference)) {
-  return `${period.start}:${formatLocalDate(reference)}`;
-}
-
 export function formatReviewPeriod(period: ReviewPeriod, locale?: string) {
   const start = new Date(`${period.start}T12:00:00`);
   const end = new Date(`${period.end}T12:00:00`);

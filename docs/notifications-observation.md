@@ -2,7 +2,7 @@
 
 Weekly Review keeps Saturday as the intended review day.
 
-If the current review has not been submitted, PCC can send one reminder per subscribed device each local morning from Saturday through Friday after 08:00. The same neutral due state is used in-app whenever PCC is opened.
+If the current review has not been submitted, PCC can send one reminder per subscribed device each local morning from Saturday through Friday after 08:00.
 
 ## Why Web Push is required
 
@@ -28,7 +28,6 @@ The push message carries no personal payload. It is only a wake-up signal; the s
 - After completion: no further reminders for that period.
 - A scheduler retry cannot send another successful reminder on the same local date.
 - Removed/expired Push endpoints are deleted when the Push service reports them gone.
-- In-app reminders remain the fallback when Web Push is unavailable or disabled.
 
 ## Production setup
 

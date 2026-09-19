@@ -113,6 +113,47 @@ test("authentication, same-user sharing, cross-user isolation, and review photos
   assert.equal(ownerSession.response.status, 200);
   assert.equal(ownerSession.body.user.email, ownerEmail);
 
+  const unauthenticatedPushConfig = await request("/api/notifications/review-push");
+  assert.equal(unauthenticatedPushConfig.response.status, 401);
+
+  const pushConfig = await request("/api/notifications/review-push", {
+    headers: { Cookie: ownerCookie },
+  });
+  assert.equal(pushConfig.response.status, 200);
+  assert.equal(pushConfig.body.configured, false);
+
+  const ownerPushSubscription = {
+    endpoint: "https://push.example.test/subscriptions/owner",
+    expirationTime: null,
+    keys: { p256dh: "AQ", auth: "Ag" },
+    timezone: "Europe/Lisbon",
+  };
+  const savedPush = await request("/api/notifications/review-push", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: ownerCookie },
+    body: JSON.stringify(ownerPushSubscription),
+  });
+  assert.equal(savedPush.response.status, 201);
+
+  const isolatedPushCollision = await request("/api/notifications/review-push", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(ownerPushSubscription),
+  }, secondUserEmail);
+  assert.equal(isolatedPushCollision.response.status, 400);
+
+  const unauthorisedPushRun = await request("/api/internal/review-push", {
+    method: "POST",
+  });
+  assert.equal(unauthorisedPushRun.response.status, 401);
+
+  const removedPush = await request("/api/notifications/review-push", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json", Cookie: ownerCookie },
+    body: JSON.stringify({ endpoint: ownerPushSubscription.endpoint }),
+  });
+  assert.equal(removedPush.response.status, 204);
+
   const imported = await request("/api/personal-data/import", {
     method: "POST",
     headers: { "Content-Type": "application/json", Cookie: ownerCookie },

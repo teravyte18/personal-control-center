@@ -95,11 +95,11 @@ export default function CapturePage() {
   }
 
   return (
-    <section className="mx-auto w-full max-w-5xl lg:flex lg:min-h-[72vh] lg:items-center">
-      <div className="grid w-full gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(20rem,0.8fr)]">
-        <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+    <section className="mx-auto w-full min-w-0 max-w-5xl overflow-x-hidden lg:flex lg:min-h-[72vh] lg:items-center">
+      <div className="grid w-full min-w-0 grid-cols-1 gap-4 sm:gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(20rem,0.8fr)]">
+        <div className="min-w-0 rounded-[1.6rem] border border-slate-200 bg-white p-4 shadow-sm sm:rounded-[2rem] sm:p-7">
           <div className="flex items-start justify-between gap-4">
-            <h1 className="text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">{greeting}</h1>
+            <h1 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-4xl">{greeting}</h1>
             {!online ? (
               <span className="mt-1 shrink-0 rounded-full bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800">
                 Offline
@@ -107,11 +107,11 @@ export default function CapturePage() {
             ) : null}
           </div>
 
-          <form onSubmit={submitCapture} className="mt-5">
+          <form onSubmit={submitCapture} className="mt-4 sm:mt-5">
             <textarea
               value={capture}
               onChange={(event) => setCapture(event.target.value)}
-              className="input min-h-36 resize-none text-base leading-7"
+              className="input min-h-28 resize-none text-base leading-7 sm:min-h-36"
               placeholder="A task, project, question, observation…"
               aria-label="Capture a thought"
               required
@@ -119,7 +119,7 @@ export default function CapturePage() {
             <button
               type="submit"
               disabled={submitting}
-              className="mt-3 min-h-12 w-full rounded-2xl bg-slate-950 px-5 font-semibold text-white active:scale-[0.99] disabled:cursor-wait disabled:opacity-60"
+              className="mt-3 min-h-11 w-full rounded-2xl bg-slate-950 px-5 font-semibold text-white active:scale-[0.99] disabled:cursor-wait disabled:opacity-60 sm:min-h-12"
             >
               {submitting ? "Saving…" : online ? "Save to inbox" : "Save on this device"}
             </button>
@@ -158,7 +158,7 @@ export default function CapturePage() {
 
           <Link
             href="/inbox"
-            className="mt-5 flex min-h-14 items-center justify-between rounded-2xl bg-slate-50 px-4 transition active:scale-[0.99]"
+            className="mt-4 flex min-h-12 items-center justify-between rounded-2xl bg-slate-50 px-4 transition active:scale-[0.99] sm:mt-5 sm:min-h-14"
           >
             <span className="text-sm font-semibold text-slate-800">Inbox</span>
             <span className="flex h-9 min-w-9 items-center justify-center rounded-full bg-white px-3 text-sm font-semibold text-slate-700 shadow-sm">
@@ -179,7 +179,7 @@ function TodayPanel({ entries }: { entries: HomeTodayEntry[] }) {
   const visible = entries.slice(0, 5);
 
   return (
-    <aside className="self-start rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-6 lg:self-stretch">
+    <aside className="min-w-0 max-w-full self-start overflow-hidden rounded-[1.6rem] border border-slate-200 bg-white p-4 shadow-sm sm:rounded-[2rem] sm:p-6 lg:self-stretch">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Near term</p>
@@ -216,19 +216,21 @@ function TodayRow({ entry }: { entry: HomeTodayEntry }) {
   const href = entry.kind === "task" ? "/tasks" : "/projects";
 
   return (
-    <Link href={href} className="group flex gap-3 py-3 first:pt-0 last:pb-0">
+    <Link href={href} className="group flex min-w-0 max-w-full gap-3 overflow-hidden py-3 first:pt-0 last:pb-0">
       <span
         className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${overdue ? "bg-rose-600" : "bg-amber-500"}`}
         aria-hidden="true"
       />
-      <span className="min-w-0 flex-1">
+      <span className="min-w-0 flex-1 overflow-hidden">
         <span className="block truncate text-sm font-semibold text-slate-900 group-hover:underline">{entry.title}</span>
-        <span className="mt-1 block truncate text-xs text-slate-500">
-          {entry.kind === "task" ? "Task" : entry.context}
+        <span className="mt-1 flex min-w-0 items-center gap-2 text-xs">
+          <span className="min-w-0 truncate text-slate-500">
+            {entry.kind === "task" ? "Task" : entry.context}
+          </span>
+          <span className={`shrink-0 font-semibold ${overdue ? "text-rose-700" : "text-amber-700"}`}>
+            {overdue ? `Past ${formatDate(entry.date)}` : "Today"}
+          </span>
         </span>
-      </span>
-      <span className={`shrink-0 pt-0.5 text-xs font-semibold ${overdue ? "text-rose-700" : "text-amber-700"}`}>
-        {overdue ? `Past ${formatDate(entry.date)}` : "Today"}
       </span>
     </Link>
   );

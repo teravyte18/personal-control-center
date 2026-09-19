@@ -59,7 +59,7 @@ export function getReviewPushContext(reference: Date, timeZone: string): ReviewP
     weekday,
     periodStart: addDays(openingDate, -7),
     periodEnd: addDays(openingDate, -1),
-    reminderDue: weekday !== 6 && localHour >= 8,
+    reminderDue: localHour >= 8,
   };
 }
 

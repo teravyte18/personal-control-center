@@ -349,6 +349,12 @@ function BookEditor({
   const [saving, setSaving] = useState(false);
   const [recognizing, setRecognizing] = useState(false);
   const [recognitionNotice, setRecognitionNotice] = useState<{ tone: "success" | "error"; text: string } | null>(null);
+  const [recognitionDiagnostics, setRecognitionDiagnostics] = useState<{
+    ocrText: string;
+    queries: string[];
+    candidates: { title: string; author: string; score: number }[];
+    searchErrors: string[];
+  } | null>(null);
   const [error, setError] = useState("");
   const previewUrl = useMemo(() => coverFile ? URL.createObjectURL(coverFile) : "", [coverFile]);
 
@@ -418,6 +424,7 @@ function BookEditor({
 
     setRecognizing(true);
     setRecognitionNotice(null);
+    setRecognitionDiagnostics(null);
     try {
       let response: Response;
       if (coverFile) {
@@ -437,9 +444,24 @@ function BookEditor({
 
       const body = await response.json() as {
         suggestion?: { title?: string; author?: string; confidence?: number } | null;
+        diagnostics?: {
+          ocrText?: string;
+          queries?: string[];
+          candidates?: { title: string; author: string; score: number }[];
+          searchErrors?: string[];
+        };
         error?: string;
       };
       if (!response.ok) throw new Error(body.error || "The cover could not be recognized.");
+
+      if (body.diagnostics) {
+        setRecognitionDiagnostics({
+          ocrText: body.diagnostics.ocrText ?? "",
+          queries: body.diagnostics.queries ?? [],
+          candidates: body.diagnostics.candidates ?? [],
+          searchErrors: body.diagnostics.searchErrors ?? [],
+        });
+      }
 
       if (!body.suggestion?.title) {
         setRecognitionNotice({
@@ -495,6 +517,7 @@ function BookEditor({
                   setCoverFile(event.target.files?.[0] ?? null);
                   setRemoveExistingCover(false);
                   setRecognitionNotice(null);
+                  setRecognitionDiagnostics(null);
                 }}
               />
             </label>
@@ -513,12 +536,44 @@ function BookEditor({
                     {recognitionNotice.text}
                   </p>
                 ) : null}
+                {recognitionDiagnostics ? (
+                  <details className="mt-2 rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                    <summary className="cursor-pointer font-semibold text-slate-700">Recognition details</summary>
+                    <div className="mt-2 space-y-2">
+                      <div>
+                        <p className="font-semibold">OCR text</p>
+                        <pre className="mt-1 max-h-36 overflow-auto whitespace-pre-wrap break-words font-sans text-[0.7rem] leading-5">{recognitionDiagnostics.ocrText || "(none)"}</pre>
+                      </div>
+                      <div>
+                        <p className="font-semibold">Best matches</p>
+                        {recognitionDiagnostics.candidates.length ? (
+                          <ul className="mt-1 space-y-1">
+                            {recognitionDiagnostics.candidates.map((candidate) => (
+                              <li key={`${candidate.title}:${candidate.author}`}>
+                                {candidate.title}{candidate.author ? ` — ${candidate.author}` : ""} · {Math.round(candidate.score * 100)}%
+                              </li>
+                            ))}
+                          </ul>
+                        ) : <p className="mt-1">(none)</p>}
+                      </div>
+                      {recognitionDiagnostics.searchErrors.length ? (
+                        <div>
+                          <p className="font-semibold text-rose-700">Metadata lookup errors</p>
+                          <ul className="mt-1 space-y-1 text-rose-600">
+                            {recognitionDiagnostics.searchErrors.map((message) => <li key={message}>{message}</li>)}
+                          </ul>
+                        </div>
+                      ) : null}
+                    </div>
+                  </details>
+                ) : null}
                 <button
                   type="button"
                   onClick={() => {
                     setCoverFile(null);
                     setRemoveExistingCover(true);
                     setRecognitionNotice(null);
+                    setRecognitionDiagnostics(null);
                   }}
                   className="mt-2 min-h-10 w-full rounded-xl px-4 text-sm font-semibold text-rose-600"
                 >

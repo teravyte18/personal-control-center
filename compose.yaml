@@ -47,6 +47,10 @@ services:
       PCC_GOOGLE_CLIENT_SECRET: ${PCC_GOOGLE_CLIENT_SECRET:-}
       PCC_GOOGLE_REDIRECT_URI: ${PCC_GOOGLE_REDIRECT_URI:-}
       PCC_GOOGLE_TOKEN_ENCRYPTION_KEY: ${PCC_GOOGLE_TOKEN_ENCRYPTION_KEY:-}
+      PCC_WEB_PUSH_PUBLIC_KEY: ${PCC_WEB_PUSH_PUBLIC_KEY:-}
+      PCC_WEB_PUSH_PRIVATE_KEY: ${PCC_WEB_PUSH_PRIVATE_KEY:-}
+      PCC_WEB_PUSH_SUBJECT: ${PCC_WEB_PUSH_SUBJECT:-}
+      PCC_REVIEW_PUSH_WORKER_TOKEN: ${PCC_REVIEW_PUSH_WORKER_TOKEN:-}
       PCC_ALLOW_INSECURE_USER_HEADER: ${PCC_ALLOW_INSECURE_USER_HEADER:-0}
     ports:
       - "127.0.0.1:3000:3000"
@@ -61,6 +65,30 @@ services:
       timeout: 5s
       retries: 3
       start_period: 20s
+
+  review-push-worker:
+    image: alpine:3.21
+    restart: unless-stopped
+    init: true
+    environment:
+      PCC_REVIEW_PUSH_WORKER_TOKEN: ${PCC_REVIEW_PUSH_WORKER_TOKEN:-}
+      PCC_REVIEW_PUSH_INTERVAL_SECONDS: ${PCC_REVIEW_PUSH_INTERVAL_SECONDS:-3600}
+    depends_on:
+      app:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        if [ -z "$PCC_REVIEW_PUSH_WORKER_TOKEN" ]; then
+          echo "Weekly Review Web Push worker is disabled: PCC_REVIEW_PUSH_WORKER_TOKEN is empty."
+          exec sleep 2147483647
+        fi
+        while true; do
+          wget -qO-             --header="Authorization: Bearer $PCC_REVIEW_PUSH_WORKER_TOKEN"             --post-data=""             http://app:3000/api/internal/review-push || true
+          sleep "$PCC_REVIEW_PUSH_INTERVAL_SECONDS"
+        done
+    security_opt:
+      - no-new-privileges:true
 
   backup:
     build:

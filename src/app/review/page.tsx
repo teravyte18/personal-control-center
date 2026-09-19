@@ -73,16 +73,21 @@ export default function ReviewPage() {
             </div>
           ) : (
             <>
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                <TextPanel title={`Needs attention (${context.attention.length})`} entries={context.attention} />
-                <TextPanel title={`Actions opened (${context.openedActions.length})`} entries={context.openedActions} />
-                <TextPanel title={`Actions completed (${context.completedActions.length})`} entries={context.completedActions} />
-                <ItemPanel title={`Projects completed (${context.completedProjects.length})`} items={context.completedProjects} />
-                <ItemPanel title={`Open tasks (${context.openTasks.length})`} items={context.openTasks} />
-                <ItemPanel title={`Tasks completed (${context.completedTasks.length})`} items={context.completedTasks} />
-                <ItemPanel title={`Thoughts added (${context.thoughts.length})`} items={context.thoughts} />
-                <TextPanel title={`Books started (${context.startedBooks.length})`} entries={context.startedBooks} />
-                <TextPanel title={`Books finished (${context.finishedBooks.length})`} entries={context.finishedBooks} />
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                <TextPanel
+                  title={`Needs attention (${context.attention.length})`}
+                  entries={context.attention}
+                  emphasis
+                  emptyLabel="Nothing needs attention."
+                />
+                {context.openedActions.length ? <TextPanel title={`Actions opened (${context.openedActions.length})`} entries={context.openedActions} /> : null}
+                {context.completedActions.length ? <TextPanel title={`Actions completed (${context.completedActions.length})`} entries={context.completedActions} /> : null}
+                {context.completedProjects.length ? <ItemPanel title={`Projects completed (${context.completedProjects.length})`} items={context.completedProjects} /> : null}
+                {context.openTasks.length ? <ItemPanel title={`Open tasks (${context.openTasks.length})`} items={context.openTasks} /> : null}
+                {context.completedTasks.length ? <ItemPanel title={`Tasks completed (${context.completedTasks.length})`} items={context.completedTasks} /> : null}
+                {context.thoughts.length ? <ItemPanel title={`Thoughts added (${context.thoughts.length})`} items={context.thoughts} /> : null}
+                {context.startedBooks.length ? <TextPanel title={`Books started (${context.startedBooks.length})`} entries={context.startedBooks} /> : null}
+                {context.finishedBooks.length ? <TextPanel title={`Books finished (${context.finishedBooks.length})`} entries={context.finishedBooks} /> : null}
               </div>
 
               <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
@@ -102,7 +107,7 @@ export default function ReviewPage() {
                   <Prompt label="What deserves attention next week?" value={nextWeek.value} onChange={nextWeek.setValue} onBlur={nextWeek.flush} />
                 </div>
                 <div className="mt-6 flex flex-col gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
-                  <p className="text-xs text-slate-500">Text saves after you pause typing or leave a field. Your unfinished review stays anchored to {formatReviewPeriod(period)}.</p>
+                  <p className="text-xs text-slate-500">Draft text saves automatically.</p>
                   <button type="button" onClick={finishReview} className="min-h-12 rounded-xl bg-slate-950 px-5 text-sm font-semibold text-white active:scale-[0.99]">Complete review</button>
                 </div>
               </div>
@@ -119,14 +124,25 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
   return <button type="button" onClick={onClick} className={`min-h-11 rounded-xl px-4 text-sm font-semibold ${active ? "bg-white text-slate-950 shadow-sm" : "text-slate-500"}`}>{children}</button>;
 }
 
-function TextPanel({ title, entries }: { title: string; entries: ReviewLine[] }) {
-  return <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><h3 className="text-sm font-semibold text-slate-800">{title}</h3>{entries.length === 0 ? <Empty /> : <ul className="mt-3 space-y-3">{entries.slice(0, 6).map((entry) => <li key={entry.id} className="text-sm leading-5 text-slate-700"><p className="font-medium">{entry.text}</p>{entry.detail ? <p className="mt-1 text-xs text-slate-500">{entry.detail}</p> : null}</li>)}</ul>}</section>;
+function TextPanel({
+  title,
+  entries,
+  emphasis = false,
+  emptyLabel = "Nothing recorded.",
+}: {
+  title: string;
+  entries: ReviewLine[];
+  emphasis?: boolean;
+  emptyLabel?: string;
+}) {
+  const tone = emphasis && entries.length
+    ? "border-slate-200 border-l-4 border-l-rose-500 bg-white"
+    : "border-slate-200 bg-white";
+  return <section className={`rounded-2xl border p-4 shadow-sm ${tone}`}><h3 className="text-sm font-semibold text-slate-800">{title}</h3>{entries.length === 0 ? <p className="mt-3 text-xs leading-5 text-slate-400">{emptyLabel}</p> : <ul className="mt-3 space-y-3">{entries.slice(0, 6).map((entry) => <li key={entry.id} className="text-sm leading-5 text-slate-700"><p className="font-medium">{entry.text}</p>{entry.detail ? <p className="mt-1 text-xs text-slate-500">{entry.detail}</p> : null}</li>)}</ul>}</section>;
 }
 
 function ItemPanel({ title, items }: { title: string; items: Item[] }) {
-  return <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><h3 className="text-sm font-semibold text-slate-800">{title}</h3>{items.length === 0 ? <Empty /> : <ul className="mt-3 space-y-2">{items.slice(0, 8).map((item) => <li key={item.id} className="text-sm leading-5 text-slate-700"><p className="font-medium">{item.title}</p>{item.kind === "task" && item.checkInDate ? <p className="mt-1 text-xs text-slate-500">Check in {formatDate(item.checkInDate)}</p> : null}</li>)}</ul>}</section>;
+  return <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><h3 className="text-sm font-semibold text-slate-800">{title}</h3><ul className="mt-3 space-y-2">{items.slice(0, 8).map((item) => <li key={item.id} className="text-sm leading-5 text-slate-700"><p className="font-medium">{item.title}</p>{item.kind === "task" && item.checkInDate ? <p className="mt-1 text-xs text-slate-500">Check in {formatDate(item.checkInDate)}</p> : null}</li>)}</ul></section>;
 }
-
-function Empty() { return <p className="mt-3 text-xs leading-5 text-slate-400">Nothing recorded.</p>; }
 function Field({ label, children }: { label: string; children: React.ReactNode }) { return <div className="text-sm font-medium text-slate-700"><span className="mb-2 block">{label}</span>{children}</div>; }
 function Prompt({ label, value, onChange, onBlur }: { label: string; value: string; onChange: (value: string) => void; onBlur: () => void }) { return <label className="block text-sm font-medium text-slate-700">{label}<textarea className="input mt-2 min-h-28 resize-y" value={value} onChange={(event) => onChange(event.target.value)} onBlur={onBlur} /></label>; }

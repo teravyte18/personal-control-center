@@ -292,8 +292,15 @@ html:not([data-theme="default"]) .bg-white\/60 { background-color: color-mix(in 
 html:not([data-theme="default"]) .bg-slate-950 { background-color: var(--theme-accent); }
 html:not([data-theme="default"]) .bg-slate-950.text-white { color: var(--theme-accent-fg); }
 html:not([data-theme="default"]) .border-slate-950 { border-color: var(--theme-accent); }
-html:not([data-theme="default"]) .border-slate-200 { border-color: var(--theme-line); }
+html:not([data-theme="default"]) .border-slate-200 {
+  border-color: color-mix(in srgb, var(--theme-line) 34%, var(--color-slate-300));
+}
 html:not([data-theme="default"]) .hover\:bg-slate-800:hover { background-color: var(--theme-accent-hover); }
+
+.surface-subtle {
+  border-color: color-mix(in srgb, var(--theme-line) 24%, var(--color-slate-300, #cbd5e1));
+  background: color-mix(in srgb, var(--theme-surface) 92%, var(--background));
+}
 
 .input {
   width: 100%;

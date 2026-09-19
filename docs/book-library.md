@@ -50,6 +50,26 @@ The authenticated endpoint rotates according to metadata, fits inside 900 × 135
 
 Display derivatives are generated in memory rather than persisted as a second recovery set.
 
+## Cover-assisted title and author
+
+The Book editor can use the existing cover image to prefill only **Title** and **Author**.
+
+The workflow is deliberately lightweight:
+
+1. add or keep the normal front-cover image;
+2. choose **Recognize title & author**;
+3. PCC preprocesses the image and runs Tesseract OCR locally inside the app container;
+4. only recognized text fragments are sent to Open Library search;
+5. PCC ranks catalogue results against the full OCR text;
+6. only a clearly preferred title/author pair is returned;
+7. the form fields are filled for review, but nothing is saved automatically.
+
+The uploaded image itself is never sent to Open Library. Recognition works with both a newly selected unsaved image and an existing private cover.
+
+Ambiguous results are intentionally rejected rather than guessed. This is especially relevant to comics, repeated titles, variants, and editions. A failed recognition leaves existing Title and Author values unchanged and manual entry remains the normal fallback.
+
+The runtime includes English and Portuguese Tesseract language data. Recognition is occasional CPU work on the Raspberry Pi rather than a continuously running model.
+
 ## Weekly Review and Calendar
 
 A book appears in generated Review context when its optional start or finish date falls inside the reviewed period. Missing dates remain valid. Books do not create Google Calendar entries.
@@ -66,13 +86,15 @@ A book appears in generated Review context when its optional start or finish dat
 8. Verify zero versus Unrated ratings, aggregate calculation, and overall override.
 9. Save and reopen Thoughts and takeaways.
 10. Upload, cache, replace, remove, back up, and restore a cover.
-11. Organise an Inbox capture as Book and confirm context becomes initial takeaways.
-12. Confirm Books remain absent from Notes and Thoughts.
-13. Confirm dated reading activity appears in the correct Review period.
-14. Confirm cross-account cover URLs remain inaccessible.
+11. With a cover selected, run **Recognize title & author** and confirm a clear ordinary book prefills editable Title/Author without auto-saving.
+12. Try an ambiguous/poor cover and confirm existing fields remain unchanged.
+13. Organise an Inbox capture as Book and confirm context becomes initial takeaways.
+14. Confirm Books remain absent from Notes and Thoughts.
+15. Confirm dated reading activity appears in the correct Review period.
+16. Confirm cross-account cover URLs remain inaccessible.
 
 ## Current boundaries
 
-The delivered Library does not include ISBN/barcode scanning, third-party metadata lookup, page progress, reading timers, highlights, ebook ingestion, detailed lending, social activity, AI summaries/recommendations, or other media types.
+The delivered Library does not include ISBN/barcode scanning, reverse-image cover matching, page progress, reading timers, highlights, ebook ingestion, detailed lending, social activity, AI summaries/recommendations, or automatic metadata saving.
 
-Issue #33 tracks possible photo-assisted title/author prefilling after manual use demonstrates enough recurring friction.
+Cover recognition is intentionally best-effort OCR + metadata matching rather than a general visual-recognition system.

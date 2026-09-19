@@ -79,13 +79,13 @@ services:
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
-        if [ -z "$PCC_REVIEW_PUSH_WORKER_TOKEN" ]; then
+        if [ -z "$$PCC_REVIEW_PUSH_WORKER_TOKEN" ]; then
           echo "Weekly Review Web Push worker is disabled: PCC_REVIEW_PUSH_WORKER_TOKEN is empty."
           exec sleep 2147483647
         fi
         while true; do
-          wget -qO-             --header="Authorization: Bearer $PCC_REVIEW_PUSH_WORKER_TOKEN"             --post-data=""             http://app:3000/api/internal/review-push || true
-          sleep "$PCC_REVIEW_PUSH_INTERVAL_SECONDS"
+          wget -qO-             --header="Authorization: Bearer $$PCC_REVIEW_PUSH_WORKER_TOKEN"             --post-data=""             http://app:3000/api/internal/review-push || true
+          sleep "$$PCC_REVIEW_PUSH_INTERVAL_SECONDS"
         done
     security_opt:
       - no-new-privileges:true

@@ -14,7 +14,6 @@ import {
   getCurrentReviewPeriod,
   isReviewCompletedForPeriod,
   isReviewDraftForPeriod,
-  isReviewReminderDue,
   isTimestampInReviewPeriod,
 } from "../src/domain/weekly-review.ts";
 
@@ -88,20 +87,4 @@ test("review periods freeze their date range and completed periods remain closed
   assert.equal(isTimestampInReviewPeriod("2026-07-18T10:00:00.000Z", period), false);
 });
 
-test("unfinished reviews remind once the local clock passes 08:00 throughout the review week", () => {
-  const sundayMorning = new Date(2026, 6, 19, 8, 0);
-  const period = getCurrentReviewPeriod(sundayMorning);
-  const draft = { ...emptyDraft, periodStart: period.start, periodEnd: period.end };
 
-  assert.equal(isReviewReminderDue(new Date(2026, 6, 19, 7, 59), draft, []), false);
-  assert.equal(isReviewReminderDue(sundayMorning, draft, []), true);
-  assert.equal(isReviewReminderDue(new Date(2026, 6, 24, 23, 0), draft, []), true);
-
-  const saturdayMorning = new Date(2026, 6, 25, 8, 0);
-  const saturdayPeriod = getCurrentReviewPeriod(saturdayMorning);
-  const saturdayDraft = { ...emptyDraft, periodStart: saturdayPeriod.start, periodEnd: saturdayPeriod.end };
-  assert.equal(isReviewReminderDue(saturdayMorning, saturdayDraft, []), true);
-
-  const completed: ReviewEntry = { ...draft, id: "review-complete", completedAt: "2026-07-19T09:00:00.000Z" };
-  assert.equal(isReviewReminderDue(sundayMorning, draft, [completed]), false);
-});

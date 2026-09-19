@@ -2,7 +2,7 @@
 
 Weekly Review keeps Saturday as the intended review day.
 
-If the current review is still unfinished, PCC can send one catch-up reminder per subscribed device each local morning from Sunday through Friday after 08:00. The in-app overdue reminder remains available whenever PCC is opened.
+If the current review has not been submitted, PCC can send one reminder per subscribed device each local morning from Saturday through Friday after 08:00. The same neutral due state is used in-app whenever PCC is opened.
 
 ## Why Web Push is required
 
@@ -22,9 +22,9 @@ The push message carries no personal payload. It is only a wake-up signal; the s
 
 ## Reminder rules
 
-- Saturday: no catch-up push; this is the intended review day.
-- Sunday-Friday before 08:00 local device time: no push.
-- Sunday-Friday after 08:00: one push per subscribed device if the review period is not completed.
+- Before 08:00 local device time: no push.
+- Saturday-Friday after 08:00: one push per subscribed device if the current review period is not completed.
+- Saturday uses the same "due and not submitted" reminder as every later day; reminders never switch to overdue wording.
 - After completion: no further reminders for that period.
 - A scheduler retry cannot send another successful reminder on the same local date.
 - Removed/expired Push endpoints are deleted when the Push service reports them gone.

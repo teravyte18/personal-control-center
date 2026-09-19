@@ -76,9 +76,9 @@ export function ReviewReminderController() {
   return (
     <section className="mb-5 flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-950 shadow-sm sm:flex-row sm:items-center sm:justify-between" aria-live="polite">
       <div>
-        <p className="text-sm font-semibold">Weekly Review is still open</p>
+        <p className="text-sm font-semibold">Weekly Review is due</p>
         <p className="mt-1 text-sm leading-6 text-amber-800">
-          Finish the review for {period.start} to {period.end} before the next Saturday replaces the unfinished draft.
+          The review for {period.start} to {period.end} has not been submitted yet.
         </p>
       </div>
       <Link href="/review" className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl bg-amber-950 px-4 text-sm font-semibold text-white">
@@ -214,8 +214,8 @@ export function ReviewNotificationControl() {
       <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="font-semibold">Daily catch-up reminders are enabled</p>
-            <p className="mt-1 leading-6 text-emerald-800">If Saturday&apos;s review is still open, this device can receive one morning reminder Sunday–Friday even when PCC is closed.</p>
+            <p className="font-semibold">Weekly Review reminders are enabled</p>
+            <p className="mt-1 leading-6 text-emerald-800">This device can receive one morning reminder while the current Weekly Review is due and not yet submitted, even when PCC is closed.</p>
           </div>
           <button type="button" disabled={working} onClick={() => void disable()} className="min-h-10 shrink-0 rounded-xl border border-emerald-300 px-4 font-semibold disabled:opacity-60">
             Disable
@@ -231,7 +231,7 @@ export function ReviewNotificationControl() {
       <div>
         <p className="font-semibold text-slate-800">Enable Weekly Review reminders</p>
         <p className="mt-1 leading-6">
-          One morning reminder Sunday–Friday if the previous Saturday&apos;s review is still unfinished.
+          One morning reminder from Saturday onward while the current Weekly Review is due and not yet submitted.
           {!configured ? " Server setup is still required before this can be enabled." : ""}
         </p>
         {error ? <p className="mt-2 text-xs font-medium text-rose-700">{error}</p> : null}

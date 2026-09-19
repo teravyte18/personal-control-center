@@ -49,8 +49,6 @@ export function isReviewReminderDue(
   const period = getCurrentReviewPeriod(reference);
   if (!isReviewDraftForPeriod(draft, period) || isReviewCompletedForPeriod(history, period)) return false;
 
-  const day = reference.getDay();
-  if (day === 6) return false;
   if (reference.getHours() < 8) return false;
   return true;
 }

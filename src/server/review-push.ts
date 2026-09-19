@@ -129,11 +129,11 @@ export async function registerReviewPushSubscription(userId: string, value: unkn
       user_id, endpoint, p256dh, auth, timezone, updated_at
     )
     values (
-      \${userId},
-      \${subscription.endpoint},
-      \${subscription.keys.p256dh},
-      \${subscription.keys.auth},
-      \${subscription.timezone},
+      ${userId},
+      ${subscription.endpoint},
+      ${subscription.keys.p256dh},
+      ${subscription.keys.auth},
+      ${subscription.timezone},
       now()
     )
     on conflict (endpoint) do update
@@ -157,8 +157,8 @@ export async function removeReviewPushSubscription(userId: string, endpointValue
   const sql = getDatabase();
   await sql`
     delete from review_push_subscriptions
-    where user_id = \${userId}
-      and endpoint = \${endpointValue}
+    where user_id = ${userId}
+      and endpoint = ${endpointValue}
   `;
 }
 
@@ -189,7 +189,7 @@ function vapidKeyObject(config: VapidConfig) {
 
 function vapidAuthorization(endpoint: string, config: VapidConfig, now = new Date()) {
   const url = new URL(endpoint);
-  const audience = `\${url.protocol}//\${url.host}`;
+  const audience = `${url.protocol}//${url.host}`;
   const unsigned = [
     base64UrlJson({ typ: "JWT", alg: "ES256" }),
     base64UrlJson({
@@ -202,7 +202,7 @@ function vapidAuthorization(endpoint: string, config: VapidConfig, now = new Dat
     key: vapidKeyObject(config),
     dsaEncoding: "ieee-p1363",
   }).toString("base64url");
-  return `vapid t=\${unsigned}.\${signature}, k=\${config.publicKey}`;
+  return `vapid t=${unsigned}.${signature}, k=${config.publicKey}`;
 }
 
 async function sendEmptyPush(endpoint: string, config: VapidConfig, now: Date) {
@@ -218,7 +218,7 @@ async function sendEmptyPush(endpoint: string, config: VapidConfig, now: Date) {
 
   if (response.status === 404 || response.status === 410) return "gone" as const;
   if (response.status === 201 || response.status === 202) return "sent" as const;
-  throw new Error(`Push service returned HTTP \${response.status}.`);
+  throw new Error(`Push service returned HTTP ${response.status}.`);
 }
 
 export function validWorkerToken(request: Request) {
@@ -265,12 +265,12 @@ export async function sendDueReviewPushes(reference = new Date()) {
       const previousDate = normalizeDateOnly(row.last_review_reminder_date);
       const [claimed] = await sql<{ id: number | string }[]>`
         update review_push_subscriptions
-        set last_review_reminder_date = \${context.localDate}::date,
+        set last_review_reminder_date = ${context.localDate}::date,
             updated_at = now()
-        where id = \${row.id}
+        where id = ${row.id}
           and (
             last_review_reminder_date is null
-            or last_review_reminder_date <> \${context.localDate}::date
+            or last_review_reminder_date <> ${context.localDate}::date
           )
         returning id
       `;
@@ -279,7 +279,7 @@ export async function sendDueReviewPushes(reference = new Date()) {
       try {
         const result = await sendEmptyPush(row.endpoint, config, reference);
         if (result === "gone") {
-          await sql`delete from review_push_subscriptions where id = \${row.id}`;
+          await sql`delete from review_push_subscriptions where id = ${row.id}`;
           removed += 1;
         } else {
           sent += 1;
@@ -287,10 +287,10 @@ export async function sendDueReviewPushes(reference = new Date()) {
       } catch (error) {
         await sql`
           update review_push_subscriptions
-          set last_review_reminder_date = \${previousDate}::date,
+          set last_review_reminder_date = ${previousDate}::date,
               updated_at = now()
-          where id = \${row.id}
-            and last_review_reminder_date = \${context.localDate}::date
+          where id = ${row.id}
+            and last_review_reminder_date = ${context.localDate}::date
         `;
         failed += 1;
         console.error("Could not send Weekly Review push.", error);

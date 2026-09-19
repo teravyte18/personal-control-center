@@ -63,11 +63,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </Link>
           <Link
             href="/spaces"
-            className={`absolute bottom-0 left-1/2 flex h-5 w-8 -translate-x-1/2 items-center justify-center rounded-full transition ${spacesActive ? "theme-nav-active" : "text-slate-400 hover:text-slate-600"}`}
+            className={`absolute bottom-0 left-1/2 flex h-3 w-8 -translate-x-1/2 items-center justify-center text-slate-400 transition hover:text-slate-600 ${spacesActive ? "text-slate-950" : ""}`}
             aria-label="Open all spaces"
             aria-current={spacesActive ? "page" : undefined}
           >
-            <Icon name="spaces" className="h-3.5 w-3.5" />
+            <svg aria-hidden="true" viewBox="0 0 16 8" className="h-2 w-4 fill-none stroke-current" strokeWidth="1.8">
+              <path d="m2 6 6-4 6 4" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
           </Link>
         </div>
 

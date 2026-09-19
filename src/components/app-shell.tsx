@@ -63,7 +63,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </Link>
           <Link
             href="/spaces"
-            className={`absolute bottom-0 left-1/2 flex h-3 w-8 -translate-x-1/2 items-center justify-center text-slate-400 transition hover:text-slate-600 ${spacesActive ? "text-slate-950" : ""}`}
+            className={`absolute -bottom-1 left-1/2 flex h-3 w-8 -translate-x-1/2 items-center justify-center text-slate-400 transition hover:text-slate-600 ${spacesActive ? "text-slate-950" : ""}`}
             aria-label="Open all spaces"
             aria-current={spacesActive ? "page" : undefined}
           >

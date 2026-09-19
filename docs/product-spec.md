@@ -48,11 +48,11 @@ The repository is public. Code, documentation, fixtures, examples, issues, and c
 
 ### Capture / Home
 
-A quiet landing page centred on fast capture.
+Home remains centred on fast Capture, but the selected refresh combines Capture with a concrete near-term Today surface.
 
 Online operation is visually silent. Offline, pending, syncing, retry, and failure states appear only when they matter.
 
-Capture also surfaces compact Inbox attention plus dated Tasks/project actions due today and existing overdue attention where useful.
+Today should show actual overdue/due Tasks and Project Actions rather than stacking generic warning summaries. Undated work remains valid and is not forced into Today. Wide desktop may place Capture and Today beside each other; phone keeps a stacked flow. Inbox attention remains compact.
 
 When the server cannot be reached, new captures may enter a durable device-local queue and synchronise exactly once after reconnection. A prepared installed PWA can cold-start into a dedicated Capture-only fallback.
 
@@ -175,7 +175,9 @@ Only ciphertext participates in its dedicated backup/export flows. Keychain data
 
 ### All Spaces
 
-A compact directory for implemented spaces, Accomplishments, Archive, account/access controls, mobile quick-access configuration, and selected future/experimental destinations when appropriate.
+The complete launcher for implemented spaces, Accomplishments, Archive, account/access controls, navigation preferences, and selected future/experimental destinations when appropriate.
+
+The selected refresh groups destinations by purpose and uses denser phone presentation so All Spaces can scale without making every module permanent global navigation.
 
 ### Account & access
 
@@ -195,7 +197,7 @@ Capture is permanent in the centre. Four other slots are configurable from avail
 
 ### Larger screens
 
-The desktop rail shows available destinations more broadly while retaining Capture and All Spaces.
+The target desktop rail keeps Capture and All Spaces permanent and shows a bounded configurable set of pinned destinations. The primary rail must not become a scrollable inventory of every implemented module.
 
 ## Core concepts
 

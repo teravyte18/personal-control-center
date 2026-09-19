@@ -4,7 +4,7 @@ This roadmap tracks delivered slices and the current product direction. Sequence
 
 The project has now moved out of its module-building phase. The default question is no longer **“what new space should we add?”** but **“how can the information already in Personal Control Center work together?”** New standalone domains should require a clear recurring need.
 
-The next selected architectural step is a **Personal Context Layer**. AI remains exploratory: PCC may be used to learn how personalised LLM systems work, but a polished Personal Advisor is not currently a committed product slice.
+The selected near-term work is a **UI/UX consolidation refresh** focused on scalable navigation, Home/Today, and visual hierarchy. The Personal Context Layer remains the next architectural direction after this interface work. AI remains exploratory: PCC may be used to learn how personalised LLM systems work, but a polished Personal Advisor is not currently a committed product slice.
 
 ## Progress at a glance
 
@@ -21,18 +21,20 @@ graph LR
     S10["Slice 10<br/>Encrypted Keychain<br/>✅"]
     S11["Slice 11<br/>Food v1<br/>✅ PR #60"]
     S12["Slice 12<br/>Unified Library:<br/>Books + Movies + Series<br/>✅ PR #64"]
-    CTX["Selected next<br/>Personal Context Layer"]
+    UX["Selected next<br/>UI/UX consolidation"]
+    CTX["After UX refresh<br/>Personal Context Layer"]
     LAB["Experiment<br/>LLM sandbox + memory<br/>only if useful"]
     RHY["Later exploration<br/>Weekly Rhythm +<br/>targeted integrations"]
 
-    S1 --> S2 --> S3 --> S4 --> EXT --> S7 --> S8 --> S9 --> S10 --> S11 --> S12 --> CTX --> LAB --> RHY
+    S1 --> S2 --> S3 --> S4 --> EXT --> S7 --> S8 --> S9 --> S10 --> S11 --> S12 --> UX --> CTX --> LAB --> RHY
 
     classDef done fill:#ecfdf5,stroke:#10b981,color:#065f46;
     classDef selected fill:#eff6ff,stroke:#3b82f6,color:#1e3a8a;
     classDef experimental fill:#fff7ed,stroke:#f59e0b,color:#78350f;
     classDef planned fill:#f8fafc,stroke:#94a3b8,color:#334155;
     class S1,S2,S3,S4,EXT,S7,S8,S9,S10,S11,S12 done;
-    class CTX selected;
+    class UX selected;
+    class CTX planned;
     class LAB experimental;
     class RHY planned;
 ```
@@ -117,9 +119,17 @@ Historical completeness is not required. New Media data can accumulate naturally
 
 See [`media-library.md`](media-library.md).
 
-## Current selection — Personal Context Layer
+## Current selection — UI/UX consolidation
 
-**Status: selected next architectural work; not yet implemented.**
+**Status: selected next product work; implementation plan in [`ux-refresh-2026.md`](ux-refresh-2026.md).**
+
+The refresh keeps the current visual identity while addressing navigation scale, Home/Today hierarchy, excessive card chrome, semantic/theme colour separation, copy density, and operational-page density. Agenda is explicitly a product rethink rather than a page to polish in place.
+
+The work is intentionally split into stacked reviewable slices: Navigation & Shell, Home / Today, then Density & Visual System.
+
+## Next architectural direction — Personal Context Layer
+
+**Status: selected after the UI/UX consolidation; not yet implemented.**
 
 The next step is not another standalone space. Existing domains should expose small, reusable, bounded representations of the information another feature may need.
 
@@ -391,4 +401,4 @@ Issue #26 remains unselected until record ownership, inbound fields, conflicts, 
 - Keychain secrets are never part of AI/context paths.
 - Features should be selected from observed friction or value, not because they are common in planning apps.
 
-The current selected next step is therefore simple: **make PCC's existing information coherently accessible before deciding what intelligence, if any, should sit on top of it.**
+The current selected next step is therefore simple: **make the existing product easier to navigate and scan first; then make its information coherently accessible for cross-space context before deciding what intelligence, if any, should sit on top of it.**

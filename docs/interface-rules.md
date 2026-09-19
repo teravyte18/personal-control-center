@@ -8,6 +8,18 @@ The guiding principle is:
 
 The application is a personal tool used repeatedly by someone who already understands its spaces. Permanent explanations should not consume screen space after the workflow is known.
 
+## 0. 2026 refresh direction
+
+The current interface refresh is governed by [`ux-refresh-2026.md`](ux-refresh-2026.md). Until that stack lands, existing screens remain valid, but new interface work should follow these additional constraints:
+
+- do not add another permanent desktop rail destination without revisiting pinning;
+- theme accent indicates identity/selection, while semantic danger/waiting/success colours retain meaning;
+- prefer plain rows or light grouping when a strong card adds no hierarchy;
+- permanent helper copy must identify, disambiguate, communicate a limitation, or explain an action;
+- Home should evolve toward concrete near-term items rather than additional generic attention banners;
+- do not visually polish Agenda as a standalone destination until its product role is resolved.
+
+
 ## 1. Mobile navigation and All Spaces
 
 ### Spaces access

@@ -57,3 +57,28 @@ test("cover OCR lines generate a bounded set of useful metadata queries", () => 
   assert.ok(queries.some((query) => query.includes("ICHIRO KISHIMI")));
   assert.ok(queries.length <= 5);
 });
+
+
+test("fragmented Animal Farm OCR becomes useful combined searches", () => {
+  const queries = recognitionSearchQueries(
+    "& ANIMAL\nP\nÀ\n= FARM ←\nEORGE ORWELL\n>\ns\n<",
+  );
+
+  assert.equal(queries[0], "animal farm eorge orwell");
+  assert.ok(queries.includes("animal farm"));
+  assert.ok(!queries.some((query) => /(^|\s)[pas](\s|$)/.test(query)));
+});
+
+test("Animal Farm can be selected even when OCR drops the first letter of George", () => {
+  const result = chooseBookRecognition(
+    "& ANIMAL\n= FARM ←\nEORGE ORWELL",
+    [
+      { title: "Animal Farm", author: "George Orwell" },
+      { title: "1984", author: "George Orwell" },
+      { title: "Animal", author: "Lisa Taddeo" },
+    ],
+  );
+
+  assert.equal(result?.title, "Animal Farm");
+  assert.equal(result?.author, "George Orwell");
+});

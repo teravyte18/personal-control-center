@@ -1,4 +1,4 @@
-const CACHE_NAME = "pcc-offline-capture-v5";
+const CACHE_NAME = "pcc-offline-capture-v6";
 const OFFLINE_PAGE = "/offline-capture.html";
 const OFFLINE_ASSETS = [
   OFFLINE_PAGE,
@@ -47,6 +47,17 @@ self.addEventListener("fetch", (event) => {
     || url.pathname.startsWith("/icons/")) {
     event.respondWith(cacheFirst(request));
   }
+});
+
+self.addEventListener("push", (event) => {
+  event.waitUntil(self.registration.showNotification("Weekly Review is still open", {
+    body: "If you skipped Saturday, this is your daily catch-up reminder.",
+    icon: "/api/pwa-icon/192",
+    badge: "/api/pwa-icon/192",
+    tag: "pcc-weekly-review",
+    renotify: false,
+    data: { url: "/review" },
+  }));
 });
 
 self.addEventListener("notificationclick", (event) => {

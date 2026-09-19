@@ -69,11 +69,11 @@ function runTesseract(bytes: Buffer) {
     child.stdout.on("data", (chunk) => { stdout += chunk; });
     child.stderr.on("data", (chunk) => { stderr += chunk; });
     child.on("error", (error) => {
-      finish(new Error(`Tesseract could not start: ${error.message}`));
+      finish(new BookRecognitionError(`OCR engine could not start: ${error.message}`, 503));
     });
     child.on("close", (code) => {
       if (code === 0) finish();
-      else finish(new Error(`Tesseract failed with exit code ${code}: ${stderr.slice(0, 300)}`));
+      else finish(new BookRecognitionError(`OCR engine failed: ${stderr.slice(0, 300) || `exit code ${code}`}`, 503));
     });
 
     child.stdin.on("error", () => undefined);

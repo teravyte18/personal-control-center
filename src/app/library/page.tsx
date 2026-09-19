@@ -526,7 +526,7 @@ function BookEditor({
                 </button>
               </>
             ) : null}
-            <p className="mt-3 text-xs leading-5 text-slate-500">JPEG, PNG, WebP, or GIF. Cover OCR runs locally on PCC; recognized text is used only to search book metadata.</p>
+            <p className="mt-3 text-xs leading-5 text-slate-500">JPEG, PNG, WebP, or GIF. Cover OCR runs locally on PCC; only recognized text is sent to Open Library for matching.</p>
           </aside>
 
           <div className="space-y-6">

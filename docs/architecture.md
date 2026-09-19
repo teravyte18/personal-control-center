@@ -168,12 +168,12 @@ Delivered layers are:
 1. web-app manifest and mobile metadata;
 2. home-screen installation with standard, maskable, and Apple icons;
 3. authenticated multi-device persistence;
-4. deterministic Weekly Review in-app reminders plus opt-in server-driven Web Push catch-up reminders;
+4. deterministic Weekly Review in-app reminders plus opt-in server-driven Web Push reminders;
 5. a root-scope service worker with a pre-cached Capture-only fallback and durable duplicate-safe pending queue.
 
 The service worker does not cache authenticated application HTML or personal API responses. A prepared installed PWA uses normal network-first navigation and serves the dedicated offline Capture page only when navigation cannot reach the server.
 
-Weekly Review background delivery uses device-scoped Push subscriptions, device timezones, an hourly Pi worker, and a root-scope service-worker push handler. Saturday remains the intended review day; unfinished reviews can trigger one catch-up reminder per local day from Sunday through Friday after 08:00. The in-app reminder remains available whenever the application is opened.
+Weekly Review background delivery uses device-scoped Push subscriptions, device timezones, an hourly Pi worker, and a root-scope service-worker push handler. Saturday remains the intended review day; an unsubmitted review can trigger one neutral due reminder per local day from Saturday through Friday after 08:00. The in-app reminder follows the same rule whenever the application is opened.
 
 Push remains deliberately Weekly Review-specific. Broader notifications and full offline editing are not implied by this capability. Personal Expenses does not widen the offline promise.
 

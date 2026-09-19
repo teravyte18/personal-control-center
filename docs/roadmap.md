@@ -378,7 +378,7 @@ Photo-assisted book identification remains tracked in issue #33. Metadata lookup
 
 ### Weekly Review Web Push
 
-The real-device observation in issue #21 confirmed that browser-side scheduling alone does not deliver while the PWA is closed. Issue #74 implements the deliberately narrow follow-up: one server-driven catch-up reminder each local morning Sunday–Friday while the Saturday Weekly Review remains unfinished.
+The real-device observation in issue #21 confirmed that browser-side scheduling alone does not deliver while the PWA is closed. Issue #74 implements the deliberately narrow follow-up: one server-driven reminder each local morning from Saturday through Friday while the current Weekly Review remains unsubmitted.
 
 This does not open a generic notifications roadmap. Broader task/project notifications remain out of scope unless real usage creates a specific need.
 

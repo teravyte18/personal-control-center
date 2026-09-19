@@ -19,31 +19,45 @@ export class BookRecognitionError extends Error {
   }
 }
 
-async function prepareForOcr(bytes: Uint8Array) {
+type OcrVariant = {
+  label: string;
+  bytes: Buffer;
+  psm: 6 | 11;
+};
+
+async function prepareForOcr(bytes: Uint8Array): Promise<OcrVariant[]> {
   try {
-    return await sharp(bytes, { animated: false, failOn: "error" })
+    const base = sharp(bytes, { animated: false, failOn: "error" })
       .rotate()
       .resize({
-        width: 1600,
-        height: 2400,
+        width: 1800,
+        height: 2700,
         fit: "inside",
-        withoutEnlargement: true,
       })
       .grayscale()
       .normalize()
-      .sharpen()
-      .png()
-      .toBuffer();
+      .sharpen({ sigma: 1.2 });
+
+    const [normalized, highContrast] = await Promise.all([
+      base.clone().png().toBuffer(),
+      base.clone().threshold(170).png().toBuffer(),
+    ]);
+
+    return [
+      { label: "normalized-sparse", bytes: normalized, psm: 11 },
+      { label: "normalized-block", bytes: normalized, psm: 6 },
+      { label: "contrast-sparse", bytes: highContrast, psm: 11 },
+    ];
   } catch {
     throw new BookRecognitionError("The cover image could not be read.");
   }
 }
 
-function runTesseract(bytes: Buffer) {
+function runTesseract(bytes: Buffer, psm: 6 | 11) {
   return new Promise<string>((resolve, reject) => {
     const child = spawn(
       "tesseract",
-      ["stdin", "stdout", "-l", "eng+por", "--psm", "11"],
+      ["stdin", "stdout", "-l", "eng+por", "--psm", String(psm)],
       { stdio: ["pipe", "pipe", "pipe"] },
     );
     let stdout = "";
@@ -141,16 +155,56 @@ async function searchOpenLibrary(query: string): Promise<SearchResult> {
   return { query, candidates: [], error: lastError };
 }
 
+function usefulOcrLines(text: string) {
+  return text
+    .split(/\r?\n/)
+    .map((line) => line.replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+    .filter((line) => {
+      const compact = line.replace(/[^A-Za-z0-9]/g, "");
+      if (compact.length < 2) return false;
+      const lettersOrDigits = (line.match(/[A-Za-z0-9]/g) ?? []).length;
+      return lettersOrDigits / Math.max(line.length, 1) >= 0.45;
+    });
+}
+
+function combineOcrPasses(results: readonly { label: string; text: string }[]) {
+  const seen = new Set<string>();
+  const lines: string[] = [];
+
+  for (const result of results) {
+    for (const line of usefulOcrLines(result.text)) {
+      const key = line
+        .normalize("NFKD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLocaleLowerCase()
+        .replace(/[^a-z0-9]+/g, " ")
+        .trim();
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      lines.push(line);
+    }
+  }
+
+  return lines.join("\n");
+}
+
 export async function recognizeBookCover(bytes: Uint8Array) {
-  const prepared = await prepareForOcr(bytes);
-  let ocrText = "";
+  const variants = await prepareForOcr(bytes);
+  const passes: { label: string; text: string }[] = [];
+
   try {
-    ocrText = (await runTesseract(prepared)).replace(/\s+$/g, "").trim();
+    for (const variant of variants) {
+      const text = (await runTesseract(variant.bytes, variant.psm)).replace(/\s+$/g, "").trim();
+      passes.push({ label: variant.label, text });
+    }
   } catch (error) {
     if (error instanceof BookRecognitionError) throw error;
     console.error("Book cover OCR failed.", error);
     throw new BookRecognitionError("The cover could not be recognized right now.", 503);
   }
+
+  const ocrText = combineOcrPasses(passes);
 
   if (ocrText.replace(/[^A-Za-z0-9]/g, "").length < 4) {
     throw new BookRecognitionError("Not enough readable text was found on this cover.");
@@ -187,6 +241,10 @@ export async function recognizeBookCover(bytes: Uint8Array) {
       : null,
     diagnostics: {
       ocrText: ocrText.slice(0, 2000),
+      ocrPasses: passes.map((pass) => ({
+        label: pass.label,
+        text: pass.text.slice(0, 1200),
+      })),
       queries,
       candidates: ranked.slice(0, 5).map((candidate) => ({
         title: candidate.title,

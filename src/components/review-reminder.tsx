@@ -1,12 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   getCurrentReviewPeriod,
   isReviewCompletedForPeriod,
   isReviewDraftForPeriod,
-  isReviewReminderDue,
 } from "@/domain/weekly-review";
 import { emptyReview, useReviewData } from "@/lib/personal-data";
 
@@ -27,14 +25,13 @@ type ReviewPushConfig = {
   publicKey: string;
 };
 
-export function ReviewReminderController() {
+export function ReviewPeriodController() {
   const { draft, history, loaded, updateDraft } = useReviewData();
   const [now, setNow] = useState(() => new Date());
   const period = useMemo(() => getCurrentReviewPeriod(now), [now]);
   const ensuredPeriodRef = useRef("");
   const completed = isReviewCompletedForPeriod(history, period);
   const currentDraft = isReviewDraftForPeriod(draft, period);
-  const reminderDue = loaded && isReviewReminderDue(now, draft, history);
 
   useEffect(() => {
     const refresh = () => setNow(new Date());
@@ -71,21 +68,7 @@ export function ReviewReminderController() {
     updateDraft("periodEnd", period.end);
   }, [completed, currentDraft, draft.periodEnd, draft.periodStart, draft.photoName, loaded, period.end, period.start, updateDraft]);
 
-  if (!reminderDue) return null;
-
-  return (
-    <section className="mb-5 flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-950 shadow-sm sm:flex-row sm:items-center sm:justify-between" aria-live="polite">
-      <div>
-        <p className="text-sm font-semibold">Weekly Review is due</p>
-        <p className="mt-1 text-sm leading-6 text-amber-800">
-          The review for {period.start} to {period.end} has not been submitted yet.
-        </p>
-      </div>
-      <Link href="/review" className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl bg-amber-950 px-4 text-sm font-semibold text-white">
-        Open review
-      </Link>
-    </section>
-  );
+  return null;
 }
 
 export function ReviewNotificationControl() {
@@ -164,7 +147,7 @@ export function ReviewNotificationControl() {
       await savePushSubscription(subscription);
       setSubscribed(true);
     } catch (enableError) {
-      setError(enableError instanceof Error ? enableError.message : "Weekly Review push could not be enabled.");
+      setError(pushEnableErrorMessage(enableError));
     } finally {
       setWorking(false);
     }
@@ -202,11 +185,11 @@ export function ReviewNotificationControl() {
   }
 
   if (!supported || permission === "unsupported") {
-    return <p className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">This browser does not support Web Push. In-app reminders remain available.</p>;
+    return <p className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">This browser does not support Web Push.</p>;
   }
 
   if (permission === "denied") {
-    return <p className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">Notifications are blocked in this browser&apos;s site settings. In-app reminders remain available.</p>;
+    return <p className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">Notifications are blocked in this browser&apos;s site settings.</p>;
   }
 
   if (subscribed) {
@@ -282,4 +265,19 @@ async function savePushSubscription(subscription: PushSubscription) {
     }),
   });
   if (!response.ok) throw new Error("This device could not be registered for Weekly Review push.");
+}
+
+
+function pushEnableErrorMessage(error: unknown) {
+  const fallback = "Weekly Review push could not be enabled.";
+  if (!(error instanceof Error)) return fallback;
+
+  if (error.message.toLowerCase().includes("push service error")) {
+    const brave = Boolean((navigator as Navigator & { brave?: unknown }).brave);
+    return brave
+      ? 'Brave push messaging is unavailable. Enable "Use Google services for push messaging" in Brave Settings → Privacy and security, restart Brave, then try again.'
+      : "This browser's push service is unavailable. Check the browser's push/notification settings and try again.";
+  }
+
+  return error.message || fallback;
 }

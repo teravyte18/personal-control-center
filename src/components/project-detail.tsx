@@ -107,7 +107,7 @@ export function ProjectDetail({ project, onClose, accomplishment = false, archiv
                 />
               ))}
             </div>
-          ) : <p className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-white p-5 text-sm text-slate-500">No open actions. This project stays in Waiting until you add one or complete the project.</p>}
+          ) : <p className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-500">No open actions.</p>}
 
           {!readOnly ? (
             <button type="button" onClick={() => { setAddingAction((value) => !value); setCompletingActionId(null); setEditingActionId(null); setCompletingProject(false); }} className="mt-4 min-h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700">
@@ -132,7 +132,7 @@ export function ProjectDetail({ project, onClose, accomplishment = false, archiv
         {!archived && !accomplishment ? (
           <section className="mt-10 border-t border-slate-200 pt-8">
             <h3 className="text-lg font-semibold text-slate-950">Project outcome</h3>
-            <p className="mt-2 text-sm leading-6 text-slate-500">Complete the project when the outcome is achieved, even if some planned actions became unnecessary.</p>
+            <p className="mt-2 text-sm leading-6 text-slate-500">Finish the project when the outcome is achieved.</p>
             <button type="button" onClick={() => { setCompletingProject((value) => !value); setAddingAction(false); setCompletingActionId(null); setEditingActionId(null); }} className="mt-4 min-h-11 rounded-xl bg-emerald-900 px-4 text-sm font-semibold text-white">
               {completingProject ? "Cancel completion" : "Complete project"}
             </button>
@@ -156,7 +156,7 @@ export function ProjectDetail({ project, onClose, accomplishment = false, archiv
 function OpenActionCard({ action, primary, readOnly, onComplete, onEdit }: { action: ProjectAction; primary: boolean; readOnly: boolean; onComplete: () => void; onEdit: () => void }) {
   const overdue = isProjectActionPastCheckIn(action);
   return (
-    <article className={`rounded-2xl border p-4 ${overdue ? "border-rose-300 bg-rose-50" : primary ? "border-slate-300 bg-white" : "border-slate-200 bg-white"}`}>
+    <article className={`rounded-2xl border p-3.5 sm:p-4 ${overdue ? "border-slate-200 border-l-4 border-l-rose-500 bg-white" : primary ? "border-slate-300 bg-white" : "border-slate-200 bg-white"}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em]"><span className={overdue ? "text-rose-700" : "text-slate-400"}>{overdue ? "Overdue" : primary ? "Next" : "Open"}</span></div>

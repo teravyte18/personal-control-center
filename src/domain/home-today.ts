@@ -1,5 +1,5 @@
-import { isProjectActionDueToday, isProjectActionPastCheckIn } from "@/domain/project-dates";
-import { isTaskDueToday, isTaskOverdue, type Item } from "@/domain/personal-data";
+import { isProjectActionDueToday, isProjectActionPastCheckIn } from "./project-dates";
+import { isTaskDueToday, isTaskOverdue, type Item } from "./personal-data";
 
 export type HomeTodayEntry = {
   id: string;

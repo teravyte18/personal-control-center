@@ -10,6 +10,7 @@ function isPublicPath(pathname: string) {
     || pathname === "/api/auth/login"
     || pathname === "/api/auth/activate"
     || pathname === "/api/auth/session"
+    || pathname === "/api/internal/review-push"
     || pathname === "/manifest.webmanifest"
     || pathname === "/favicon.ico"
     || pathname === "/pcc-sw.js"

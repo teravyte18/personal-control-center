@@ -8,6 +8,7 @@ This directory contains current product/operations documentation plus a small am
 - [`roadmap.md`](roadmap.md) — completed slices through Library/Media, the selected Personal Context Layer, experimental LLM work, Weekly Rhythm, and targeted cross-space integration
 - [`architecture.md`](architecture.md) — deployed stack, persistence, navigation, PWA, themes, integrations, and security boundaries
 - [`interface-rules.md`](interface-rules.md) — current UI, copy, navigation, theme, and semantic-colour rules
+- [`ux-refresh-2026.md`](ux-refresh-2026.md) — selected navigation, Home/Today, density, copy, and Calendar/Agenda refresh direction
 
 ## Feature and design guides
 

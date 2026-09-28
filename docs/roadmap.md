@@ -376,13 +376,15 @@ Prefer imported activity/trend summaries over a manual workout logger. Recurring
 
 Photo-assisted book identification remains tracked in issue #33. Metadata lookup, richer progress, highlights, streaming availability, and automatic catalog imports should wait for observed need.
 
-### Notifications
+### Weekly Review Web Push
 
-Issue #21 remains an operational observation for installed-PWA Weekly Review notifications rather than major product work.
+The real-device observation in issue #21 confirmed that browser-side scheduling alone does not deliver while the PWA is closed. Issue #74 implements the deliberately narrow follow-up: one server-driven reminder each local morning from Saturday through Friday while the current Weekly Review remains unsubmitted.
 
-### Optional two-way Calendar
+This does not open a generic notifications roadmap. Broader task/project notifications remain out of scope unless real usage creates a specific need.
 
-Issue #26 remains unselected until record ownership, inbound fields, conflicts, and failure behavior are explicit.
+### Calendar role
+
+Issue #72 now owns the Agenda/Google Calendar product decision, including whether a dedicated Agenda survives, becomes Upcoming, or yields to selective Calendar context on Home/Today. The older optional two-way-sync issue #26 was closed as superseded.
 
 ## Product rules that continue to constrain future work
 

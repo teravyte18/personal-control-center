@@ -347,6 +347,14 @@ function BookEditor({
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [removeExistingCover, setRemoveExistingCover] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [recognizing, setRecognizing] = useState(false);
+  const [recognitionNotice, setRecognitionNotice] = useState<{ tone: "success" | "error"; text: string } | null>(null);
+  const [recognitionDiagnostics, setRecognitionDiagnostics] = useState<{
+    ocrText: string;
+    queries: string[];
+    candidates: { title: string; author: string; score: number }[];
+    searchErrors: string[];
+  } | null>(null);
   const [error, setError] = useState("");
   const previewUrl = useMemo(() => coverFile ? URL.createObjectURL(coverFile) : "", [coverFile]);
 
@@ -410,6 +418,75 @@ function BookEditor({
     }
   }
 
+  async function recognizeCover() {
+    const coverId = removeExistingCover ? "" : details.coverId;
+    if (!coverFile && !coverId) return;
+
+    setRecognizing(true);
+    setRecognitionNotice(null);
+    setRecognitionDiagnostics(null);
+    try {
+      let response: Response;
+      if (coverFile) {
+        const form = new FormData();
+        form.set("cover", coverFile);
+        response = await fetch("/api/book-covers/recognize", {
+          method: "POST",
+          body: form,
+        });
+      } else {
+        response = await fetch("/api/book-covers/recognize", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ coverId }),
+        });
+      }
+
+      const body = await response.json() as {
+        suggestion?: { title?: string; author?: string; confidence?: number } | null;
+        diagnostics?: {
+          ocrText?: string;
+          queries?: string[];
+          candidates?: { title: string; author: string; score: number }[];
+          searchErrors?: string[];
+        };
+        error?: string;
+      };
+      if (!response.ok) throw new Error(body.error || "The cover could not be recognized.");
+
+      if (body.diagnostics) {
+        setRecognitionDiagnostics({
+          ocrText: body.diagnostics.ocrText ?? "",
+          queries: body.diagnostics.queries ?? [],
+          candidates: body.diagnostics.candidates ?? [],
+          searchErrors: body.diagnostics.searchErrors ?? [],
+        });
+      }
+
+      if (!body.suggestion?.title) {
+        setRecognitionNotice({
+          tone: "error",
+          text: "Couldn’t identify this cover confidently. Title and author were left unchanged.",
+        });
+        return;
+      }
+
+      setTitle(body.suggestion.title);
+      setDetails((current) => ({ ...current, author: body.suggestion?.author ?? "" }));
+      setRecognitionNotice({
+        tone: "success",
+        text: "Title and author filled from the cover. Review them before saving.",
+      });
+    } catch (cause) {
+      setRecognitionNotice({
+        tone: "error",
+        text: cause instanceof Error ? cause.message : "The cover could not be recognized.",
+      });
+    } finally {
+      setRecognizing(false);
+    }
+  }
+
   const aggregate = getBookScore({ ...details, ratings: { ...details.ratings, overallOverride: undefined } });
   const displayed = getBookScore(details);
   const shownCoverId = removeExistingCover ? "" : details.coverId;
@@ -439,22 +516,72 @@ function BookEditor({
                 onChange={(event) => {
                   setCoverFile(event.target.files?.[0] ?? null);
                   setRemoveExistingCover(false);
+                  setRecognitionNotice(null);
+                  setRecognitionDiagnostics(null);
                 }}
               />
             </label>
             {shownCoverId || coverFile ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setCoverFile(null);
-                  setRemoveExistingCover(true);
-                }}
-                className="mt-2 min-h-10 w-full rounded-xl px-4 text-sm font-semibold text-rose-600"
-              >
-                Remove cover
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={() => void recognizeCover()}
+                  disabled={recognizing || saving}
+                  className="mt-2 min-h-10 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 disabled:opacity-50"
+                >
+                  {recognizing ? "Recognizing…" : "Recognize title & author"}
+                </button>
+                {recognitionNotice ? (
+                  <p className={`mt-2 text-xs leading-5 ${recognitionNotice.tone === "success" ? "text-emerald-700" : "text-rose-600"}`} aria-live="polite">
+                    {recognitionNotice.text}
+                  </p>
+                ) : null}
+                {recognitionDiagnostics ? (
+                  <details className="mt-2 rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                    <summary className="cursor-pointer font-semibold text-slate-700">Recognition details</summary>
+                    <div className="mt-2 space-y-2">
+                      <div>
+                        <p className="font-semibold">OCR text</p>
+                        <pre className="mt-1 max-h-36 overflow-auto whitespace-pre-wrap break-words font-sans text-[0.7rem] leading-5">{recognitionDiagnostics.ocrText || "(none)"}</pre>
+                      </div>
+                      <div>
+                        <p className="font-semibold">Best matches</p>
+                        {recognitionDiagnostics.candidates.length ? (
+                          <ul className="mt-1 space-y-1">
+                            {recognitionDiagnostics.candidates.map((candidate) => (
+                              <li key={`${candidate.title}:${candidate.author}`}>
+                                {candidate.title}{candidate.author ? ` — ${candidate.author}` : ""} · {Math.round(candidate.score * 100)}%
+                              </li>
+                            ))}
+                          </ul>
+                        ) : <p className="mt-1">(none)</p>}
+                      </div>
+                      {recognitionDiagnostics.searchErrors.length ? (
+                        <div>
+                          <p className="font-semibold text-rose-700">Metadata lookup errors</p>
+                          <ul className="mt-1 space-y-1 text-rose-600">
+                            {recognitionDiagnostics.searchErrors.map((message) => <li key={message}>{message}</li>)}
+                          </ul>
+                        </div>
+                      ) : null}
+                    </div>
+                  </details>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCoverFile(null);
+                    setRemoveExistingCover(true);
+                    setRecognitionNotice(null);
+                    setRecognitionDiagnostics(null);
+                  }}
+                  className="mt-2 min-h-10 w-full rounded-xl px-4 text-sm font-semibold text-rose-600"
+                >
+                  Remove cover
+                </button>
+              </>
             ) : null}
-            <p className="mt-3 text-xs leading-5 text-slate-500">JPEG, PNG, WebP, or GIF. Covers stay private and follow the existing upload backup path.</p>
+            <p className="mt-3 text-xs leading-5 text-slate-500">JPEG, PNG, WebP, or GIF. Cover OCR runs locally on PCC; only recognized text is sent to Open Library for matching.</p>
           </aside>
 
           <div className="space-y-6">

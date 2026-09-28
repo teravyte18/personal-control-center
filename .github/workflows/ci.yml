@@ -87,6 +87,7 @@ jobs:
       PCC_BACKUP_RETENTION_DAYS: 14
       PCC_R2_ENABLED: 0
       PCC_ALLOW_INSECURE_USER_HEADER: 1
+      PCC_REVIEW_PUSH_WORKER_TOKEN: ci-review-push-worker-token
       TAILSCALE_AUTH_KEY: ci-placeholder
       TAILSCALE_HOSTNAME: personal-control-center-ci
     steps:
@@ -124,6 +125,14 @@ jobs:
             sleep 2
           done
           curl --fail --silent http://127.0.0.1:3000/api/health
+
+          test "$(curl --silent --output /tmp/review-push-unauthorized.json --write-out '%{http_code}' --request POST http://127.0.0.1:3000/api/internal/review-push)" = "401"
+          curl --fail --silent --show-error \
+            --header "Authorization: Bearer $PCC_REVIEW_PUSH_WORKER_TOKEN" \
+            --request POST \
+            http://127.0.0.1:3000/api/internal/review-push \
+            | grep -q '"configured":false'
+
           node --test tests/server-persistence.test.mjs
           node --test tests/keychain-server.test.mjs
           node --test tests/keychain-stage3-server.test.mjs

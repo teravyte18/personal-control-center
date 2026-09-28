@@ -104,13 +104,17 @@ function ProjectCard({ project }: { project: Item }) {
   const primaryOverdue = Boolean(primaryAction && isProjectActionPastCheckIn(primaryAction));
   const waiting = project.status === "waiting";
   const statusLabel = projectStatuses.find((option) => option.value === project.status)?.label ?? project.status;
-  const cardTone = overdue ? "border-rose-300 bg-white" : waiting ? "border-amber-200 bg-amber-50/70" : "border-slate-200 bg-white";
-  const attentionTone = overdue ? "border border-rose-300 bg-rose-50" : waiting ? "border border-amber-200 bg-amber-100/70" : "bg-slate-50";
+  const cardTone = overdue
+    ? "border-slate-200 border-l-4 border-l-rose-500 bg-white"
+    : waiting
+      ? "border-slate-200 border-l-4 border-l-amber-400 bg-white"
+      : "border-slate-200 bg-white";
+  const attentionTone = "surface-subtle border";
   const labelTone = overdue ? "text-rose-700" : waiting ? "text-amber-700" : "text-slate-400";
 
   return (
     <>
-      <article className={`rounded-[1.75rem] border p-5 shadow-sm ${cardTone}`}>
+      <article className={`rounded-[1.5rem] border p-4 shadow-sm ${cardTone}`}>
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
@@ -121,7 +125,7 @@ function ProjectCard({ project }: { project: Item }) {
           <ExpandButton label={`Open ${project.title}`} onClick={() => setExpanded(true)} />
         </div>
 
-        <div className={`mt-4 rounded-2xl p-4 ${attentionTone}`}>
+        <div className={`mt-4 rounded-xl p-3.5 ${attentionTone}`}>
           <p className={`text-xs font-semibold uppercase tracking-[0.14em] ${labelTone}`}>
             {overdue ? "Open action overdue" : waiting ? "Waiting" : "Next open action"}
           </p>
@@ -134,8 +138,8 @@ function ProjectCard({ project }: { project: Item }) {
               {additionalActions > 0 ? <p className="mt-2 text-xs font-semibold text-slate-500">+{additionalActions} other open {additionalActions === 1 ? "action" : "actions"}</p> : null}
             </>
           ) : (
-            <p className="mt-2 text-sm font-medium leading-6 text-amber-900">
-              No open action. Add one to reactivate the project, or complete the project if the outcome is finished.
+            <p className="mt-2 text-sm font-medium leading-6 text-slate-600">
+              No open action.
             </p>
           )}
         </div>

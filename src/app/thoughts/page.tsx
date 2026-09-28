@@ -49,9 +49,9 @@ export default function ThoughtsPage() {
 
       {thoughts.length === 0 ? <p className="mt-8 text-sm text-slate-500">No saved thoughts yet.</p> : null}
 
-      <div className="mt-6 columns-1 gap-4 sm:columns-2">
+      <div className="mt-5 columns-1 gap-3 sm:columns-2">
         {thoughts.map((item) => (
-          <article key={item.id} className="mb-4 break-inside-avoid rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
+          <article key={item.id} className="mb-3 break-inside-avoid rounded-[1.35rem] border border-slate-200 bg-white p-4 shadow-sm">
             {editingId === item.id ? (
               <form onSubmit={(event) => saveEdit(event, item)}>
                 <textarea value={editText} onChange={(event) => setEditText(event.target.value)} className="input min-h-28 resize-y text-base leading-7" aria-label="Edit thought" autoFocus required />
@@ -63,7 +63,7 @@ export default function ThoughtsPage() {
             ) : (
               <>
                 <p className="whitespace-pre-wrap text-base font-medium leading-7 text-slate-800">{item.title}</p>
-                <div className="mt-5 flex items-center justify-between gap-3 border-t border-slate-100 pt-3">
+                <div className="mt-4 flex items-center justify-between gap-3 border-t border-slate-100 pt-2.5">
                   <time dateTime={item.createdAt} className="text-xs text-slate-400">
                     {new Date(item.createdAt).toLocaleDateString(undefined, { dateStyle: "medium" })}
                   </time>

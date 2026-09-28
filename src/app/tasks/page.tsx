@@ -95,10 +95,9 @@ export default function TasksPage() {
       {tasks.length === 0 ? (
         <div className="mt-6 rounded-[2rem] border border-dashed border-slate-300 bg-white p-8 text-center">
           <h3 className="text-lg font-semibold">No open tasks.</h3>
-          <p className="mt-2 text-sm text-slate-500">Tasks completed here disappear from this view and remain available to the relevant Weekly Review.</p>
         </div>
       ) : (
-        <div className="mt-6 space-y-3">
+        <div className="mt-6 space-y-2">
           {tasks.map((task) => (
             <TaskCard
               key={task.id}
@@ -124,11 +123,15 @@ function TaskCard({
 }) {
   const overdue = isTaskOverdue(task);
   const dueToday = isTaskDueToday(task);
-  const border = overdue ? "border-rose-300 bg-rose-50" : dueToday ? "border-amber-300 bg-amber-50" : "border-slate-200 bg-white";
+  const border = overdue
+    ? "border-slate-200 border-l-4 border-l-rose-500 bg-white"
+    : dueToday
+      ? "border-slate-200 border-l-4 border-l-amber-400 bg-white"
+      : "border-slate-200 bg-white";
 
   return (
     <details className={`group rounded-2xl border shadow-sm ${border}`}>
-      <summary className="flex min-h-18 cursor-pointer list-none items-center gap-3 px-4 py-3 sm:px-5">
+      <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 px-3 py-2.5 sm:px-4">
         <button
           type="button"
           onClick={(event) => {
@@ -136,7 +139,7 @@ function TaskCard({
             event.stopPropagation();
             onComplete();
           }}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-300 bg-white text-slate-500 transition hover:border-emerald-500 hover:text-emerald-700"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-300 bg-white text-slate-500 transition hover:border-emerald-500 hover:text-emerald-700"
           aria-label={`Complete ${task.title}`}
         >
           ✓
@@ -156,7 +159,7 @@ function TaskCard({
         <span className="text-xl text-slate-400 transition group-open:rotate-45" aria-hidden="true">＋</span>
       </summary>
 
-      <div className="border-t border-slate-200/70 px-4 pb-5 pt-4 sm:px-5">
+      <div className="border-t border-slate-200/70 px-3 pb-4 pt-3 sm:px-4">
         <label className="block text-sm font-medium text-slate-700">
           Title
           <input className="input mt-2" defaultValue={task.title} onBlur={(event) => {

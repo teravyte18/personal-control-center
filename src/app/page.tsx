@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { FormEvent, useMemo, useState, useSyncExternalStore } from "react";
-import { getProjectActionsDueToday, isProjectPastCheckIn } from "@/domain/project-dates";
-import { isTaskDueToday, isTaskOverdue, usePersonalData } from "@/lib/personal-data";
+import { buildHomeTodayEntries, type HomeTodayEntry } from "@/domain/home-today";
+import { usePersonalData } from "@/lib/personal-data";
 import { useOfflineCapture } from "@/providers/offline-capture-provider";
 
 const HOME_GREETINGS = [
@@ -65,6 +65,7 @@ export default function CapturePage() {
     getBrowserHomeGreeting,
     getServerHomeGreeting,
   );
+
   const pendingNotInSnapshot = useMemo(
     () => pending.filter((record) => !items.some((item) => item.id === record.id)),
     [items, pending],
@@ -73,13 +74,7 @@ export default function CapturePage() {
     () => items.filter((item) => item.status === "inbox").length + pendingNotInSnapshot.length,
     [items, pendingNotInSnapshot.length],
   );
-  const overdueProjects = useMemo(() => items.filter((item) => isProjectPastCheckIn(item)), [items]);
-  const dueProjectActions = useMemo(
-    () => items.flatMap((item) => getProjectActionsDueToday(item)),
-    [items],
-  );
-  const overdueTasks = useMemo(() => items.filter((item) => isTaskOverdue(item)), [items]);
-  const dueTasks = useMemo(() => items.filter((item) => isTaskDueToday(item)), [items]);
+  const todayEntries = useMemo(() => buildHomeTodayEntries(items), [items]);
 
   async function submitCapture(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -90,7 +85,7 @@ export default function CapturePage() {
       if (!result) return;
       setCapture("");
       setNotice(result.queued
-        ? "Saved on this device. It will move to your Inbox when the server is reachable."
+        ? "Saved on this device. It will move to Inbox when the server is reachable."
         : "Saved to Inbox.");
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "The capture could not be saved.");
@@ -100,151 +95,150 @@ export default function CapturePage() {
   }
 
   return (
-    <section className="mx-auto flex min-h-[68vh] max-w-2xl flex-col justify-center">
-      <div className="mb-4 space-y-3">
-        {overdueProjects.length > 0 ? (
-          <AttentionLink
-            href="/projects"
-            count={overdueProjects.length}
-            singular="project needs"
-            plural="projects need"
-            detail="A current action is past its check-in date."
-            tone="red"
-          />
-        ) : null}
-        {overdueTasks.length > 0 ? (
-          <AttentionLink
-            href="/tasks"
-            count={overdueTasks.length}
-            singular="task is overdue"
-            plural="tasks are overdue"
-            detail="Reschedule them or complete them from Tasks."
-            tone="red"
-          />
-        ) : null}
-        {dueProjectActions.length > 0 ? (
-          <AttentionLink
-            href="/projects"
-            count={dueProjectActions.length}
-            singular="project action is due today"
-            plural="project actions are due today"
-            detail="These check-ins have reached their date."
-            tone="amber"
-          />
-        ) : null}
-        {dueTasks.length > 0 ? (
-          <AttentionLink
-            href="/tasks"
-            count={dueTasks.length}
-            singular="task is due today"
-            plural="tasks are due today"
-            detail="These check-ins have reached their date."
-            tone="amber"
-          />
-        ) : null}
-      </div>
+    <section className="mx-auto w-full min-w-0 max-w-5xl overflow-x-hidden lg:flex lg:min-h-[72vh] lg:items-center">
+      <div className="grid w-full min-w-0 grid-cols-1 gap-4 sm:gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(20rem,0.8fr)]">
+        <div className="min-w-0 rounded-[1.6rem] border border-slate-200 bg-white p-4 shadow-sm sm:rounded-[2rem] sm:p-7">
+          <div className="flex items-start justify-between gap-4">
+            <h1 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-4xl">{greeting}</h1>
+            {!online ? (
+              <span className="mt-1 shrink-0 rounded-full bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800">
+                Offline
+              </span>
+            ) : null}
+          </div>
 
-      <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
-        <div className="flex items-start justify-between gap-4">
-          <h2 className="text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">{greeting}</h2>
-          {!online ? (
-            <span className="mt-1 shrink-0 rounded-full bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800">
-              Offline
-            </span>
+          <form onSubmit={submitCapture} className="mt-4 sm:mt-5">
+            <textarea
+              value={capture}
+              onChange={(event) => setCapture(event.target.value)}
+              className="input min-h-28 resize-none text-base leading-7 sm:min-h-36"
+              placeholder="A task, project, question, observation…"
+              aria-label="Capture a thought"
+              required
+            />
+            <button
+              type="submit"
+              disabled={submitting}
+              className="mt-3 min-h-11 w-full rounded-2xl bg-slate-950 px-5 font-semibold text-white active:scale-[0.99] disabled:cursor-wait disabled:opacity-60 sm:min-h-12"
+            >
+              {submitting ? "Saving…" : online ? "Save to inbox" : "Save on this device"}
+            </button>
+          </form>
+
+          {notice ? <p className="mt-3 text-sm font-medium text-slate-600" aria-live="polite">{notice}</p> : null}
+
+          {pending.length > 0 ? (
+            <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-950" aria-live="polite">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p className="text-sm font-semibold">{pending.length} {pending.length === 1 ? "capture" : "captures"} waiting to sync</p>
+                  {lastError ? <p className="mt-1 text-xs font-medium text-rose-700">Last retry: {lastError}</p> : null}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void retry()}
+                  disabled={!online || syncing}
+                  className="min-h-10 shrink-0 rounded-xl bg-amber-950 px-4 text-sm font-semibold text-white disabled:opacity-50"
+                >
+                  {syncing ? "Syncing…" : "Retry"}
+                </button>
+              </div>
+              <ul className="mt-3 space-y-1.5 text-sm text-amber-900">
+                {pending.slice(0, 3).map((record) => (
+                  <li key={record.id} className="truncate">{record.mutation.item.title}</li>
+                ))}
+                {pending.length > 3 ? <li className="text-xs font-medium text-amber-700">+{pending.length - 3} more</li> : null}
+              </ul>
+            </div>
+          ) : !online ? (
+            <p className="mt-5 text-sm leading-6 text-amber-800">
+              Capture still works offline; other spaces need the server.
+            </p>
           ) : null}
+
+          <Link
+            href="/inbox"
+            className="mt-4 flex min-h-12 items-center justify-between rounded-2xl bg-slate-50 px-4 transition active:scale-[0.99] sm:mt-5 sm:min-h-14"
+          >
+            <span className="text-sm font-semibold text-slate-800">Inbox</span>
+            <span className="flex h-9 min-w-9 items-center justify-center rounded-full bg-white px-3 text-sm font-semibold text-slate-700 shadow-sm">
+              {inboxCount}
+            </span>
+          </Link>
         </div>
 
-        <form onSubmit={submitCapture} className="mt-5">
-          <textarea
-            value={capture}
-            onChange={(event) => setCapture(event.target.value)}
-            className="input min-h-36 resize-none text-base leading-7"
-            placeholder="A task, project, question, observation…"
-            aria-label="Capture a thought"
-            required
-          />
-          <button type="submit" disabled={submitting} className="mt-3 min-h-12 w-full rounded-2xl bg-slate-950 px-5 font-semibold text-white active:scale-[0.99] disabled:cursor-wait disabled:opacity-60">
-            {submitting ? "Saving…" : online ? "Save to inbox" : "Save on this device"}
-          </button>
-        </form>
-
-        {notice ? <p className="mt-3 text-sm font-medium text-slate-600" aria-live="polite">{notice}</p> : null}
-
-        {pending.length > 0 ? (
-          <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-950" aria-live="polite">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <p className="text-sm font-semibold">{pending.length} {pending.length === 1 ? "capture is" : "captures are"} waiting to sync</p>
-                <p className="mt-1 text-sm leading-6 text-amber-800">
-                  They are stored on this device and will retry automatically when the app can reach the server.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => void retry()}
-                disabled={!online || syncing}
-                className="min-h-10 shrink-0 rounded-xl bg-amber-950 px-4 text-sm font-semibold text-white disabled:opacity-50"
-              >
-                {syncing ? "Syncing…" : "Retry now"}
-              </button>
-            </div>
-            <ul className="mt-3 space-y-2 text-sm text-amber-900">
-              {pending.slice(0, 3).map((record) => (
-                <li key={record.id} className="truncate rounded-xl bg-white/70 px-3 py-2">{record.mutation.item.title}</li>
-              ))}
-              {pending.length > 3 ? <li className="px-3 text-xs font-medium text-amber-700">And {pending.length - 3} more…</li> : null}
-            </ul>
-            {lastError ? <p className="mt-3 text-xs font-medium text-rose-700">Last retry: {lastError}</p> : null}
-          </div>
-        ) : !online ? (
-          <p className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-800">
-            Quick Capture remains available offline. Other parts of the app are read-only in practice until the connection returns.
-          </p>
-        ) : null}
-
-        <Link href="/inbox" className="mt-5 flex min-h-16 items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 transition active:scale-[0.99]">
-          <div>
-            <p className="text-sm font-semibold text-slate-800">Inbox</p>
-            <p className="mt-1 text-xs text-slate-500">Items waiting to be resolved</p>
-          </div>
-          <span className="flex h-10 min-w-10 items-center justify-center rounded-full bg-white px-3 text-sm font-semibold text-slate-700 shadow-sm">{inboxCount}</span>
-        </Link>
+        <TodayPanel entries={todayEntries} />
       </div>
     </section>
   );
 }
 
-function AttentionLink({
-  href,
-  count,
-  singular,
-  plural,
-  detail,
-  tone,
-}: {
-  href: string;
-  count: number;
-  singular: string;
-  plural: string;
-  detail: string;
-  tone: "red" | "amber";
-}) {
-  const classes = tone === "red"
-    ? "border-rose-200 bg-rose-50 text-rose-950"
-    : "border-amber-200 bg-amber-50 text-amber-950";
-  const secondary = tone === "red" ? "text-rose-700" : "text-amber-700";
-  const dot = tone === "red" ? "bg-rose-600" : "bg-amber-500";
+function TodayPanel({ entries }: { entries: HomeTodayEntry[] }) {
+  const overdueCount = entries.filter((entry) => entry.state === "overdue").length;
+  const dueCount = entries.length - overdueCount;
+  const visible = entries.slice(0, 5);
 
   return (
-    <Link href={href} className={`flex min-h-16 items-center justify-between gap-4 rounded-2xl border px-4 shadow-sm transition active:scale-[0.99] ${classes}`}>
-      <div className="flex min-w-0 items-center gap-3">
-        <span className={`h-3 w-3 shrink-0 rounded-full ${dot}`} aria-hidden="true" />
-        <div className="min-w-0">
-          <p className="text-sm font-semibold">{count} {count === 1 ? singular : plural}</p>
-          <p className={`mt-1 text-xs ${secondary}`}>{detail}</p>
+    <aside className="min-w-0 max-w-full self-start overflow-hidden rounded-[1.6rem] border border-slate-200 bg-white p-4 shadow-sm sm:rounded-[2rem] sm:p-6 lg:self-stretch">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Near term</p>
+          <h2 className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">Today</h2>
         </div>
+        {entries.length ? (
+          <p className="pt-1 text-right text-xs font-medium text-slate-500">
+            {overdueCount ? `${overdueCount} overdue` : ""}
+            {overdueCount && dueCount ? " · " : ""}
+            {dueCount ? `${dueCount} today` : ""}
+          </p>
+        ) : null}
       </div>
-      <span className={`shrink-0 text-lg ${secondary}`} aria-hidden="true">→</span>
+
+      {visible.length ? (
+        <div className="mt-5 divide-y divide-slate-100">
+          {visible.map((entry) => <TodayRow key={entry.id} entry={entry} />)}
+        </div>
+      ) : (
+        <p className="mt-5 rounded-2xl bg-slate-50 px-4 py-5 text-sm text-slate-500">
+          Nothing dated needs attention today.
+        </p>
+      )}
+
+      {entries.length > visible.length ? (
+        <p className="mt-3 text-xs font-medium text-slate-500">+{entries.length - visible.length} more dated {entries.length - visible.length === 1 ? "item" : "items"}</p>
+      ) : null}
+    </aside>
+  );
+}
+
+function TodayRow({ entry }: { entry: HomeTodayEntry }) {
+  const overdue = entry.state === "overdue";
+  const href = entry.kind === "task" ? "/tasks" : "/projects";
+
+  return (
+    <Link href={href} className="group flex min-w-0 max-w-full gap-3 overflow-hidden py-3 first:pt-0 last:pb-0">
+      <span
+        className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${overdue ? "bg-rose-600" : "bg-amber-500"}`}
+        aria-hidden="true"
+      />
+      <span className="min-w-0 flex-1 overflow-hidden">
+        <span className="block truncate text-sm font-semibold text-slate-900 group-hover:underline">{entry.title}</span>
+        <span className="mt-1 flex min-w-0 items-center gap-2 text-xs">
+          <span className="min-w-0 truncate text-slate-500">
+            {entry.kind === "task" ? "Task" : entry.context}
+          </span>
+          <span className={`shrink-0 font-semibold ${overdue ? "text-rose-700" : "text-amber-700"}`}>
+            {overdue ? `Past ${formatDate(entry.date)}` : "Today"}
+          </span>
+        </span>
+      </span>
     </Link>
   );
+}
+
+function formatDate(value: string) {
+  return new Date(`${value}T12:00:00`).toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "short",
+  });
 }

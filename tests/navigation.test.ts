@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  defaultDesktopPinnedDestinationIds,
   defaultPinnedDestinationIds,
+  normalizeDesktopPinnedDestinationIds,
   normalizeMobilePinnedDestinationIds,
 } from "../src/lib/navigation.ts";
 
@@ -60,5 +62,30 @@ test("mobile quick access removes duplicates and unavailable spaces", () => {
   assert.deepEqual(
     normalizeMobilePinnedDestinationIds(["thoughts", "thoughts", "archive", "library", "tasks"]),
     ["thoughts", "library", "tasks", "inbox"],
+  );
+});
+
+
+test("desktop quick access defaults to seven bounded destinations", () => {
+  assert.deepEqual(
+    normalizeDesktopPinnedDestinationIds(null),
+    [...defaultDesktopPinnedDestinationIds],
+  );
+  assert.equal(normalizeDesktopPinnedDestinationIds(null).length, 7);
+});
+
+test("desktop quick access preserves custom pins and removes duplicates", () => {
+  assert.deepEqual(
+    normalizeDesktopPinnedDestinationIds([
+      "projects",
+      "projects",
+      "markets",
+      "notes",
+      "library",
+      "expenses",
+      "review",
+      "tasks",
+    ]),
+    ["projects", "markets", "notes", "library", "expenses", "review", "tasks"],
   );
 });

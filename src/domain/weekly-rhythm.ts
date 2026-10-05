@@ -392,7 +392,12 @@ export function currentWeeklyFocus(
       const resolved = resolveWeeklyFocus(items, focus);
       return resolved && resolved.active ? [resolved] : [];
     })
-    .sort((left, right) => Date.parse(left.createdAt) - Date.parse(right.createdAt));
+    .sort((left, right) => (
+      Date.parse(left.createdAt) - Date.parse(right.createdAt)
+      || left.context.localeCompare(right.context)
+      || left.title.localeCompare(right.title)
+      || left.id.localeCompare(right.id)
+    ));
 }
 
 export function focusMatches(

@@ -125,7 +125,6 @@ export default function RhythmPage() {
     [items, period.start, weeklyFocuses],
   );
 
-  const focusedIds = useMemo(() => new Set(focused.map((entry) => entry.id)), [focused]);
   const activeRhythms = useMemo(
     () => rhythmTemplates.filter((template) => template.state === "active"),
     [rhythmTemplates],

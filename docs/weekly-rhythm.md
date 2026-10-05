@@ -2,7 +2,7 @@
 
 ## Status
 
-**Selected next product slice. Product design is defined here before implementation.**
+**Implemented in PR #79 on the Personal Context Layer branch; pending combined real-use testing before merge/deploy.**
 
 Weekly Rhythm is a flexible weekly planning layer. It is not a habit tracker, a streak system, or a replacement for Tasks, Projects, Weekly Review, or Google Calendar.
 
@@ -285,16 +285,16 @@ A missed weekly target is data, not a negative judgement.
 
 ## Personal Context Layer integration
 
-Weekly Rhythm should become a new explicit Personal Context domain only after its canonical model exists.
+Weekly Rhythm is now an explicit Personal Context domain.
 
-Useful context should include:
+Its context includes:
 
 - active rhythm intentions;
 - current-week target/progress;
 - recent completion history in a bounded window;
 - current Weekly Focus references resolved to their Task/Project labels.
 
-That context can support deterministic Home/Review views before any LLM consumes it.
+That context already supports Review and Context Inspector use. Home integration remains a follow-up after the combined slice is tested.
 
 ## Advisor value
 
@@ -308,9 +308,9 @@ A future Advisor could compare those sources when explicitly asked, for example 
 
 The model should not infer moral conclusions from missed targets or sparse data.
 
-## MVP scope
+## Implemented MVP
 
-The first implementation should include:
+PR #79 includes:
 
 - active/paused rhythm intentions;
 - target-per-week;
@@ -318,10 +318,16 @@ The first implementation should include:
 - Saturday-to-Friday current-week progress;
 - Weekly Focus references for existing Tasks and Project Actions;
 - current-week dated Tasks/Project Actions;
-- a compact fixed-commitments area if reliable Calendar input is already available;
+- a compact fixed-commitments area from the existing Google Calendar/Agenda integration, excluding PCC-projected Task/Project events to avoid duplicates;
+- direct **Add to this week** controls from Tasks and open Project Actions;
+- explicit carry-forward for still-open focus from the immediately previous week;
+- Weekly Review panels for Rhythm progress and unfinished focus;
+- an explicit `rhythm` Personal Context domain and Context Inspector support;
 - phone-first This Week screen;
-- persistence/export/backup compatibility;
-- tests for week boundaries, progress, carry-forward behaviour, and source-record deletion/completion.
+- persistence/export/backup compatibility through the existing Personal Data snapshot;
+- tests for week boundaries, progress, focus resolution, mutation persistence, Context projection, and Calendar-sync boundaries.
+
+Home integration and any Agenda simplification are intentionally not included in the first implementation so the dedicated Rhythm experience can be tested before deciding what should move or disappear.
 
 ## Explicit exclusions from MVP
 

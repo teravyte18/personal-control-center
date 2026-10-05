@@ -48,4 +48,4 @@ export {
   type ReviewDraft,
   type ReviewEntry,
 } from "@/domain/personal-data";
-export { useDataConnection, usePersonalData, useReviewData } from "@/providers/personal-data-provider";
+export { useDataConnection, usePersonalData, useReviewData, useRhythmData } from "@/providers/personal-data-provider";

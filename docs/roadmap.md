@@ -6,7 +6,7 @@ The project has now moved out of its module-building phase. The default question
 
 The broad UI/UX consolidation work is complete enough to return to a usage-led approach: future interface changes should respond to concrete friction rather than modernisation for its own sake. The **Personal Context Layer and Context Inspector are now implemented** as the cross-space foundation.
 
-The real-use audit is now documented and confirms that the next product slice should be **Weekly Rhythm**: flexible weekly intentions, one-off weekly focus, and a shared horizon for dated work without forcing a rigid daily routine or streak system. Agenda/Home integration can then consume the same weekly model. AI remains exploratory rather than a committed next slice.
+The real-use audit is documented and **Weekly Rhythm is now implemented in PR #79 alongside the Personal Context Layer**. The current step is combined real-use testing. After that, Agenda/Home integration can consume the weekly model if testing confirms the direction. AI remains exploratory rather than a committed next slice.
 
 See [`usage-audit-2026-10.md`](usage-audit-2026-10.md) and [`weekly-rhythm.md`](weekly-rhythm.md).
 
@@ -18,18 +18,19 @@ graph LR
     UX["UI/UX consolidation<br/>✅"]
     CTX["Personal Context Layer<br/>+ Inspector<br/>✅"]
     AUDIT["Real-use audit<br/>✅"]
-    RHY["Selected next<br/>Weekly Rhythm"]
-    INT["Then<br/>Agenda / Home<br/>integration"]
+    RHY["Weekly Rhythm MVP<br/>✅"]
+    TEST["Current<br/>Deploy + real-use test"]
+    INT["Then, if useful<br/>Agenda / Home<br/>integration"]
     LAB["Later experiment<br/>LLM sandbox / Advisor<br/>only if useful"]
 
-    S1 --> UX --> CTX --> AUDIT --> RHY --> INT --> LAB
+    S1 --> UX --> CTX --> AUDIT --> RHY --> TEST --> INT --> LAB
 
     classDef done fill:#ecfdf5,stroke:#10b981,color:#065f46;
     classDef selected fill:#eff6ff,stroke:#3b82f6,color:#1e3a8a;
     classDef experimental fill:#fff7ed,stroke:#f59e0b,color:#78350f;
     classDef planned fill:#f8fafc,stroke:#94a3b8,color:#334155;
-    class S1,UX,CTX,AUDIT done;
-    class RHY selected;
+    class S1,UX,CTX,AUDIT,RHY done;
+    class TEST selected;
     class INT planned;
     class LAB experimental;
 ```
@@ -156,9 +157,9 @@ It shows:
 
 This is a development/privacy-audit surface rather than a normal daily workflow. It allows the context boundary to be inspected before any LLM provider is introduced.
 
-## Selected next — Weekly Rhythm
+## Weekly Rhythm — implemented, pending real-use test
 
-The real-use audit is complete enough to choose the next implementation slice.
+The real-use audit led to the Weekly Rhythm MVP now implemented in PR #79. The next decision should come from actually using the combined Context + Rhythm branch.
 
 The strongest signal is a gap between work with a genuinely meaningful date and work that should remain visible during the week but can happen flexibly. Arbitrary dates can become hiding places when items are repeatedly rescheduled.
 
@@ -178,7 +179,7 @@ The initial experience should be a phone-first **This Week** view with simple pr
 
 See [`weekly-rhythm.md`](weekly-rhythm.md) for the implementation-ready product specification and [`usage-audit-2026-10.md`](usage-audit-2026-10.md) for the evidence behind it.
 
-After Weekly Rhythm proves useful:
+If Weekly Rhythm proves useful in real use:
 
 1. Home can surface a compact weekly horizon;
 2. Agenda can be simplified, repurposed, or removed if Rhythm plus the specialist Calendar already covers its value;
@@ -316,7 +317,7 @@ Shared context should make later integrations possible without forcing them.
 
 ## Weekly Rhythm and connected planning
 
-**Status: selected next slice; product model defined.**
+**Status: implemented in PR #79; pending combined real-use testing.**
 
 Weekly Rhythm now has an implementation-ready design covering weekly focus, recurring intentions, progress events, week boundaries, Home/Agenda integration, Review integration, and Context Layer follow-up.
 

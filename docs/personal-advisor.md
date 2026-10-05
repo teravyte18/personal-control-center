@@ -6,7 +6,7 @@ A standalone **Personal Advisor** is no longer a committed next product feature.
 
 The useful conclusion from the original Advisor design is broader: Personal Control Center now has a reusable **Personal Context Layer** that represents selected information across its existing domains without giving integrations blanket database access.
 
-The next product work should first use that infrastructure in deterministic workflows such as Weekly Rhythm and Agenda/Home integration. PCC may later host a small **LLM sandbox** to learn how provider APIs, model choice, reasoning effort, context construction, memory, tool use, privacy, and cost behave with real personal data. The sandbox is an experiment, not a promise that PCC needs a permanent AI chat surface.
+The next product work should first use that infrastructure in deterministic workflows, beginning with Weekly Rhythm and then Home/Agenda integration. The real-use audit also confirms that Weekly Review is a particularly valuable longitudinal source because it captures interpretation and lessons rather than only raw activity. PCC may later host a small **LLM sandbox** to learn how provider APIs, model choice, reasoning effort, context construction, memory, tool use, privacy, and cost behave with real personal data. The sandbox is an experiment, not a promise that PCC needs a permanent AI chat surface.
 
 A future Advisor, contextual AI features, or an external ChatGPT/MCP-style connection may be promoted only if actual use demonstrates value beyond what the deterministic application or an ordinary ChatGPT conversation already provides.
 
@@ -62,6 +62,7 @@ It currently supports eight explicit domains:
 
 The implementation:
 
+- exposes the current Weekly Review draft plus bounded recent completed reviews, including reflective fields such as what happened, what went well, what was difficult, what was learned, and what should change next;
 - keeps open/current work prominent while retaining bounded recent completions;
 - preserves stable record IDs for grounding;
 - applies per-domain record caps, recency windows, text truncation, and project-action caps;
@@ -157,6 +158,32 @@ The purpose is bounded continuity: recent messages + relevant old material + com
 
 Conversation/memory storage, deletion, export, backup, retention, and privacy need explicit design before any persistent memory is shipped.
 
+## Learning from experience
+
+“Learning from experience” should not initially mean fine-tuning a model on private PCC history or allowing a model to silently rewrite its own behaviour.
+
+A safer first interpretation is **memory + retrieval + feedback**:
+
+1. fresh canonical PCC state describes what is true now;
+2. Weekly Reviews and completion/history records provide longitudinal evidence;
+3. older conversations may produce bounded episodic summaries;
+4. stable memories store only durable conclusions/preferences worth carrying forward;
+5. later conversations retrieve only the memories/episodes relevant to the current question;
+6. user corrections or explicit feedback can revise or retire stored memories.
+
+This keeps learning inspectable and model-independent. A provider can improve or be replaced without losing PCC-owned experience.
+
+If automatic memory proposals are explored, each stored memory should eventually have enough provenance to answer questions such as:
+
+- where did this conclusion come from?
+- when was it last supported or corrected?
+- is it an explicit user statement, a deterministic fact, or a model inference?
+- can it be edited, forgotten, or marked stale?
+
+Weekly Review is especially valuable here because it already contains deliberate reflection. Repeated themes across reviews may later justify a **candidate observation**, but the model should not silently promote an inferred pattern into durable truth.
+
+Fine-tuning, self-modifying prompts, or autonomous “personality learning” are not needed for the first useful Advisor experiment.
+
 ## Model independence
 
 PCC-owned context and memory should not depend on one model generation.
@@ -164,6 +191,22 @@ PCC-owned context and memory should not depend on one model generation.
 If the model changes later, the new model should be able to consume the same canonical PCC data, context providers, and stored memory. Model upgrades may change interpretation or quality, but should not erase the personal history merely because a provider releases a new model.
 
 This is another reason to keep durable personal memory in PCC rather than treating provider-side response storage as the long-term memory architecture.
+
+## Local inference option
+
+The model adapter should not assume that inference must come from a hosted API.
+
+A local model served from the PCC deployment host or another trusted machine may be useful for privacy, experimentation, and avoiding per-request API cost. It should still sit behind the same provider boundary as a hosted model:
+
+- PCC builds the same bounded Personal Context;
+- the adapter sends a normal request to the configured inference endpoint;
+- conversation/memory remains PCC-owned;
+- provider-specific response formats are normalised before the rest of the application sees them;
+- switching between local and hosted models should not require changing canonical context or memory storage.
+
+Local inference should be benchmarked on the actual deployment hardware before product decisions are made. Model size, latency, context length, and answer quality may make a local model appropriate for some tasks but not others.
+
+The important architectural decision is provider independence, not choosing a specific local model now.
 
 ## Provider, model, and cost learning goals
 
@@ -288,12 +331,13 @@ If those signals do not appear, the experiment may remain a developer tool, be r
 
 ## Likely sequence
 
-1. implement and test the Personal Context Layer without an LLM;
-2. add an internal Context Inspector;
-3. configure one hosted model/provider and explicit cost controls;
-4. add a small multi-turn LLM sandbox;
-5. experiment with context selection, model/effort, token/cost reporting, and real questions;
-6. only then evaluate persistent conversation summaries, stable memory, retrieval, or safe tools;
-7. decide from actual use whether PCC needs a Personal Advisor, contextual AI features, an external assistant connector, or no permanent AI product at all.
+1. Personal Context Layer and Context Inspector — **implemented**;
+2. Weekly Rhythm and deterministic Home/Review integration — **selected next**;
+3. define a provider-neutral LLM adapter and test one local or hosted provider;
+4. add a small explicit multi-turn sandbox with inspectable context;
+5. compare model quality, latency, context selection, and cost/privacy trade-offs using real questions;
+6. experiment with PCC-owned episodic summaries, stable memory proposals, retrieval, and feedback;
+7. only then consider safe confirmed tools or a polished Advisor;
+8. decide from actual use whether PCC needs its own Advisor UI, contextual AI features, an external assistant connector, or no permanent AI product at all.
 
 The core rule remains: **PCC should become more coherent before it becomes more intelligent.**

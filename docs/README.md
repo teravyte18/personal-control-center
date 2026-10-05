@@ -18,7 +18,7 @@ This directory contains current product/operations documentation plus a small am
 - [`expenses.md`](expenses.md) — manual expense capture, fixed 50/30/20 reference, rolling Fun Fund, Insights analytics, persistence, and current boundaries
 - [`markets.md`](markets.md) — lightweight Yahoo-backed watchlist with current price, daily movement, user-scoped persistence, and TradingView handoff
 - [`notes.md`](notes.md) — Markdown subset, autosave rules, safe preview rendering, and regression checks
-- [`book-library.md`](book-library.md) — Books shelf model, ratings, owned-first default view, Wishlist isolation, covers, caching, and regression checks
+- [`book-library.md`](book-library.md) — Books shelf model, ratings, owned-first default view, Wishlist isolation, covers, caching, regression checks, and the planned comic/sequential-work extension
 - [`media-library.md`](media-library.md) — unified Library navigation for Books, Movies, and Series; separate media wishlists/state, ratings, Movie watched date, Series resume progress, private posters, and integration boundaries
 - [`personal-advisor.md`](personal-advisor.md) — implemented Personal Context Layer and Context Inspector plus the later LLM-experiment direction, memory ideas, Keychain exclusion, action boundaries, and promotion gate
 - [`google-calendar.md`](google-calendar.md) — one-way Calendar setup, projection rules, and troubleshooting

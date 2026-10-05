@@ -1,8 +1,8 @@
-import { getExpenseCategory } from "./expenses";
-import { getRecipes } from "./food";
-import { getBookScore, getBooks } from "./library";
-import { getMediaItems } from "./media";
-import { getNotes } from "./notes";
+import { getExpenseCategory } from "./expenses.ts";
+import { getRecipes } from "./food.ts";
+import { getBookScore, getBooks } from "./library.ts";
+import { getMediaItems } from "./media.ts";
+import { getNotes } from "./notes.ts";
 import type { Item, ReviewDraft } from "./personal-data";
 import type { PersonalDataSnapshot } from "./personal-data-snapshot";
 

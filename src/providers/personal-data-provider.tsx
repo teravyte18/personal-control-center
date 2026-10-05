@@ -27,7 +27,6 @@ import {
   createRhythmTemplate,
   createWeeklyFocus,
   type RhythmDaypart,
-  type RhythmState,
   type RhythmTemplate,
   type WeeklyFocusSourceType,
 } from "@/domain/weekly-rhythm";

@@ -12,6 +12,7 @@ const domainLabels: Record<PersonalContextDomain, string> = {
   projects: "Projects",
   tasks: "Tasks",
   reviews: "Reviews",
+  rhythm: "Rhythm",
   thoughts: "Thoughts",
   notes: "Notes",
   library: "Library",
@@ -27,7 +28,7 @@ const purposeLabels: Record<PersonalContextPurpose, string> = {
   development: "Development",
 };
 
-const initialDomains: PersonalContextDomain[] = ["projects", "tasks", "reviews", "thoughts", "library"];
+const initialDomains: PersonalContextDomain[] = ["projects", "tasks", "reviews", "rhythm", "thoughts", "library"];
 
 export default function ContextInspectorPage() {
   const [selectedDomains, setSelectedDomains] = useState<PersonalContextDomain[]>(initialDomains);

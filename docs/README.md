@@ -5,7 +5,7 @@ This directory contains current product/operations documentation plus a small am
 ## Current product direction
 
 - [`product-spec.md`](product-spec.md) — current product model, workflows, boundaries, integration principle, and success criteria
-- [`roadmap.md`](roadmap.md) — completed slices through Library/Media, the selected Personal Context Layer, experimental LLM work, Weekly Rhythm, and targeted cross-space integration
+- [`roadmap.md`](roadmap.md) — completed modules/UI work and Personal Context Layer, followed by the selected usage audit, Weekly Rhythm, Agenda/Home integration, and later AI experiments
 - [`architecture.md`](architecture.md) — deployed stack, persistence, navigation, PWA, themes, integrations, and security boundaries
 - [`interface-rules.md`](interface-rules.md) — current UI, copy, navigation, theme, and semantic-colour rules
 - [`ux-refresh-2026.md`](ux-refresh-2026.md) — selected navigation, Home/Today, density, copy, and Calendar/Agenda refresh direction
@@ -18,7 +18,7 @@ This directory contains current product/operations documentation plus a small am
 - [`notes.md`](notes.md) — Markdown subset, autosave rules, safe preview rendering, and regression checks
 - [`book-library.md`](book-library.md) — Books shelf model, ratings, owned-first default view, Wishlist isolation, covers, caching, and regression checks
 - [`media-library.md`](media-library.md) — unified Library navigation for Books, Movies, and Series; separate media wishlists/state, ratings, Movie watched date, Series resume progress, private posters, and integration boundaries
-- [`personal-advisor.md`](personal-advisor.md) — current Personal Context Layer and LLM-experiment direction, including context inspection, memory ideas, model/cost learning, Keychain exclusion, action boundaries, and the gate before any permanent Advisor product
+- [`personal-advisor.md`](personal-advisor.md) — implemented Personal Context Layer and Context Inspector plus the later LLM-experiment direction, memory ideas, Keychain exclusion, action boundaries, and promotion gate
 - [`google-calendar.md`](google-calendar.md) — one-way Calendar setup, projection rules, and troubleshooting
 - [`offline-capture.md`](offline-capture.md) — Capture-only offline boundary, device queue, service worker, and recovery tests
 - [`password-keychain.md`](password-keychain.md) — implemented encrypted-vault boundary, threat model, recovery rules, hardening, and residual risks

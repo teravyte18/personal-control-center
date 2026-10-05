@@ -4,6 +4,7 @@ import {
   buildPersonalContext,
   normalizePersonalContextLimits,
   parsePersonalContextDomains,
+  parsePersonalContextPurpose,
 } from "../src/domain/personal-context.ts";
 import { defaultExpenseSettings, emptyExpenseReconciliation } from "../src/domain/expenses.ts";
 import { serializeRecipeDetails, createRecipeDetails } from "../src/domain/food.ts";
@@ -227,6 +228,9 @@ test("context domain parsing rejects undeclared domains and limits are clamped",
   assert.deepEqual(parsePersonalContextDomains(["projects", "tasks", "projects"]), ["projects", "tasks"]);
   assert.equal(parsePersonalContextDomains(["projects", "keychain"]), null);
   assert.equal(parsePersonalContextDomains([]), null);
+  assert.equal(parsePersonalContextPurpose(null), "development");
+  assert.equal(parsePersonalContextPurpose("weekly-planning"), "weekly-planning");
+  assert.equal(parsePersonalContextPurpose("unknown"), null);
 
   assert.deepEqual(normalizePersonalContextLimits({
     maxRecordsPerDomain: 999,

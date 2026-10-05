@@ -234,9 +234,11 @@ export function normalizeWeeklyFocus(value: unknown): WeeklyFocus | null {
     || typeof value.sourceItemId !== "string"
     || typeof value.sourceType !== "string"
     || !["task", "project-action"].includes(value.sourceType)
-    || !validDateOnlyOrEmpty(value.weekStart)
-    || !value.weekStart
+    || typeof value.weekStart !== "string"
     || !validDateTime(value.createdAt)) return null;
+
+  const weekStart = validDateOnlyOrEmpty(value.weekStart);
+  if (!weekStart) return null;
 
   const sourceActionId = value.sourceType === "project-action"
     ? typeof value.sourceActionId === "string" && value.sourceActionId ? value.sourceActionId : null
@@ -245,7 +247,7 @@ export function normalizeWeeklyFocus(value: unknown): WeeklyFocus | null {
 
   return {
     id: value.id,
-    weekStart: value.weekStart,
+    weekStart,
     sourceType: value.sourceType as WeeklyFocusSourceType,
     sourceItemId: value.sourceItemId,
     sourceActionId: sourceActionId ?? undefined,

@@ -98,6 +98,9 @@ test("ignores review and expense mutations but reacts to Calendar-backed item ch
   assert.equal(mutationAffectsGoogleCalendar({ type: "delete-expense-transaction" }), false);
   assert.equal(mutationAffectsGoogleCalendar({ type: "update-expense-settings" }), false);
   assert.equal(mutationAffectsGoogleCalendar({ type: "set-expense-reconciled-through" }), false);
+  assert.equal(mutationAffectsGoogleCalendar({ type: "add-rhythm-template" }), false);
+  assert.equal(mutationAffectsGoogleCalendar({ type: "add-rhythm-completion" }), false);
+  assert.equal(mutationAffectsGoogleCalendar({ type: "add-weekly-focus" }), false);
   assert.equal(mutationAffectsGoogleCalendar({ type: "update-item" }), true);
   assert.equal(mutationAffectsGoogleCalendar({ type: "complete-project-action" }), true);
 });

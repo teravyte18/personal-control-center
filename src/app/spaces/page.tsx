@@ -18,7 +18,7 @@ const destinationGroups = [
   { label: "Plan", ids: ["inbox", "projects", "tasks", "agenda", "review"] },
   { label: "Reference", ids: ["thoughts", "notes", "library", "food"] },
   { label: "Tracking", ids: ["expenses", "markets"] },
-  { label: "System", ids: ["keychain", "accomplishments", "archive"] },
+  { label: "System", ids: ["keychain", "context", "accomplishments", "archive"] },
 ] as const;
 
 function availableDestination(id: string) {

@@ -237,7 +237,7 @@ A one-way external view of dated open Tasks and dated open project actions. PCC 
 
 An implemented reusable integration boundary that exposes compact, bounded, user-scoped representations of explicitly selected PCC domains.
 
-The current eligible domains are Projects, Tasks, Weekly Reviews, Thoughts, Notes, Library, Food, and Expenses. The layer is deterministic and read-only, preserves useful record identity, applies bounded record/recency/text limits, and is usable by non-AI cross-space features.
+The current eligible domains are Projects, Tasks, Weekly Reviews, Weekly Rhythm, Thoughts, Notes, Library, Food, and Expenses. The layer is deterministic and read-only, preserves useful record identity, applies bounded record/recency/text limits, and is usable by non-AI cross-space features.
 
 Weekly Review context is intentionally rich: the current draft plus bounded recent completed reviews expose period dates and the reflective fields for what happened, what went well, what was difficult, what was learned, and what should change next. This makes Review one of the strongest longitudinal inputs for later cross-space reflection or Advisor experiments.
 
@@ -288,17 +288,17 @@ The usable system now includes:
 
 ## Current roadmap state
 
-The module-building sequence through Media is complete, the broad UI/UX consolidation has shipped, the Personal Context Layer plus Context Inspector are implemented, and a real-use audit has now been documented.
+The module-building sequence through Media is complete, the broad UI/UX consolidation has shipped, the Personal Context Layer plus Context Inspector are implemented, the real-use audit is documented, and the **Weekly Rhythm MVP is implemented in PR #79**.
 
-The selected direction is:
+The current direction is:
 
-1. **Weekly Rhythm MVP** — add flexible Saturday-to-Friday weekly intentions and one-off Weekly Focus references without requiring fake dates, rigid daily schedules, streaks, or guilt-oriented missed-habit states;
-2. **Home / Agenda integration** — use the weekly horizon plus Calendar context to improve visibility while leaving detailed calendar browsing to Google Calendar;
-3. **Review integration** — make Rhythm intention/progress and carry-forward context available to Weekly Review;
+1. **Combined Context + Rhythm real-use test** — deploy/test the branch before expanding the planning surface;
+2. **Home / Agenda integration** — if Rhythm proves useful, use its weekly horizon plus Calendar context to improve visibility while leaving detailed calendar browsing to Google Calendar;
+3. **Review refinement** — evaluate whether the new Rhythm progress/focus panels improve reflection and whether carry-forward information needs adjustment;
 4. **LLM sandbox (experimental)** — only after deterministic integration has a clearer shape, test whether stored PCC context materially improves conversation;
 5. **Evaluate from real usage** — promote an Advisor, external-assistant connector, local model workflow, or model-assisted actions only if repeated value appears.
 
-The usage evidence behind this choice is recorded in [`usage-audit-2026-10.md`](usage-audit-2026-10.md), and the Weekly Rhythm product model is defined in [`weekly-rhythm.md`](weekly-rhythm.md).
+The usage evidence behind this choice is recorded in [`usage-audit-2026-10.md`](usage-audit-2026-10.md), and the implemented Rhythm model is documented in [`weekly-rhythm.md`](weekly-rhythm.md).
 
 A polished Personal Advisor is **not currently a committed next feature**.
 

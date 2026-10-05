@@ -130,7 +130,7 @@ export default function ContextInspectorPage() {
             type="button"
             onClick={() => void buildContext()}
             disabled={loading || !selectedDomains.length}
-            className="theme-primary-button mt-5 min-h-11 w-full rounded-xl px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+            className="mt-5 min-h-11 w-full rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading ? "Building…" : "Build context"}
           </button>

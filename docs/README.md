@@ -5,9 +5,9 @@ This directory contains current product/operations documentation plus a small am
 ## Current product direction
 
 - [`product-spec.md`](product-spec.md) — current product model, workflows, boundaries, integration principle, and success criteria
-- [`roadmap.md`](roadmap.md) — completed modules/UI work and Personal Context Layer, followed by the selected usage audit, Weekly Rhythm, Agenda/Home integration, and later AI experiments
+- [`roadmap.md`](roadmap.md) — completed modules/UI work, Personal Context Layer, real-use audit, and Weekly Rhythm MVP; current combined testing and later integration/AI direction
 - [`usage-audit-2026-10.md`](usage-audit-2026-10.md) — real-use evidence: validated workflows, low-use experiments, planning friction, and resulting product priorities
-- [`weekly-rhythm.md`](weekly-rhythm.md) — implementation-ready design for flexible weekly focus, recurring intentions, progress, Review, Home, and Agenda integration
+- [`weekly-rhythm.md`](weekly-rhythm.md) — implemented Weekly Rhythm MVP: weekly focus, recurring intentions, progress, Calendar commitments, Review integration, and follow-up boundaries
 - [`architecture.md`](architecture.md) — deployed stack, persistence, navigation, PWA, themes, integrations, and security boundaries
 - [`interface-rules.md`](interface-rules.md) — current UI, copy, navigation, theme, and semantic-colour rules
 - [`ux-refresh-2026.md`](ux-refresh-2026.md) — selected navigation, Home/Today, density, copy, and Calendar/Agenda refresh direction

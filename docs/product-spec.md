@@ -27,7 +27,7 @@ The repository is public. Code, documentation, fixtures, examples, issues, and c
 
 ## System principles
 
-- Capture first; organise later.
+- Capture quickly; organise only when needed. Direct placement into the right space is preferred when the destination is already obvious; Inbox remains a fallback for ambiguous or time-critical capture.
 - Remain useful without AI or external integrations.
 - Show what matters now instead of everything stored.
 - Keep Projects, Tasks, Thoughts, Notes, Library records, Expenses, Food, Keychain secrets, recurring routines, and future time-specific events conceptually distinct.
@@ -239,6 +239,8 @@ An implemented reusable integration boundary that exposes compact, bounded, user
 
 The current eligible domains are Projects, Tasks, Weekly Reviews, Thoughts, Notes, Library, Food, and Expenses. The layer is deterministic and read-only, preserves useful record identity, applies bounded record/recency/text limits, and is usable by non-AI cross-space features.
 
+Weekly Review context is intentionally rich: the current draft plus bounded recent completed reviews expose period dates and the reflective fields for what happened, what went well, what was difficult, what was learned, and what should change next. This makes Review one of the strongest longitudinal inputs for later cross-space reflection or Advisor experiments.
+
 The authenticated Context Inspector at `/spaces/context` makes the exact generated representation visible during development. Keychain is structurally excluded from the context domain model and endpoint.
 
 It is not a generic database API for models.
@@ -286,15 +288,17 @@ The usable system now includes:
 
 ## Current roadmap state
 
-The module-building sequence through Media is complete, the broad UI/UX consolidation has shipped, and the Personal Context Layer plus Context Inspector are implemented.
+The module-building sequence through Media is complete, the broad UI/UX consolidation has shipped, the Personal Context Layer plus Context Inspector are implemented, and a real-use audit has now been documented.
 
-The selected direction is now:
+The selected direction is:
 
-1. **Real-use audit** — identify which spaces are used most, least, or awkwardly and use that evidence to choose refinements;
-2. **Weekly Rhythm MVP** — add flexible weekly intentions/cadence without requiring fixed daily schedules, streaks, or guilt-oriented missed-habit states;
-3. **Agenda / Home integration** — use context plus Calendar information to improve the near-term horizon without rebuilding Google Calendar;
+1. **Weekly Rhythm MVP** — add flexible Saturday-to-Friday weekly intentions and one-off Weekly Focus references without requiring fake dates, rigid daily schedules, streaks, or guilt-oriented missed-habit states;
+2. **Home / Agenda integration** — use the weekly horizon plus Calendar context to improve visibility while leaving detailed calendar browsing to Google Calendar;
+3. **Review integration** — make Rhythm intention/progress and carry-forward context available to Weekly Review;
 4. **LLM sandbox (experimental)** — only after deterministic integration has a clearer shape, test whether stored PCC context materially improves conversation;
-5. **Evaluate from real usage** — promote an Advisor, external-assistant connector, or model-assisted actions only if repeated value appears.
+5. **Evaluate from real usage** — promote an Advisor, external-assistant connector, local model workflow, or model-assisted actions only if repeated value appears.
+
+The usage evidence behind this choice is recorded in [`usage-audit-2026-10.md`](usage-audit-2026-10.md), and the Weekly Rhythm product model is defined in [`weekly-rhythm.md`](weekly-rhythm.md).
 
 A polished Personal Advisor is **not currently a committed next feature**.
 
@@ -375,7 +379,7 @@ Otherwise the experiment may remain internal, be removed, or become a PCC-to-ext
 - exhaustive public media cataloguing, streaming-provider tracking, or episode-by-episode history;
 - mandatory page-by-page reading progress/highlight ingestion;
 - complete pantry/grocery/nutrition management without observed need;
-- generic habit/streak mechanics;
+- generic habit/streak mechanics; Weekly Rhythm may track flexible weekly targets, but not daily streak pressure;
 - autonomous AI agents;
 - blanket database access for models;
 - Keychain access by AI/context systems;
@@ -389,11 +393,11 @@ These remain candidates rather than selected commitments:
 
 - near-term Today/Tomorrow horizon reached from Home;
 - Events/Appointments;
-- Routines when recurrence semantics are actually needed;
+- richer recurrence semantics only after the Weekly Rhythm MVP proves that simple weekly targets are insufficient;
 - Trips;
 - imported Fitness/activity summaries;
 - Food meal-prep/freezer/weekly-meal extensions after real Recipe Book use;
-- Library metadata/photo-assisted identification/highlights when friction justifies them;
+- Library comic-run support inside Books (content type, physical/digital format, current issue, lightweight issues-read tracking), plus metadata/photo-assisted identification/highlights when friction justifies them;
 - optional inbound/two-way Calendar when ownership/conflict rules are clear;
 - advanced theme art direction.
 

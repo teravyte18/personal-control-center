@@ -6,7 +6,9 @@ The project has now moved out of its module-building phase. The default question
 
 The broad UI/UX consolidation work is complete enough to return to a usage-led approach: future interface changes should respond to concrete friction rather than modernisation for its own sake. The **Personal Context Layer and Context Inspector are now implemented** as the cross-space foundation.
 
-The next product exploration is a short real-use audit followed by **Weekly Rhythm**: flexible weekly intentions and cadence-based planning that can add structure without forcing a rigid daily routine or streak system. Agenda/Home integration can then consume the same context. AI remains exploratory rather than a committed next slice.
+The real-use audit is now documented and confirms that the next product slice should be **Weekly Rhythm**: flexible weekly intentions, one-off weekly focus, and a shared horizon for dated work without forcing a rigid daily routine or streak system. Agenda/Home integration can then consume the same weekly model. AI remains exploratory rather than a committed next slice.
+
+See [`usage-audit-2026-10.md`](usage-audit-2026-10.md) and [`weekly-rhythm.md`](weekly-rhythm.md).
 
 ## Progress at a glance
 
@@ -15,8 +17,8 @@ graph LR
     S1["Slices 1–12<br/>Foundation + modules<br/>✅"]
     UX["UI/UX consolidation<br/>✅"]
     CTX["Personal Context Layer<br/>+ Inspector<br/>✅"]
-    AUDIT["Selected next<br/>Real-use audit"]
-    RHY["Next build<br/>Weekly Rhythm"]
+    AUDIT["Real-use audit<br/>✅"]
+    RHY["Selected next<br/>Weekly Rhythm"]
     INT["Then<br/>Agenda / Home<br/>integration"]
     LAB["Later experiment<br/>LLM sandbox / Advisor<br/>only if useful"]
 
@@ -26,9 +28,9 @@ graph LR
     classDef selected fill:#eff6ff,stroke:#3b82f6,color:#1e3a8a;
     classDef experimental fill:#fff7ed,stroke:#f59e0b,color:#78350f;
     classDef planned fill:#f8fafc,stroke:#94a3b8,color:#334155;
-    class S1,UX,CTX done;
-    class AUDIT selected;
-    class RHY,INT planned;
+    class S1,UX,CTX,AUDIT done;
+    class RHY selected;
+    class INT planned;
     class LAB experimental;
 ```
 
@@ -154,24 +156,34 @@ It shows:
 
 This is a development/privacy-audit surface rather than a normal daily workflow. It allows the context boundary to be inspected before any LLM provider is introduced.
 
-## Selected next — real-use audit and Weekly Rhythm
+## Selected next — Weekly Rhythm
 
-Before adding another broad module, review which PCC spaces are used frequently, occasionally, rarely, or not at all and why. That should reveal where existing workflows deserve refinement and where integration would create more value than new features.
+The real-use audit is complete enough to choose the next implementation slice.
 
-The first planned consumer of the Context Layer is **Weekly Rhythm**.
+The strongest signal is a gap between work with a genuinely meaningful date and work that should remain visible during the week but can happen flexibly. Arbitrary dates can become hiding places when items are repeatedly rescheduled.
 
-The intended model is deliberately more flexible than a traditional habit tracker:
+Weekly Rhythm should solve that gap without duplicating Tasks, Projects, Review, or Google Calendar.
 
-- fixed commitments remain hard constraints;
-- dated Tasks and Project Actions remain normal actionable work;
-- flexible weekly intentions can express goals such as “run 3 times” or “do focused work on 4 days” without choosing exact days in advance;
-- optional preferences may describe useful patterns such as morning/evening or approximate session length;
-- completion is counted across the week rather than treated as a streak or a missed daily obligation;
-- the week should retain room for spontaneous choices.
+The defined model includes:
 
-This gives PCC enough structure to help build habits while preserving irregular weeks instead of inventing a routine the user does not actually follow.
+- **Fixed commitments** — read-only time-specific events that constrain the week;
+- **Dated work** — existing Tasks and Project Actions with meaningful dates;
+- **Weekly Focus** — references to existing Tasks/Project Actions chosen for the current week without inventing a specific date;
+- **Rhythm intentions** — flexible weekly targets such as doing something 2–4 times during the week;
+- **Completion events** — lightweight history rather than a mutable streak counter.
 
-After Weekly Rhythm proves its shape, Agenda/Home can consume the same context to present a useful near-term horizon without attempting to replace Google Calendar.
+Weekly Rhythm uses the established **Saturday-to-Friday** period so Saturday Review can naturally close the previous week and open the next planning horizon.
+
+The initial experience should be a phone-first **This Week** view with simple progress, not a generic routine database. No XP, streak flames, rigid daily schedules, or automatic guilt-oriented carry-forward are planned.
+
+See [`weekly-rhythm.md`](weekly-rhythm.md) for the implementation-ready product specification and [`usage-audit-2026-10.md`](usage-audit-2026-10.md) for the evidence behind it.
+
+After Weekly Rhythm proves useful:
+
+1. Home can surface a compact weekly horizon;
+2. Agenda can be simplified, repurposed, or removed if Rhythm plus the specialist Calendar already covers its value;
+3. Weekly Review can include Rhythm target/progress and carry-forward context;
+4. the Personal Context Layer can add a dedicated Rhythm domain for later deterministic or AI consumers.
 
 ## AI direction — experiment, not committed product slice
 
@@ -302,23 +314,13 @@ Examples:
 
 Shared context should make later integrations possible without forcing them.
 
-## Later exploration — Weekly Rhythm and connected planning
+## Weekly Rhythm and connected planning
 
-**Status: concept retained; requires product design before implementation.**
+**Status: selected next slice; product model defined.**
 
-Weekly Rhythm may eventually describe the expected shape of a week without becoming a generic habit tracker or hour-by-hour calendar.
+Weekly Rhythm now has an implementation-ready design covering weekly focus, recurring intentions, progress events, week boundaries, Home/Agenda integration, Review integration, and Context Layer follow-up.
 
-Potential inputs include:
-
-- dated Tasks and project actions;
-- Calendar events;
-- recent Weekly Review context;
-- recurring work/study/training commitments;
-- preferred working locations/day types;
-- later Food/meal-prep expectations;
-- exceptions for unusually busy, free, travel, or recovery days.
-
-Its value must come from reducing planning friction rather than duplicating Calendar or Tasks.
+See [`weekly-rhythm.md`](weekly-rhythm.md).
 
 ## Targeted cross-space integrations
 
@@ -363,7 +365,11 @@ Prefer imported activity/trend summaries over a manual workout logger. Recurring
 
 ### Library follow-ups
 
-Photo-assisted book identification remains tracked in issue #33. Metadata lookup, richer progress, highlights, streaming availability, and automatic catalog imports should wait for observed need.
+Photo-assisted book identification remains tracked in issue #33.
+
+A new observed need is lightweight **comic-run support** inside Books rather than another top-level Library shelf. A future Book editor option should distinguish ordinary books from sequential/comic works and may expose current issue plus lightweight issues-read information. Physical/digital format should be separate from Owned/Borrowed/Wishlist status.
+
+See [`book-library.md`](book-library.md). Metadata lookup, highlights, streaming availability, and automatic catalog imports should still wait for observed need.
 
 ### Weekly Review Web Push
 

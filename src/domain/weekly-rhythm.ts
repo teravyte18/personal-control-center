@@ -248,7 +248,7 @@ export function normalizeWeeklyFocus(value: unknown): WeeklyFocus | null {
     weekStart: value.weekStart,
     sourceType: value.sourceType as WeeklyFocusSourceType,
     sourceItemId: value.sourceItemId,
-    sourceActionId,
+    sourceActionId: sourceActionId ?? undefined,
     createdAt: value.createdAt,
   };
 }

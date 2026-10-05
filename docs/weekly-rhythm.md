@@ -130,22 +130,18 @@ Do not store only a mutable counter; completion events preserve useful history f
 
 ## Week boundaries
 
-Use the same Saturday-to-Friday period as Weekly Review **only if** doing so clearly improves coherence in implementation/testing.
+Use **Saturday-to-Friday**, matching the established Weekly Review rhythm.
 
-Otherwise prefer Monday-to-Sunday for planning and keep Review's Saturday-to-Friday reflection period independent.
+This creates one coherent transition:
 
-Before implementation, choose one convention deliberately and document it in tests. Do not create accidental off-by-one differences across Home, Rhythm, and Review.
+1. Saturday Review reflects on the period that just ended;
+2. the next Saturday-to-Friday Rhythm period becomes the active planning horizon;
+3. unfinished Weekly Focus items can be consciously carried, parked, or released during that transition;
+4. Rhythm progress and Review context share the same period boundaries.
 
-### Recommended decision
+This is more useful than adopting Monday-to-Sunday simply because it is conventional. Existing Monday-based helper logic for other views can remain where appropriate; Weekly Rhythm should have explicit tested helpers for its own Saturday-to-Friday period.
 
-Use **Monday-to-Sunday for Weekly Rhythm**.
-
-Reasoning:
-
-- it matches ordinary planning expectations;
-- the existing project/action weekly helpers already treat Monday as the week start;
-- Weekly Review can still reflect its existing Saturday-to-Friday period;
-- the two concepts do not need identical boundaries because one is forward planning and the other is an established reflection ritual.
+Do not infer week boundaries from locale defaults. Keep the rule deterministic and covered by tests.
 
 ## Proposed persistence model
 
@@ -319,7 +315,7 @@ The first implementation should include:
 - active/paused rhythm intentions;
 - target-per-week;
 - one-tap completion and undo/delete;
-- Monday-to-Sunday current-week progress;
+- Saturday-to-Friday current-week progress;
 - Weekly Focus references for existing Tasks and Project Actions;
 - current-week dated Tasks/Project Actions;
 - a compact fixed-commitments area if reliable Calendar input is already available;

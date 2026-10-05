@@ -397,7 +397,7 @@ These remain candidates rather than selected commitments:
 - Trips;
 - imported Fitness/activity summaries;
 - Food meal-prep/freezer/weekly-meal extensions after real Recipe Book use;
-- Library comic-run support inside Books (content type, physical/digital format, current issue, lightweight issues-read tracking), plus metadata/photo-assisted identification/highlights when friction justifies them;
+- **Library comic/sequential-work support inside Books**: optional comic type/toggle, Physical/Digital/Both format, current issue/resume position, and lightweight tolerant issues-read ranges; do not require issue-by-issue catalogue completeness;
 - optional inbound/two-way Calendar when ownership/conflict rules are clear;
 - advanced theme art direction.
 

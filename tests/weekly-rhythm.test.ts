@@ -140,7 +140,7 @@ test("Weekly Focus resolves canonical Tasks and Project Actions and ignores comp
   assert.equal(taskFocus.weekStart, "2026-10-03");
 
   const resolved = currentWeeklyFocus([task, project], [actionFocus, taskFocus], new Date("2026-10-05T12:00:00.000Z"));
-  assert.deepEqual(resolved.map((entry) => entry.title), ["Flexible task", "Flexible action"]);
+  assert.deepEqual(resolved.map((entry) => entry.title), ["Flexible action", "Flexible task"]);
   assert.equal(resolveWeeklyFocus([{ ...task, status: "completed" }], taskFocus)?.active, false);
 
   assert.deepEqual(normalizeWeeklyFocuses([

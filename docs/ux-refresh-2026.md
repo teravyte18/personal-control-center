@@ -88,16 +88,17 @@ Calendar context may later appear here, but Home should not blindly mirror every
 
 ## Calendar / Agenda direction
 
-Agenda is **not selected for visual polish yet**.
+Agenda is **not selected for independent visual polish**. Weekly Rhythm is now the selected next planning slice and should be tested before deciding whether Agenda remains a separate destination.
 
 Google Calendar remains the specialist calendar. PCC should consume calendar context where useful rather than attempting to replace the full Google Calendar experience.
 
 Likely follow-up direction:
 
-- allow selected calendars to contribute upcoming events to PCC;
-- support source visibility controls so low-action calendars such as sports/holidays can stay out of Home/Today;
+- Weekly Rhythm becomes the main cross-space weekly horizon;
+- allow selected/reliable calendar sources to contribute only the commitments needed for planning;
+- support source visibility/coverage so PCC does not overstate availability when some calendars are absent;
 - optionally retain a compact Upcoming view if a combined Task / Project Action / Calendar horizon proves useful;
-- remove or simplify the dedicated Agenda space if Home/Upcoming provides the useful value.
+- remove, redirect, or simplify the dedicated Agenda space if Rhythm + Home + Google Calendar provide the useful value.
 
 Do not spend significant UI work on the existing Agenda screen until this product decision is resolved.
 

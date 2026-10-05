@@ -4,9 +4,9 @@
 
 A standalone **Personal Advisor** is no longer a committed next product feature.
 
-The useful conclusion from the original Advisor design is broader: Personal Control Center should first gain a reusable **Personal Context Layer** that can represent selected information across its existing domains without giving integrations blanket database access.
+The useful conclusion from the original Advisor design is broader: Personal Control Center now has a reusable **Personal Context Layer** that represents selected information across its existing domains without giving integrations blanket database access.
 
-After that foundation exists, PCC may host a small **LLM sandbox** to learn how provider APIs, model choice, reasoning effort, context construction, memory, tool use, privacy, and cost behave with real personal data. The sandbox is an experiment, not a promise that PCC needs a permanent AI chat surface.
+The next product work should first use that infrastructure in deterministic workflows such as Weekly Rhythm and Agenda/Home integration. PCC may later host a small **LLM sandbox** to learn how provider APIs, model choice, reasoning effort, context construction, memory, tool use, privacy, and cost behave with real personal data. The sandbox is an experiment, not a promise that PCC needs a permanent AI chat surface.
 
 A future Advisor, contextual AI features, or an external ChatGPT/MCP-style connection may be promoted only if actual use demonstrates value beyond what the deterministic application or an ordinary ChatGPT conversation already provides.
 
@@ -32,7 +32,7 @@ The stronger goals are:
 
 PCC already stores different parts of a person's life in useful but mostly independent domains: Projects, Tasks, Weekly Reviews, Thoughts, Notes, Library, Food, Expenses, Calendar-linked dates, and other future data.
 
-The next architectural goal is to make selected domains able to answer questions such as:
+The implemented context foundation makes selected domains able to answer questions such as:
 
 - what is currently being worked toward?
 - what is due, overdue, waiting, or repeatedly postponed?
@@ -45,68 +45,52 @@ This context is useful infrastructure even if no LLM feature survives. It may la
 
 ## Personal Context Layer
 
-Each eligible domain should expose a compact, deterministic, user-scoped representation of the information another feature may need.
+The context layer is implemented in `src/domain/personal-context.ts`.
 
-Conceptual providers may resemble:
+It currently supports eight explicit domains:
 
-```text
-getProjectContext(...)
-getTaskContext(...)
-getReviewContext(...)
-getLibraryContext(...)
-getFoodContext(...)
-getThoughtContext(...)
-getExpenseContext(...)
-```
+- Projects;
+- Tasks;
+- Weekly Reviews;
+- Thoughts;
+- Notes;
+- Library;
+- Food;
+- Expenses.
 
-The exact function names and representation are implementation details. The important boundary is that integrations consume deliberate domain context rather than arbitrary database rows.
+`buildPersonalContext({ domains, purpose, limits })` composes those domains from the normal canonical Personal Data snapshot. The result is deterministic, read-only, and versioned.
 
-A higher-level builder may compose selected providers:
+The implementation:
 
-```text
-buildPersonalContext({
-  domains,
-  purpose,
-  limits,
-})
-```
+- keeps open/current work prominent while retaining bounded recent completions;
+- preserves stable record IDs for grounding;
+- applies per-domain record caps, recency windows, text truncation, and project-action caps;
+- exposes derived Library/Food/Expense representations rather than raw special-note metadata;
+- tolerates sparse domains and empty history;
+- does not require or call any model provider;
+- does not expose Calendar or Markets yet because no selected consumer needs them;
+- cannot request Keychain because Keychain is absent from the domain type/parser/builder.
 
-### Context-layer rules
+The authenticated endpoint is `GET /api/personal-context?domains=...&purpose=...`. It only accepts declared domains and loads state after normal session authentication.
 
-The layer should:
-
-- use deterministic application state as the source of truth;
-- be scoped to the authenticated user;
-- expose only explicitly requested domains;
-- prefer current state, ratings, reflections, dates, status, and bounded recent history;
-- preserve stable record identifiers where useful for grounding;
-- distinguish missing data from negative evidence;
-- tolerate sparse history rather than requiring exhaustive backfilling;
-- have predictable size limits;
-- remain useful without any AI provider;
-- never depend on Keychain tables, APIs, ciphertext, metadata, decrypted state, or client modules.
-
-A generic `query_database` tool for an LLM is explicitly not the target architecture.
+A generic `query_database` tool for an LLM remains explicitly outside the architecture.
 
 ## Context Inspector
 
-During development, a small internal **Context Inspector** is desirable.
+The internal **Context Inspector** is implemented at `/spaces/context` and is reachable through the System group in All Spaces.
 
-It should make the context boundary visible rather than magical. Useful information may include:
+It lets the user select context domains and a purpose, then shows:
 
-- enabled domain;
-- record/count summary;
-- approximate byte/token size;
-- the exact structured/text representation that an integration would receive;
-- applied recency or count limits.
+- the exact generated JSON representation;
+- the active record/recency/text/action limits;
+- character count;
+- an approximate token count.
 
-This is primarily a development and privacy-audit tool, not a new everyday PCC space.
-
-It should be possible to validate the Personal Context Layer before any provider API key exists.
+This is primarily a development and privacy-audit tool rather than an everyday workflow. It makes it possible to inspect exactly what a future integration would receive before any provider API key or model request exists.
 
 ## LLM sandbox
 
-After the context foundation works, PCC may add a deliberately experimental LLM surface.
+After the context foundation has been exercised by deterministic integrations and real usage, PCC may add a deliberately experimental LLM surface.
 
 The sandbox should exist to answer engineering questions, not to justify an “AI” label. A first version may expose:
 

@@ -63,6 +63,10 @@ All Spaces (/spaces)
   - Account & access
 ```
 
+## Current direction
+
+The module-building phase and broad UI consolidation are complete. PCC now includes a deterministic **Personal Context Layer** plus a Context Inspector for deliberate cross-space integration. The next product work is a real-use audit followed by a flexible **Weekly Rhythm** exploration; a polished AI Advisor is not currently the next committed feature.
+
 ## Documentation map
 
 Start with [`docs/README.md`](docs/README.md) for the current documentation index and the distinction between live operational guidance and historical slice plans.

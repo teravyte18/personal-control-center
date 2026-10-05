@@ -7,12 +7,21 @@ import {
   type ReviewDraft,
   type ReviewEntry,
 } from "@/domain/personal-data";
+import {
+  normalizeRhythmCompletions,
+  normalizeRhythmTemplates,
+  normalizeWeeklyFocuses,
+  type RhythmCompletion,
+  type RhythmTemplate,
+  type WeeklyFocus,
+} from "@/domain/weekly-rhythm";
 
 const ITEMS_KEY = "pcc-items-v2";
 const LEGACY_ITEMS_KEY = "pcc-items-v1";
 const REVIEW_DRAFT_KEY = "pcc-review-draft-v2";
 const LEGACY_REVIEW_KEY = "pcc-review-v1";
 const REVIEW_HISTORY_KEY = "pcc-review-history-v1";
+const RHYTHM_KEY = "pcc-weekly-rhythm-v1";
 export const activeBrowserUserStorageKey = "pcc-active-browser-user-v1";
 
 export type BrowserUserIdentity = {
@@ -27,6 +36,9 @@ export type StoredPersonalData = {
   items: Item[];
   draft: ReviewDraft;
   history: ReviewEntry[];
+  rhythmTemplates: RhythmTemplate[];
+  rhythmCompletions: RhythmCompletion[];
+  weeklyFocuses: WeeklyFocus[];
 };
 
 export function loadActiveBrowserUser(storage: StorageReader): BrowserUserIdentity | null {
@@ -72,11 +84,16 @@ export function loadPersonalData(storage: StorageReader): StoredPersonalData {
     const storedItems = readForActiveUser(storage, ITEMS_KEY, LEGACY_ITEMS_KEY);
     const storedDraft = readForActiveUser(storage, REVIEW_DRAFT_KEY, LEGACY_REVIEW_KEY);
     const storedHistory = readForActiveUser(storage, REVIEW_HISTORY_KEY);
+    const storedRhythm = readForActiveUser(storage, RHYTHM_KEY);
+    const rhythm = storedRhythm ? JSON.parse(storedRhythm) as Record<string, unknown> : {};
 
     return {
       items: storedItems ? normalizeItems(JSON.parse(storedItems)) : [],
       draft: storedDraft ? normalizeReviewDraft(JSON.parse(storedDraft)) : { ...emptyReview },
       history: storedHistory ? normalizeReviewHistory(JSON.parse(storedHistory)) : [],
+      rhythmTemplates: normalizeRhythmTemplates(rhythm.rhythmTemplates),
+      rhythmCompletions: normalizeRhythmCompletions(rhythm.rhythmCompletions),
+      weeklyFocuses: normalizeWeeklyFocuses(rhythm.weeklyFocuses),
     };
   } catch (error) {
     console.warn("Could not load locally saved personal data.", error);
@@ -84,6 +101,9 @@ export function loadPersonalData(storage: StorageReader): StoredPersonalData {
       items: [],
       draft: { ...emptyReview },
       history: [],
+      rhythmTemplates: [],
+      rhythmCompletions: [],
+      weeklyFocuses: [],
     };
   }
 }
@@ -105,11 +125,29 @@ export function saveReviews(storage: StorageWriter, draft: ReviewDraft, history:
   }
 }
 
+export function saveRhythm(
+  storage: StorageWriter,
+  rhythmTemplates: RhythmTemplate[],
+  rhythmCompletions: RhythmCompletion[],
+  weeklyFocuses: WeeklyFocus[],
+) {
+  try {
+    writeForActiveUser(storage, RHYTHM_KEY, JSON.stringify({
+      rhythmTemplates,
+      rhythmCompletions,
+      weeklyFocuses,
+    }));
+  } catch (error) {
+    console.warn("Could not save Weekly Rhythm locally.", error);
+  }
+}
+
 export const personalStorageKeys = {
   items: ITEMS_KEY,
   legacyItems: LEGACY_ITEMS_KEY,
   reviewDraft: REVIEW_DRAFT_KEY,
   legacyReviewDraft: LEGACY_REVIEW_KEY,
   reviewHistory: REVIEW_HISTORY_KEY,
+  rhythm: RHYTHM_KEY,
   activeBrowserUser: activeBrowserUserStorageKey,
 } as const;

@@ -6,7 +6,7 @@ A standalone **Personal Advisor** is no longer a committed next product feature.
 
 The useful conclusion from the original Advisor design is broader: Personal Control Center now has a reusable **Personal Context Layer** that represents selected information across its existing domains without giving integrations blanket database access.
 
-The next product work should first use that infrastructure in deterministic workflows, beginning with Weekly Rhythm and then Home/Agenda integration. The real-use audit also confirms that Weekly Review is a particularly valuable longitudinal source because it captures interpretation and lessons rather than only raw activity. PCC may later host a small **LLM sandbox** to learn how provider APIs, model choice, reasoning effort, context construction, memory, tool use, privacy, and cost behave with real personal data. The sandbox is an experiment, not a promise that PCC needs a permanent AI chat surface.
+That infrastructure is now used by Weekly Rhythm and Weekly Review. The combined slice should be tested before deciding how much of the weekly horizon belongs on Home or replaces Agenda. The real-use audit also confirms that Weekly Review is a particularly valuable longitudinal source because it captures interpretation and lessons rather than only raw activity. PCC may later host a small **LLM sandbox** to learn how provider APIs, model choice, reasoning effort, context construction, memory, tool use, privacy, and cost behave with real personal data. The sandbox is an experiment, not a promise that PCC needs a permanent AI chat surface.
 
 A future Advisor, contextual AI features, or an external ChatGPT/MCP-style connection may be promoted only if actual use demonstrates value beyond what the deterministic application or an ordinary ChatGPT conversation already provides.
 
@@ -47,11 +47,12 @@ This context is useful infrastructure even if no LLM feature survives. It may la
 
 The context layer is implemented in `src/domain/personal-context.ts`.
 
-It currently supports eight explicit domains:
+It currently supports nine explicit domains:
 
 - Projects;
 - Tasks;
 - Weekly Reviews;
+- Weekly Rhythm;
 - Thoughts;
 - Notes;
 - Library;
@@ -63,6 +64,7 @@ It currently supports eight explicit domains:
 The implementation:
 
 - exposes the current Weekly Review draft plus bounded recent completed reviews, including reflective fields such as what happened, what went well, what was difficult, what was learned, and what should change next;
+- exposes current Weekly Rhythm intentions, target/progress, and resolved Weekly Focus;
 - keeps open/current work prominent while retaining bounded recent completions;
 - preserves stable record IDs for grounding;
 - applies per-domain record caps, recency windows, text truncation, and project-action caps;
@@ -332,7 +334,7 @@ If those signals do not appear, the experiment may remain a developer tool, be r
 ## Likely sequence
 
 1. Personal Context Layer and Context Inspector — **implemented**;
-2. Weekly Rhythm and deterministic Home/Review integration — **selected next**;
+2. Weekly Rhythm and Review integration — **implemented in PR #79; pending real-use test**;
 3. define a provider-neutral LLM adapter and test one local or hosted provider;
 4. add a small explicit multi-turn sandbox with inspectable context;
 5. compare model quality, latency, context selection, and cost/privacy trade-offs using real questions;

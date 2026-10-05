@@ -23,6 +23,15 @@ import {
   type ReviewEntry,
 } from "@/domain/personal-data";
 import {
+  createRhythmCompletion,
+  createRhythmTemplate,
+  createWeeklyFocus,
+  type RhythmDaypart,
+  type RhythmState,
+  type RhythmTemplate,
+  type WeeklyFocusSourceType,
+} from "@/domain/weekly-rhythm";
+import {
   applyPersonalDataMutation,
   createPersonalDataExport,
   emptyPersonalDataSnapshot,
@@ -31,7 +40,7 @@ import {
   type PersonalDataMutation,
   type PersonalDataSnapshot,
 } from "@/domain/personal-data-snapshot";
-import { loadPersonalData, saveItems, saveReviews } from "@/lib/personal-storage";
+import { loadPersonalData, saveItems, saveReviews, saveRhythm } from "@/lib/personal-storage";
 
 const LOCAL_SAVE_DELAY_MS = 400;
 const SERVER_REFRESH_INTERVAL_MS = 5_000;
@@ -76,6 +85,28 @@ type PersonalDataContextValue = {
   history: ReviewEntry[];
   updateDraft: (field: keyof ReviewDraft, value: string) => void;
   completeReview: () => ReviewEntry;
+  rhythmTemplates: RhythmTemplate[];
+  rhythmCompletions: PersonalDataSnapshot["rhythmCompletions"];
+  weeklyFocuses: PersonalDataSnapshot["weeklyFocuses"];
+  addRhythm: (
+    title: string,
+    targetPerWeek: number,
+    options?: {
+      area?: Item["area"];
+      preferredDaypart?: RhythmDaypart;
+      approximateMinutes?: number;
+      note?: string;
+    },
+  ) => RhythmTemplate | null;
+  updateRhythm: (
+    id: string,
+    updates: Partial<Pick<RhythmTemplate, "title" | "targetPerWeek" | "area" | "preferredDaypart" | "approximateMinutes" | "note" | "state">>,
+  ) => void;
+  deleteRhythm: (id: string) => void;
+  addRhythmCompletion: (templateId: string, note?: string) => void;
+  deleteRhythmCompletion: (id: string) => void;
+  addWeeklyFocus: (sourceType: WeeklyFocusSourceType, sourceItemId: string, sourceActionId?: string) => void;
+  removeWeeklyFocus: (id: string) => void;
   dataMode: DataMode;
   syncing: boolean;
   syncError: string;
@@ -209,6 +240,7 @@ export function PersonalDataProvider({ children }: { children: ReactNode }) {
     const current = snapshotRef.current;
     saveItems(window.localStorage, current.items);
     saveReviews(window.localStorage, current.draft, current.history);
+    saveRhythm(window.localStorage, current.rhythmTemplates, current.rhythmCompletions, current.weeklyFocuses);
   }, []);
 
   useEffect(() => {
@@ -354,6 +386,9 @@ export function PersonalDataProvider({ children }: { children: ReactNode }) {
   const items = snapshot.items;
   const draft = snapshot.draft;
   const history = snapshot.history;
+  const rhythmTemplates = snapshot.rhythmTemplates;
+  const rhythmCompletions = snapshot.rhythmCompletions;
+  const weeklyFocuses = snapshot.weeklyFocuses;
   const openItems = useMemo(
     () => items.filter((item) => !["completed", "archived"].includes(item.status)),
     [items],
@@ -447,6 +482,62 @@ export function PersonalDataProvider({ children }: { children: ReactNode }) {
     return entry;
   }, [commitMutation]);
 
+  const addRhythm = useCallback((
+    title: string,
+    targetPerWeek: number,
+    options: {
+      area?: Item["area"];
+      preferredDaypart?: RhythmDaypart;
+      approximateMinutes?: number;
+      note?: string;
+    } = {},
+  ) => {
+    const template = createRhythmTemplate(title, targetPerWeek, options);
+    if (!template) return null;
+    commitMutation({ type: "add-rhythm-template", template });
+    return template;
+  }, [commitMutation]);
+
+  const updateRhythm = useCallback((
+    id: string,
+    updates: Partial<Pick<RhythmTemplate, "title" | "targetPerWeek" | "area" | "preferredDaypart" | "approximateMinutes" | "note" | "state">>,
+  ) => {
+    commitMutation({
+      type: "update-rhythm-template",
+      id,
+      updates,
+      occurredAt: new Date().toISOString(),
+    });
+  }, [commitMutation]);
+
+  const deleteRhythm = useCallback((id: string) => {
+    commitMutation({ type: "delete-rhythm-template", id });
+  }, [commitMutation]);
+
+  const addRhythmCompletion = useCallback((templateId: string, note = "") => {
+    const completion = createRhythmCompletion(templateId, new Date(), note);
+    if (!completion) return;
+    commitMutation({ type: "add-rhythm-completion", completion });
+  }, [commitMutation]);
+
+  const deleteRhythmCompletion = useCallback((id: string) => {
+    commitMutation({ type: "delete-rhythm-completion", id });
+  }, [commitMutation]);
+
+  const addWeeklyFocus = useCallback((
+    sourceType: WeeklyFocusSourceType,
+    sourceItemId: string,
+    sourceActionId?: string,
+  ) => {
+    const focus = createWeeklyFocus(sourceType, sourceItemId, sourceActionId);
+    if (!focus) return;
+    commitMutation({ type: "add-weekly-focus", focus });
+  }, [commitMutation]);
+
+  const removeWeeklyFocus = useCallback((id: string) => {
+    commitMutation({ type: "remove-weekly-focus", id });
+  }, [commitMutation]);
+
   const value = useMemo<PersonalDataContextValue>(() => ({
     items,
     loaded,
@@ -466,6 +557,16 @@ export function PersonalDataProvider({ children }: { children: ReactNode }) {
     history,
     updateDraft,
     completeReview,
+    rhythmTemplates,
+    rhythmCompletions,
+    weeklyFocuses,
+    addRhythm,
+    updateRhythm,
+    deleteRhythm,
+    addRhythmCompletion,
+    deleteRhythmCompletion,
+    addWeeklyFocus,
+    removeWeeklyFocus,
     dataMode,
     syncing,
     syncError,
@@ -492,6 +593,16 @@ export function PersonalDataProvider({ children }: { children: ReactNode }) {
     history,
     updateDraft,
     completeReview,
+    rhythmTemplates,
+    rhythmCompletions,
+    weeklyFocuses,
+    addRhythm,
+    updateRhythm,
+    deleteRhythm,
+    addRhythmCompletion,
+    deleteRhythmCompletion,
+    addWeeklyFocus,
+    removeWeeklyFocus,
     dataMode,
     syncing,
     syncError,
@@ -548,6 +659,36 @@ export function usePersonalData() {
 export function useReviewData() {
   const { draft, history, loaded, updateDraft, completeReview } = usePersonalDataContext();
   return { draft, history, loaded, updateDraft, completeReview };
+}
+
+export function useRhythmData() {
+  const {
+    rhythmTemplates,
+    rhythmCompletions,
+    weeklyFocuses,
+    loaded,
+    addRhythm,
+    updateRhythm,
+    deleteRhythm,
+    addRhythmCompletion,
+    deleteRhythmCompletion,
+    addWeeklyFocus,
+    removeWeeklyFocus,
+  } = usePersonalDataContext();
+
+  return {
+    rhythmTemplates,
+    rhythmCompletions,
+    weeklyFocuses,
+    loaded,
+    addRhythm,
+    updateRhythm,
+    deleteRhythm,
+    addRhythmCompletion,
+    deleteRhythmCompletion,
+    addWeeklyFocus,
+    removeWeeklyFocus,
+  };
 }
 
 export function useDataConnection() {

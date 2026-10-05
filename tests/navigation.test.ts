@@ -61,7 +61,7 @@ test("Library can be pinned without changing the default quick access", () => {
 test("mobile quick access removes duplicates and unavailable spaces", () => {
   assert.deepEqual(
     normalizeMobilePinnedDestinationIds(["thoughts", "thoughts", "archive", "library", "tasks"]),
-    ["thoughts", "library", "tasks", "inbox"],
+    ["thoughts", "library", "tasks", "projects"],
   );
 });
 

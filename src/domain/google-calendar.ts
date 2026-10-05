@@ -119,5 +119,12 @@ export function mutationAffectsGoogleCalendar(mutation: MutationLike) {
     "delete-expense-transaction",
     "update-expense-settings",
     "set-expense-reconciled-through",
+    "add-rhythm-template",
+    "update-rhythm-template",
+    "delete-rhythm-template",
+    "add-rhythm-completion",
+    "delete-rhythm-completion",
+    "add-weekly-focus",
+    "remove-weekly-focus",
   ].includes(mutation.type);
 }

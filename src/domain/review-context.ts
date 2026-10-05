@@ -1,10 +1,25 @@
 import { dateWithinPeriod, getBooks, isBookItem } from "@/domain/library";
 import { getOpenProjectActions, isOpenTask, isProjectActionTargetReached, projectRequiresNextAction, type Item } from "@/domain/personal-data";
 import { formatLocalDate, isTimestampInReviewPeriod, type ReviewPeriod } from "@/domain/weekly-review";
+import {
+  getRhythmProgress,
+  resolveWeeklyFocus,
+  type RhythmCompletion,
+  type RhythmTemplate,
+  type WeeklyFocus,
+} from "@/domain/weekly-rhythm";
 
 export type ReviewLine = { id: string; text: string; detail?: string };
 
-export function buildReviewContext(items: Item[], period: ReviewPeriod) {
+export function buildReviewContext(
+  items: Item[],
+  period: ReviewPeriod,
+  rhythm?: {
+    templates: RhythmTemplate[];
+    completions: RhythmCompletion[];
+    focuses: WeeklyFocus[];
+  },
+) {
   const openedActions: ReviewLine[] = [];
   const completedActions: ReviewLine[] = [];
   const attention: ReviewLine[] = [];
@@ -47,8 +62,33 @@ export function buildReviewContext(items: Item[], period: ReviewPeriod) {
       detail: book.details.author || undefined,
     }));
 
+  const rhythmProgress: ReviewLine[] = rhythm
+    ? rhythm.templates.flatMap((template): ReviewLine[] => {
+      const progress = getRhythmProgress(template.id, rhythm.completions, period);
+      if (template.state !== "active" && progress.count === 0) return [];
+      return [{
+        id: `rhythm-${template.id}`,
+        text: template.title,
+        detail: `${progress.count} / ${template.targetPerWeek} completed`,
+      }];
+    })
+    : [];
+
+  const unfinishedFocus: ReviewLine[] = rhythm
+    ? rhythm.focuses
+      .filter((focus) => focus.weekStart === period.start)
+      .flatMap((focus): ReviewLine[] => {
+        const resolved = resolveWeeklyFocus(items, focus);
+        return resolved?.active
+          ? [{ id: `focus-${focus.id}`, text: resolved.title, detail: resolved.context }]
+          : [];
+      })
+    : [];
+
   return {
     attention,
+    rhythmProgress,
+    unfinishedFocus,
     openedActions,
     completedActions,
     completedProjects: items.filter((item) => item.kind === "project" && isTimestampInReviewPeriod(item.completedAt, period)),

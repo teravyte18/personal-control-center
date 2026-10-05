@@ -70,6 +70,30 @@ Ambiguous results are intentionally rejected rather than guessed. This is especi
 
 The runtime includes English and Portuguese Tesseract language data. Recognition is occasional CPU work on the Raspberry Pi rather than a continuously running model.
 
+## Comic / sequential-work follow-up
+
+Real use suggests that comics belong inside the Books shelf rather than requiring a fourth top-level Library category, but they need a little more progress structure than ordinary books.
+
+A future Book editor may add an optional **Comic / sequential work** toggle.
+
+When enabled, the record may expose:
+
+- content type: ordinary book or comic/sequential work;
+- format: Unspecified, Physical, Digital, or Both;
+- current issue / resume position;
+- lightweight issues-read information, preferably supporting simple labels or ranges rather than requiring a complete issue catalogue.
+
+The exact issue representation should remain tolerant because comic numbering is irregular. A free-form value such as `#6`, `#1–6`, or `Annual #1` may be more useful initially than enforcing integer-only issue IDs.
+
+The existing ownership field remains separate:
+
+- Owned/Borrowed/Wishlist answers **whether the work is possessed/wanted**;
+- Physical/Digital/Both answers **how it is possessed/read**.
+
+Do not require issue-by-issue completion tracking, variant-cover cataloguing, publication metadata, or exhaustive run backfilling in the first version.
+
+If implemented, the Personal Context Layer should expose current issue/progress only when present.
+
 ## Weekly Review and Calendar
 
 A book appears in generated Review context when its optional start or finish date falls inside the reviewed period. Missing dates remain valid. Books do not create Google Calendar entries.
@@ -95,6 +119,6 @@ A book appears in generated Review context when its optional start or finish dat
 
 ## Current boundaries
 
-The delivered Library does not include ISBN/barcode scanning, reverse-image cover matching, page progress, reading timers, highlights, ebook ingestion, detailed lending, social activity, AI summaries/recommendations, or automatic metadata saving.
+The delivered Library does not yet include Comic/sequential-work progress, ISBN/barcode scanning, reverse-image cover matching, page progress, reading timers, highlights, ebook ingestion, detailed lending, social activity, AI summaries/recommendations, or automatic metadata saving.
 
 Cover recognition is intentionally best-effort OCR + metadata matching rather than a general visual-recognition system.

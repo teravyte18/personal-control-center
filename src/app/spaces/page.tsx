@@ -15,10 +15,10 @@ import {
 const mobileSlotLabels = ["Left 1", "Left 2", "Right 1", "Right 2"] as const;
 
 const destinationGroups = [
-  { label: "Plan", ids: ["inbox", "projects", "tasks", "agenda", "review"] },
+  { label: "Plan", ids: ["projects", "tasks", "rhythm", "review", "agenda", "inbox"] },
   { label: "Reference", ids: ["thoughts", "notes", "library", "food"] },
   { label: "Tracking", ids: ["expenses", "markets"] },
-  { label: "System", ids: ["keychain", "accomplishments", "archive"] },
+  { label: "System", ids: ["keychain", "context", "accomplishments", "archive"] },
 ] as const;
 
 function availableDestination(id: string) {

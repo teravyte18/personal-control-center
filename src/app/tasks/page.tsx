@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, type FormEvent } from "react";
+import { focusMatches, getRhythmPeriod } from "@/domain/weekly-rhythm";
 import {
   areaLabels,
   isOpenTask,
@@ -9,10 +10,13 @@ import {
   type AreaId,
   type Item,
   usePersonalData,
+  useRhythmData,
 } from "@/lib/personal-data";
 
 export default function TasksPage() {
   const { items, addItem, updateItem, toggleCompleted } = usePersonalData();
+  const { weeklyFocuses, addWeeklyFocus, removeWeeklyFocus } = useRhythmData();
+  const rhythmPeriod = useMemo(() => getRhythmPeriod(), []);
   const [creating, setCreating] = useState(false);
   const [title, setTitle] = useState("");
   const [notes, setNotes] = useState("");
@@ -102,8 +106,15 @@ export default function TasksPage() {
             <TaskCard
               key={task.id}
               task={task}
+              weeklyFocusId={weeklyFocuses.find((focus) => (
+                focus.weekStart === rhythmPeriod.start && focusMatches(focus, "task", task.id)
+              ))?.id}
               onUpdate={(updates) => updateItem(task.id, updates)}
               onComplete={() => toggleCompleted(task.id)}
+              onToggleWeeklyFocus={(focusId) => {
+                if (focusId) removeWeeklyFocus(focusId);
+                else addWeeklyFocus("task", task.id);
+              }}
             />
           ))}
         </div>
@@ -115,11 +126,15 @@ export default function TasksPage() {
 function TaskCard({
   task,
   onUpdate,
+  weeklyFocusId,
   onComplete,
+  onToggleWeeklyFocus,
 }: {
   task: Item;
+  weeklyFocusId?: string;
   onUpdate: (updates: Partial<Pick<Item, "title" | "description" | "checkInDate" | "area">>) => void;
   onComplete: () => void;
+  onToggleWeeklyFocus: (focusId?: string) => void;
 }) {
   const overdue = isTaskOverdue(task);
   const dueToday = isTaskDueToday(task);
@@ -182,9 +197,18 @@ function TaskCard({
             </select>
           </label>
         </div>
-        <button type="button" onClick={onComplete} className="mt-5 min-h-11 rounded-xl bg-emerald-700 px-5 text-sm font-semibold text-white">
-          Complete task
-        </button>
+        <div className="mt-5 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => onToggleWeeklyFocus(weeklyFocusId)}
+            className={`min-h-11 rounded-xl border px-4 text-sm font-semibold ${weeklyFocusId ? "border-slate-300 bg-slate-100 text-slate-700" : "border-slate-200 bg-white text-slate-700"}`}
+          >
+            {weeklyFocusId ? "Remove from this week" : "Add to this week"}
+          </button>
+          <button type="button" onClick={onComplete} className="min-h-11 rounded-xl bg-emerald-700 px-5 text-sm font-semibold text-white">
+            Complete task
+          </button>
+        </div>
       </div>
     </details>
   );

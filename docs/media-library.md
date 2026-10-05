@@ -10,6 +10,8 @@ There is no separate top-level Media destination. Library is the umbrella for th
 - **Movies**;
 - **Series**.
 
+Comics/sequential works should remain a mode inside **Books** rather than creating another top-level shelf. They may later gain current-issue and lightweight issues-read progress while sharing the normal Book ownership/rating model.
+
 The underlying Book and Media records remain separate domain models. The unification is a navigation and browsing decision, not an attempt to force books, films, and series into one generic schema.
 
 ## Product role

@@ -9,20 +9,25 @@ import { buildReviewContext, formatDate, type ReviewLine } from "@/domain/review
 import { formatReviewPeriod, getCurrentReviewPeriod, isReviewCompletedForPeriod, isReviewDraftForPeriod } from "@/domain/weekly-review";
 import { useDebouncedField } from "@/hooks/use-debounced-field";
 import type { Item } from "@/lib/personal-data";
-import { usePersonalData, useReviewData } from "@/lib/personal-data";
+import { usePersonalData, useReviewData, useRhythmData } from "@/lib/personal-data";
 
 type Tab = "current" | "history";
 
 export default function ReviewPage() {
   const { items } = usePersonalData();
   const { draft, history, loaded, updateDraft, completeReview } = useReviewData();
+  const { rhythmTemplates, rhythmCompletions, weeklyFocuses } = useRhythmData();
   const [tab, setTab] = useState<Tab>("current");
   const [saved, setSaved] = useState(false);
   const period = getCurrentReviewPeriod();
   const ready = isReviewDraftForPeriod(draft, period);
   const completed = isReviewCompletedForPeriod(history, period);
   const completedEntry = history.find((entry) => entry.periodStart === period.start && entry.periodEnd === period.end);
-  const context = buildReviewContext(items, period);
+  const context = buildReviewContext(items, period, {
+    templates: rhythmTemplates,
+    completions: rhythmCompletions,
+    focuses: weeklyFocuses,
+  });
   const location = useDebouncedField(draft.location, (value) => updateDraft("location", value));
   const happened = useDebouncedField(draft.happened, (value) => updateDraft("happened", value));
   const wentWell = useDebouncedField(draft.wentWell, (value) => updateDraft("wentWell", value));
@@ -80,6 +85,8 @@ export default function ReviewPage() {
                   emphasis
                   emptyLabel="Nothing needs attention."
                 />
+                {context.rhythmProgress.length ? <TextPanel title={`Weekly rhythm (${context.rhythmProgress.length})`} entries={context.rhythmProgress} /> : null}
+                {context.unfinishedFocus.length ? <TextPanel title={`Weekly focus still open (${context.unfinishedFocus.length})`} entries={context.unfinishedFocus} /> : null}
                 {context.openedActions.length ? <TextPanel title={`Actions opened (${context.openedActions.length})`} entries={context.openedActions} /> : null}
                 {context.completedActions.length ? <TextPanel title={`Actions completed (${context.completedActions.length})`} entries={context.completedActions} /> : null}
                 {context.completedProjects.length ? <ItemPanel title={`Projects completed (${context.completedProjects.length})`} items={context.completedProjects} /> : null}

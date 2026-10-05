@@ -1,6 +1,6 @@
 # Personal Control Center
 
-A phone-first private planning, reflection, reading, cooking, and personal-spending system that combines quick capture, projects, one-off tasks, thoughts, editable notes, weekly reviews, a personal book library, a recipe book, and lightweight expense tracking in one self-hosted application.
+A phone-first private planning, reflection, reading, cooking, and personal-spending system that combines quick capture, projects, one-off tasks, flexible Weekly Rhythm planning, thoughts, editable notes, weekly reviews, a personal library, a recipe book, and lightweight expense tracking in one self-hosted application.
 
 This repository targets a small personal deployment rather than a commercial product. Multiple invite-only accounts may use one application and PostgreSQL database, but each account has completely separate personal data.
 
@@ -22,7 +22,8 @@ This repository targets a small personal deployment rather than a commercial pro
 - Standalone Tasks with optional check-in dates and due/overdue attention
 - Read-only-by-default Thoughts for non-actionable observations
 - Editable Notes with compact cards, persistent manual ordering, debounced autosave, and a safe Markdown formatting/preview subset
-- Fixed Saturday-to-Friday Weekly Review periods with generated context, draft persistence, durable photos, expanded history, and in-app reminders
+- Weekly Rhythm with Saturday-to-Friday targets, one-tap progress, Weekly Focus links to existing Tasks/Project Actions, dated work, fixed Calendar commitments, and explicit carry-forward
+- Fixed Saturday-to-Friday Weekly Review periods with generated context, Rhythm progress/focus context, draft persistence, durable photos, expanded history, and reminders
 - A books-first Library whose default My library view contains Owned books only, with explicit Wishlist access, search, generated views, 0–10 ratings, manual Up next ordering, private covers, and review context
 - A Food recipe book with title/tag search, copyable Markdown-style ingredient lists, steps, source links, optional timings/servings/tags/rating/make-again notes, and private recipe photos
 - Personal Expenses with fast manual expense/income entry, fixed 50/30/20 reference amounts, outflow-share cards, a rolling Fun Fund, editable transaction history, and filtered Insights analytics
@@ -45,6 +46,7 @@ Capture (/)
 Inbox (/inbox)
 Projects (/projects)
 Tasks (/tasks)
+Rhythm (/rhythm)
 Thoughts (/thoughts)
 Notes (/notes)
 Review (/review)
@@ -62,6 +64,10 @@ All Spaces (/spaces)
   - Mobile quick access
   - Account & access
 ```
+
+## Current direction
+
+The module-building phase and broad UI consolidation are complete. PR #79 now combines a deterministic **Personal Context Layer**, Context Inspector, and the first **Weekly Rhythm** implementation. The current step is real-use testing of that combined slice before deciding how Home/Agenda should change; a polished AI Advisor is not currently the next committed feature.
 
 ## Documentation map
 

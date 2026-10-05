@@ -235,9 +235,13 @@ A one-way external view of dated open Tasks and dated open project actions. PCC 
 
 ### Personal Context Layer
 
-A planned reusable integration boundary that exposes compact, bounded, user-scoped representations of selected PCC domains.
+An implemented reusable integration boundary that exposes compact, bounded, user-scoped representations of explicitly selected PCC domains.
 
-It is not a generic database API for models. It should be useful both to AI and non-AI cross-space features.
+The current eligible domains are Projects, Tasks, Weekly Reviews, Thoughts, Notes, Library, Food, and Expenses. The layer is deterministic and read-only, preserves useful record identity, applies bounded record/recency/text limits, and is usable by non-AI cross-space features.
+
+The authenticated Context Inspector at `/spaces/context` makes the exact generated representation visible during development. Keychain is structurally excluded from the context domain model and endpoint.
+
+It is not a generic database API for models.
 
 ### LLM experiment
 
@@ -277,19 +281,20 @@ The usable system now includes:
 12. invite-only authentication and isolated multi-device persistence;
 13. one-way Google Calendar projection;
 14. installable PWA assets and public HTTPS ingress;
-15. validated local and encrypted off-site backups.
+15. validated local and encrypted off-site backups;
+16. a bounded Personal Context Layer plus authenticated Context Inspector for deliberate cross-space integration.
 
 ## Current roadmap state
 
-The module-building sequence through Media is complete.
+The module-building sequence through Media is complete, the broad UI/UX consolidation has shipped, and the Personal Context Layer plus Context Inspector are implemented.
 
 The selected direction is now:
 
-1. **Personal Context Layer** — build reusable bounded domain context with no LLM dependency;
-2. **Context Inspector** — make the integration boundary visible/auditable during development;
-3. **LLM sandbox (experimental)** — only after context exists, use PCC to learn/test provider API setup, model/effort, cost, token usage, conversation state, and later memory/tool ideas;
-4. **Evaluate from real usage** — decide whether anything deserves promotion into a normal Advisor, contextual AI feature, external-assistant connector, or no permanent AI product;
-5. **Weekly Rhythm / targeted integration** — continue designing cross-space planning only where it removes real friction.
+1. **Real-use audit** — identify which spaces are used most, least, or awkwardly and use that evidence to choose refinements;
+2. **Weekly Rhythm MVP** — add flexible weekly intentions/cadence without requiring fixed daily schedules, streaks, or guilt-oriented missed-habit states;
+3. **Agenda / Home integration** — use context plus Calendar information to improve the near-term horizon without rebuilding Google Calendar;
+4. **LLM sandbox (experimental)** — only after deterministic integration has a clearer shape, test whether stored PCC context materially improves conversation;
+5. **Evaluate from real usage** — promote an Advisor, external-assistant connector, or model-assisted actions only if repeated value appears.
 
 A polished Personal Advisor is **not currently a committed next feature**.
 
@@ -301,7 +306,7 @@ Prefer **shared context before hard coupling**.
 
 Do not create database relationships just because two domains could theoretically interact.
 
-The Personal Context Layer should let domains expose deliberate representations such as project context, task context, review context, library context, food context, and bounded expense context.
+The Personal Context Layer exposes deliberate representations for Projects, Tasks, Reviews, Thoughts, Notes, Library, Food, and bounded Expenses context. New domains should be added only for a concrete cross-space consumer.
 
 Important rules:
 
@@ -383,7 +388,6 @@ Otherwise the experiment may remain internal, be removed, or become a PCC-to-ext
 These remain candidates rather than selected commitments:
 
 - near-term Today/Tomorrow horizon reached from Home;
-- Weekly Rhythm / recurring weekly structure;
 - Events/Appointments;
 - Routines when recurrence semantics are actually needed;
 - Trips;

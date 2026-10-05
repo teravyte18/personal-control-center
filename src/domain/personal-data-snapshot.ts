@@ -12,7 +12,7 @@ import {
   type ExpenseSettings,
   type ExpenseTransaction,
   type ExpenseTransactionUpdates,
-} from "@/domain/expenses";
+} from "./expenses.ts";
 import {
   areaIds,
   archiveItem,
@@ -37,7 +37,7 @@ import {
   type ProjectActionUpdates,
   type ReviewDraft,
   type ReviewEntry,
-} from "@/domain/personal-data";
+} from "./personal-data.ts";
 import {
   normalizeRhythmCompletion,
   normalizeRhythmCompletions,
@@ -50,7 +50,7 @@ import {
   type RhythmState,
   type RhythmTemplate,
   type WeeklyFocus,
-} from "@/domain/weekly-rhythm";
+} from "./weekly-rhythm.ts";
 
 export const PERSONAL_DATA_EXPORT_FORMAT = "personal-control-center";
 export const PERSONAL_DATA_EXPORT_VERSION = 1;

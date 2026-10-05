@@ -58,6 +58,15 @@ export const destinations: Destination[] = [
     pinnable: true,
   },
   {
+    id: "rhythm",
+    label: "Rhythm",
+    href: "/rhythm",
+    icon: "habits",
+    description: "Plan the week with flexible focus, recurring intentions, dated work, and fixed commitments.",
+    available: true,
+    pinnable: true,
+  },
+  {
     id: "agenda",
     label: "Agenda",
     href: "/agenda",
@@ -175,15 +184,6 @@ export const destinations: Destination[] = [
     pinnable: true,
   },
   {
-    id: "habits",
-    label: "Habits",
-    href: "/habits",
-    icon: "habits",
-    description: "Lightweight recurring practices and routines.",
-    available: false,
-    pinnable: true,
-  },
-  {
     id: "context",
     label: "Context",
     href: "/spaces/context",
@@ -205,15 +205,15 @@ export const destinations: Destination[] = [
 
 export const mobilePinnedDestinationLimit = 4;
 export const desktopPinnedDestinationLimit = 7;
-export const defaultPinnedDestinationIds = ["inbox", "projects", "tasks", "review"] as const;
+export const defaultPinnedDestinationIds = ["projects", "tasks", "rhythm", "review"] as const;
 export const defaultDesktopPinnedDestinationIds = [
-  "inbox",
   "projects",
   "tasks",
-  "agenda",
+  "rhythm",
   "review",
   "library",
   "expenses",
+  "agenda",
 ] as const;
 export const primaryDestinations = destinations.filter((destination) => destination.available && destination.pinnable);
 

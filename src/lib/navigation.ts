@@ -184,6 +184,15 @@ export const destinations: Destination[] = [
     pinnable: true,
   },
   {
+    id: "context",
+    label: "Context",
+    href: "/spaces/context",
+    icon: "settings",
+    description: "Inspect the bounded cross-space context available to PCC integrations.",
+    available: true,
+    pinnable: false,
+  },
+  {
     id: "settings",
     label: "Settings",
     href: "/settings",

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { isProjectActionPastCheckIn } from "@/domain/project-dates";
+import { focusMatches, getRhythmPeriod } from "@/domain/weekly-rhythm";
 import {
   areaLabels,
   getCompletedProjectActions,
@@ -11,6 +12,7 @@ import {
   type ItemStatus,
   type ProjectAction,
   usePersonalData,
+  useRhythmData,
 } from "@/lib/personal-data";
 
 const projectStatuses: Array<{ value: ItemStatus; label: string }> = [
@@ -36,6 +38,8 @@ export function ExpandButton({ label, onClick }: { label: string; onClick: () =>
 
 export function ProjectDetail({ project, onClose, accomplishment = false, archived = false }: { project: Item; onClose: () => void; accomplishment?: boolean; archived?: boolean }) {
   const { updateItem, addProjectAction, updateProjectAction, completeProjectAction, toggleCompleted, archiveItem, restoreArchivedItem } = usePersonalData();
+  const { weeklyFocuses, addWeeklyFocus, removeWeeklyFocus } = useRhythmData();
+  const rhythmPeriod = getRhythmPeriod();
   const [editingProject, setEditingProject] = useState(false);
   const [addingAction, setAddingAction] = useState(false);
   const [completingActionId, setCompletingActionId] = useState<string | null>(null);
@@ -102,6 +106,14 @@ export function ProjectDetail({ project, onClose, accomplishment = false, archiv
                   action={action}
                   primary={index === 0}
                   readOnly={readOnly}
+                  weeklyFocusId={weeklyFocuses.find((focus) => (
+                    focus.weekStart === rhythmPeriod.start
+                    && focusMatches(focus, "project-action", project.id, action.id)
+                  ))?.id}
+                  onToggleWeeklyFocus={(focusId) => {
+                    if (focusId) removeWeeklyFocus(focusId);
+                    else addWeeklyFocus("project-action", project.id, action.id);
+                  }}
                   onComplete={() => { setCompletingActionId(action.id); setEditingActionId(null); setCompletingProject(false); }}
                   onEdit={() => { setEditingActionId(action.id); setCompletingActionId(null); setCompletingProject(false); }}
                 />
@@ -153,7 +165,23 @@ export function ProjectDetail({ project, onClose, accomplishment = false, archiv
   );
 }
 
-function OpenActionCard({ action, primary, readOnly, onComplete, onEdit }: { action: ProjectAction; primary: boolean; readOnly: boolean; onComplete: () => void; onEdit: () => void }) {
+function OpenActionCard({
+  action,
+  primary,
+  readOnly,
+  weeklyFocusId,
+  onToggleWeeklyFocus,
+  onComplete,
+  onEdit,
+}: {
+  action: ProjectAction;
+  primary: boolean;
+  readOnly: boolean;
+  weeklyFocusId?: string;
+  onToggleWeeklyFocus: (focusId?: string) => void;
+  onComplete: () => void;
+  onEdit: () => void;
+}) {
   const overdue = isProjectActionPastCheckIn(action);
   return (
     <article className={`rounded-2xl border p-3.5 sm:p-4 ${overdue ? "border-slate-200 border-l-4 border-l-rose-500 bg-white" : primary ? "border-slate-300 bg-white" : "border-slate-200 bg-white"}`}>
@@ -164,7 +192,19 @@ function OpenActionCard({ action, primary, readOnly, onComplete, onEdit }: { act
           {action.details ? <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-600">{action.details}</p> : null}
           <p className={`mt-1 text-xs ${overdue ? "font-semibold text-rose-700" : "text-slate-500"}`}>{action.targetDate ? `${overdue ? "Check-in passed" : "Check in"} ${formatDateOnly(action.targetDate)}` : "No check-in date"}</p>
         </div>
-        {!readOnly ? <div className="flex shrink-0 gap-1"><button type="button" onClick={onEdit} className="min-h-10 rounded-xl px-3 text-xs font-semibold text-slate-500">Edit</button><button type="button" onClick={onComplete} className="min-h-10 rounded-xl bg-slate-950 px-3 text-xs font-semibold text-white">Complete</button></div> : null}
+        {!readOnly ? (
+          <div className="flex shrink-0 flex-wrap justify-end gap-1">
+            <button
+              type="button"
+              onClick={() => onToggleWeeklyFocus(weeklyFocusId)}
+              className={`min-h-10 rounded-xl px-3 text-xs font-semibold ${weeklyFocusId ? "bg-slate-100 text-slate-700" : "text-slate-500"}`}
+            >
+              {weeklyFocusId ? "This week ✓" : "This week"}
+            </button>
+            <button type="button" onClick={onEdit} className="min-h-10 rounded-xl px-3 text-xs font-semibold text-slate-500">Edit</button>
+            <button type="button" onClick={onComplete} className="min-h-10 rounded-xl bg-slate-950 px-3 text-xs font-semibold text-white">Complete</button>
+          </div>
+        ) : null}
       </div>
       <RescheduleHistory action={action} compact />
     </article>

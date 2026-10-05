@@ -252,6 +252,29 @@ Generated context includes:
 - thoughts added during the period;
 - books started or finished during the period when dates exist.
 
+## Personal Context Layer
+
+Cross-space integrations consume a deterministic Personal Context Layer implemented in `src/domain/personal-context.ts`.
+
+The layer reads the already-normalised per-user `PersonalDataSnapshot`; it does not create a second store or require a database migration. Callers explicitly select from the supported domains:
+
+- Projects;
+- Tasks;
+- Weekly Reviews;
+- Thoughts;
+- Notes;
+- Library;
+- Food;
+- Expenses.
+
+The builder returns a versioned read-only representation with stable record IDs, bounded record counts, bounded recent history, bounded text, and bounded open project actions. Domain-specific encodings such as Book, Media, and Recipe metadata are parsed before exposure rather than leaking their storage representation.
+
+The authenticated `/api/personal-context` route resolves the current session user before loading the canonical snapshot. Its domain parser rejects undeclared domains. Keychain is excluded by construction: the context module has no Keychain import, no Keychain domain value, and no generic database access path.
+
+The Context Inspector at `/spaces/context` calls the same endpoint and renders the exact representation plus an approximate size/token count. It is an inspection/debug surface, not a separate source of truth.
+
+Calendar and Markets are intentionally absent from the first context version. They can be added later when a concrete integration requires a deliberate representation.
+
 ## Google Calendar projection
 
 The optional Calendar integration stores one encrypted refresh-token connection per application user plus durable source-to-event mappings.

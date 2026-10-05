@@ -4,39 +4,32 @@ This roadmap tracks delivered slices and the current product direction. Sequence
 
 The project has now moved out of its module-building phase. The default question is no longer **“what new space should we add?”** but **“how can the information already in Personal Control Center work together?”** New standalone domains should require a clear recurring need.
 
-The selected near-term work is a **UI/UX consolidation refresh** focused on scalable navigation, Home/Today, and visual hierarchy. The Personal Context Layer remains the next architectural direction after this interface work. AI remains exploratory: PCC may be used to learn how personalised LLM systems work, but a polished Personal Advisor is not currently a committed product slice.
+The broad UI/UX consolidation work is complete enough to return to a usage-led approach: future interface changes should respond to concrete friction rather than modernisation for its own sake. The **Personal Context Layer and Context Inspector are now implemented** as the cross-space foundation.
+
+The next product exploration is a short real-use audit followed by **Weekly Rhythm**: flexible weekly intentions and cadence-based planning that can add structure without forcing a rigid daily routine or streak system. Agenda/Home integration can then consume the same context. AI remains exploratory rather than a committed next slice.
 
 ## Progress at a glance
 
 ```mermaid
 graph LR
-    S1["Slice 1<br/>Phone-first foundation<br/>✅ PR #7"]
-    S2["Slice 2<br/>Actionable projects<br/>✅ PR #10"]
-    S3["Slice 3<br/>Durable deployment<br/>✅ PR #13"]
-    S4["Slices 4–6<br/>Tasks, Review, Calendar,<br/>offline capture<br/>✅"]
-    EXT["Workflow extensions<br/>Projects + Notes<br/>✅"]
-    S7["Slice 7<br/>Book Library<br/>✅ PR #32"]
-    S8["Slice 8<br/>UI and themes<br/>✅"]
-    S9["Slice 9<br/>Personal Expenses<br/>✅"]
-    S10["Slice 10<br/>Encrypted Keychain<br/>✅"]
-    S11["Slice 11<br/>Food v1<br/>✅ PR #60"]
-    S12["Slice 12<br/>Unified Library:<br/>Books + Movies + Series<br/>✅ PR #64"]
-    UX["Selected next<br/>UI/UX consolidation"]
-    CTX["After UX refresh<br/>Personal Context Layer"]
-    LAB["Experiment<br/>LLM sandbox + memory<br/>only if useful"]
-    RHY["Later exploration<br/>Weekly Rhythm +<br/>targeted integrations"]
+    S1["Slices 1–12<br/>Foundation + modules<br/>✅"]
+    UX["UI/UX consolidation<br/>✅"]
+    CTX["Personal Context Layer<br/>+ Inspector<br/>✅"]
+    AUDIT["Selected next<br/>Real-use audit"]
+    RHY["Next build<br/>Weekly Rhythm"]
+    INT["Then<br/>Agenda / Home<br/>integration"]
+    LAB["Later experiment<br/>LLM sandbox / Advisor<br/>only if useful"]
 
-    S1 --> S2 --> S3 --> S4 --> EXT --> S7 --> S8 --> S9 --> S10 --> S11 --> S12 --> UX --> CTX --> LAB --> RHY
+    S1 --> UX --> CTX --> AUDIT --> RHY --> INT --> LAB
 
     classDef done fill:#ecfdf5,stroke:#10b981,color:#065f46;
     classDef selected fill:#eff6ff,stroke:#3b82f6,color:#1e3a8a;
     classDef experimental fill:#fff7ed,stroke:#f59e0b,color:#78350f;
     classDef planned fill:#f8fafc,stroke:#94a3b8,color:#334155;
-    class S1,S2,S3,S4,EXT,S7,S8,S9,S10,S11,S12 done;
-    class UX selected;
-    class CTX planned;
+    class S1,UX,CTX done;
+    class AUDIT selected;
+    class RHY,INT planned;
     class LAB experimental;
-    class RHY planned;
 ```
 
 ## Delivered foundation
@@ -119,70 +112,66 @@ Historical completeness is not required. New Media data can accumulate naturally
 
 See [`media-library.md`](media-library.md).
 
-## Current selection — UI/UX consolidation
+## UI/UX consolidation — delivered, now usage-led
 
-**Status: selected next product work; implementation plan in [`ux-refresh-2026.md`](ux-refresh-2026.md).**
+**Status: broad refresh complete; no new generic redesign is selected.**
 
-The refresh keeps the current visual identity while addressing navigation scale, Home/Today hierarchy, excessive card chrome, semantic/theme colour separation, copy density, and operational-page density. Agenda is explicitly a product rethink rather than a page to polish in place.
+Navigation, Home/Today, density, visual hierarchy, and shared interface rules have already received the main consolidation pass recorded in [`ux-refresh-2026.md`](ux-refresh-2026.md).
 
-The work is intentionally split into stacked reviewable slices: Navigation & Shell, Home / Today, then Density & Visual System.
+Further UI work should now come from actual friction, screenshots, or a clearly better interaction pattern. Agenda remains a product/integration question rather than a page that should be cosmetically redesigned in isolation.
 
-## Next architectural direction — Personal Context Layer
+## Personal Context Layer — implemented
 
-**Status: selected after the UI/UX consolidation; not yet implemented.**
+**Status: implemented as deterministic, read-only cross-space infrastructure.**
 
-The next step is not another standalone space. Existing domains should expose small, reusable, bounded representations of the information another feature may need.
+`src/domain/personal-context.ts` now composes bounded representations from explicitly selected domains:
 
-Conceptually, this may look like domain-specific providers such as:
+- Projects;
+- Tasks;
+- Weekly Reviews;
+- Thoughts;
+- Notes;
+- Library;
+- Food;
+- Expenses.
 
-```text
-getProjectContext(...)
-getTaskContext(...)
-getReviewContext(...)
-getLibraryContext(...)
-getFoodContext(...)
-getThoughtContext(...)
-getExpenseContext(...)
-```
+The layer uses canonical PCC state, preserves stable record IDs where useful, includes current/open state plus bounded recent history, truncates long text predictably, and requires explicit domain selection.
 
-and a composition boundary such as:
+It does **not** provide a generic database query interface. Calendar and Markets are not context domains yet because there is no concrete consumer that needs them.
 
-```text
-buildPersonalContext({ domains, purpose, limits })
-```
+Keychain is structurally excluded: it is not part of the domain type, parser, builder, or context endpoint.
 
-The exact API can differ. The architectural rule is more important: integrations should consume deliberate domain context rather than arbitrary database access.
+### Context Inspector — implemented
 
-### Context-layer requirements
+The authenticated **Context Inspector** at `/spaces/context` exposes the exact structured representation produced by the layer.
 
-The Personal Context Layer should:
+It shows:
 
-- use normal deterministic application state as the source of truth;
-- be scoped to the authenticated user;
-- expose only explicitly selected domains;
-- prefer relevant current/open state, dates, ratings, reflections, and bounded recent history;
-- preserve record identity where useful for grounding;
-- distinguish missing information from negative evidence;
-- tolerate sparse history rather than requiring exhaustive backfilling;
-- have predictable size limits;
-- be usable by non-AI features;
-- never depend on Keychain data.
+- selected domains and purpose;
+- the applied limits;
+- the exact generated context;
+- character count and an approximate token count.
 
-A generic model-facing database query tool is explicitly not the target architecture.
+This is a development/privacy-audit surface rather than a normal daily workflow. It allows the context boundary to be inspected before any LLM provider is introduced.
 
-### Context Inspector
+## Selected next — real-use audit and Weekly Rhythm
 
-A small development-only **Context Inspector** is a useful companion to the layer.
+Before adding another broad module, review which PCC spaces are used frequently, occasionally, rarely, or not at all and why. That should reveal where existing workflows deserve refinement and where integration would create more value than new features.
 
-It may show:
+The first planned consumer of the Context Layer is **Weekly Rhythm**.
 
-- selected domain;
-- the exact context representation;
-- applied record/recency limits;
-- approximate size/token count;
-- which records were included or excluded.
+The intended model is deliberately more flexible than a traditional habit tracker:
 
-This makes privacy and context selection inspectable before any LLM is introduced.
+- fixed commitments remain hard constraints;
+- dated Tasks and Project Actions remain normal actionable work;
+- flexible weekly intentions can express goals such as “run 3 times” or “do focused work on 4 days” without choosing exact days in advance;
+- optional preferences may describe useful patterns such as morning/evening or approximate session length;
+- completion is counted across the week rather than treated as a streak or a missed daily obligation;
+- the week should retain room for spontaneous choices.
+
+This gives PCC enough structure to help build habits while preserving irregular weeks instead of inventing a routine the user does not actually follow.
+
+After Weekly Rhythm proves its shape, Agenda/Home can consume the same context to present a useful near-term horizon without attempting to replace Google Calendar.
 
 ## AI direction — experiment, not committed product slice
 
@@ -197,7 +186,7 @@ The stronger reason to explore AI is twofold:
 
 ### Experimental LLM sandbox
 
-After the Personal Context Layer exists, an internal LLM sandbox may be added.
+With the Personal Context Layer in place, an internal LLM sandbox may be added later if the usage audit and deterministic integrations still leave a clear conversational need.
 
 A useful experiment would expose:
 

@@ -3,6 +3,11 @@ import { getRecipes } from "./food.ts";
 import { getBookScore, getBooks } from "./library.ts";
 import { getMediaItems } from "./media.ts";
 import { getNotes } from "./notes.ts";
+import {
+  currentWeeklyFocus,
+  getRhythmPeriod,
+  getRhythmProgress,
+} from "./weekly-rhythm.ts";
 import type { Item, ReviewDraft } from "./personal-data";
 import type { PersonalDataSnapshot } from "./personal-data-snapshot";
 
@@ -10,6 +15,7 @@ export const personalContextDomains = [
   "projects",
   "tasks",
   "reviews",
+  "rhythm",
   "thoughts",
   "notes",
   "library",
@@ -171,6 +177,29 @@ type ContextExpense = {
   occurredOn: string;
 };
 
+type ContextRhythm = {
+  periodStart: string;
+  periodEnd: string;
+  intentions: Array<{
+    id: string;
+    title: string;
+    targetPerWeek: number;
+    completedThisWeek: number;
+    area?: string;
+    preferredDaypart?: string;
+    approximateMinutes?: number;
+    note?: string;
+  }>;
+  weeklyFocus: Array<{
+    id: string;
+    sourceType: "task" | "project-action";
+    sourceItemId: string;
+    sourceActionId?: string;
+    title: string;
+    context: string;
+  }>;
+};
+
 export type PersonalContext = {
   version: 1;
   purpose: PersonalContextPurpose;
@@ -184,6 +213,7 @@ export type PersonalContext = {
       currentDraft: ContextReviewDraft | null;
       recent: ContextReview[];
     };
+    rhythm: ContextRhythm;
     thoughts: ContextThought[];
     notes: ContextNote[];
     library: ContextLibraryRecord[];
@@ -495,6 +525,42 @@ function foodContext(items: readonly Item[], limits: PersonalContextLimits): Con
     }));
 }
 
+function rhythmContext(snapshot: PersonalDataSnapshot, limits: PersonalContextLimits, now: Date): ContextRhythm {
+  const period = getRhythmPeriod(now);
+  const intentions = snapshot.rhythmTemplates
+    .filter((template) => template.state === "active")
+    .sort((left, right) => left.title.localeCompare(right.title))
+    .slice(0, limits.maxRecordsPerDomain)
+    .map((template) => ({
+      id: template.id,
+      title: template.title,
+      targetPerWeek: template.targetPerWeek,
+      completedThisWeek: getRhythmProgress(template.id, snapshot.rhythmCompletions, period).count,
+      area: template.area,
+      preferredDaypart: template.preferredDaypart,
+      approximateMinutes: template.approximateMinutes,
+      note: text(template.note, limits.maxTextChars),
+    }));
+
+  const weeklyFocus = currentWeeklyFocus(snapshot.items, snapshot.weeklyFocuses, now)
+    .slice(0, limits.maxRecordsPerDomain)
+    .map((focus) => ({
+      id: focus.id,
+      sourceType: focus.sourceType,
+      sourceItemId: focus.sourceItemId,
+      sourceActionId: focus.sourceActionId,
+      title: focus.title,
+      context: focus.context,
+    }));
+
+  return {
+    periodStart: period.start,
+    periodEnd: period.end,
+    intentions,
+    weeklyFocus,
+  };
+}
+
 function expenseContext(snapshot: PersonalDataSnapshot, limits: PersonalContextLimits, cutoff: number) {
   const windowTransactions = snapshot.expenseTransactions.filter((transaction) => (
     Date.parse(`${transaction.occurredOn}T23:59:59.999Z`) >= cutoff
@@ -556,6 +622,7 @@ export function buildPersonalContext(
     if (domain === "projects") domains.projects = projectContext(snapshot.items, limits, cutoff);
     if (domain === "tasks") domains.tasks = taskContext(snapshot.items, limits, cutoff);
     if (domain === "reviews") domains.reviews = reviewContext(snapshot, limits, cutoff);
+    if (domain === "rhythm") domains.rhythm = rhythmContext(snapshot, limits, now);
     if (domain === "thoughts") domains.thoughts = thoughtContext(snapshot.items, limits, cutoff);
     if (domain === "notes") domains.notes = noteContext(snapshot.items, limits, cutoff);
     if (domain === "library") domains.library = libraryContext(snapshot.items, limits);

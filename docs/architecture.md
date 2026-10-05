@@ -252,6 +252,24 @@ Generated context includes:
 - thoughts added during the period;
 - books started or finished during the period when dates exist.
 
+## Weekly Rhythm persistence
+
+Weekly Rhythm is stored inside the existing per-user `PersonalDataSnapshot`; it does not introduce a new database table.
+
+The snapshot contains three separate structures:
+
+- `rhythmTemplates` — active/paused weekly intentions and optional preferences;
+- `rhythmCompletions` — timestamped completion events used to derive weekly progress and preserve bounded history;
+- `weeklyFocuses` — week-scoped references to canonical Tasks or Project Actions rather than duplicated work records.
+
+The planning week is deterministic **Saturday-to-Friday**, matching Weekly Review. Completing or deleting canonical work causes Weekly Focus resolution to stop surfacing that work without copying completion state into the focus record.
+
+Rhythm mutations use the normal revisioned Personal Data mutation path, export/import, browser fallback, PostgreSQL persistence, and backup/restore flow. They are explicitly excluded from Google Calendar projection reconciliation because a Rhythm change does not change a dated Task or Project Action.
+
+The `/rhythm` screen combines Rhythm progress, Weekly Focus, dated canonical work, and read-only fixed commitments from the existing Calendar/Agenda integration. PCC-projected Task/Project Calendar events are filtered from the fixed-commitment list to avoid showing the same work twice.
+
+Weekly Review consumes derived Rhythm progress and unfinished Weekly Focus. Personal Context exposes Rhythm as its own explicit bounded domain.
+
 ## Personal Context Layer
 
 Cross-space integrations consume a deterministic Personal Context Layer implemented in `src/domain/personal-context.ts`.
@@ -261,6 +279,7 @@ The layer reads the already-normalised per-user `PersonalDataSnapshot`; it does 
 - Projects;
 - Tasks;
 - Weekly Reviews;
+- Weekly Rhythm;
 - Thoughts;
 - Notes;
 - Library;

@@ -1,6 +1,8 @@
 # UI/UX Refresh 2026
 
-This document records the selected interface consolidation work after the application grew from a small planner into a broader personal control center.
+**Status: broad consolidation delivered. Future UI changes are usage-led rather than a selected generic redesign slice.**
+
+This document records the interface consolidation work completed after the application grew from a small planner into a broader personal control center.
 
 The goal is **not** to replace the visual identity. Themes, typography, the themed Capture control, and the phone-first character remain. The refresh should reduce unnecessary chrome, improve hierarchy, and make navigation scale as more spaces exist.
 

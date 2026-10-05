@@ -36,6 +36,9 @@ function snapshot(overrides: Partial<PersonalDataSnapshot> = {}): PersonalDataSn
     expenseTransactions: [],
     expenseSettings: { ...defaultExpenseSettings, targets: { ...defaultExpenseSettings.targets } },
     expenseReconciliation: { ...emptyExpenseReconciliation },
+    rhythmTemplates: [],
+    rhythmCompletions: [],
+    weeklyFocuses: [],
     ...overrides,
   };
 }
@@ -222,6 +225,44 @@ test("reviews and expenses expose bounded recent history only when selected", ()
   assert.equal(context.domains.expenses?.totals.expenseCents, 2500);
   assert.equal(context.domains.expenses?.totals.incomeCents, 100000);
   assert.equal(context.domains.expenses?.totals.byBucketCents.fun, 2500);
+});
+
+
+test("rhythm context exposes current intentions and weekly focus when selected", () => {
+  const task = item("focus-task", "Flexible task", "task");
+  const context = buildPersonalContext(snapshot({
+    items: [task],
+    rhythmTemplates: [{
+      id: "run",
+      title: "Run",
+      targetPerWeek: 3,
+      state: "active",
+      createdAt: "2026-10-01T10:00:00.000Z",
+      updatedAt: "2026-10-01T10:00:00.000Z",
+    }],
+    rhythmCompletions: [{
+      id: "run-1",
+      templateId: "run",
+      completedAt: "2026-10-04T09:00:00.000Z",
+    }],
+    weeklyFocuses: [{
+      id: "focus-1",
+      weekStart: "2026-10-03",
+      sourceType: "task",
+      sourceItemId: "focus-task",
+      createdAt: "2026-10-03T08:00:00.000Z",
+    }],
+  }), {
+    domains: ["rhythm"],
+    purpose: "weekly-planning",
+    now: new Date("2026-10-05T12:00:00.000Z"),
+  });
+
+  assert.equal(context.domains.rhythm?.periodStart, "2026-10-03");
+  assert.equal(context.domains.rhythm?.periodEnd, "2026-10-09");
+  assert.equal(context.domains.rhythm?.intentions[0].completedThisWeek, 1);
+  assert.equal(context.domains.rhythm?.intentions[0].targetPerWeek, 3);
+  assert.equal(context.domains.rhythm?.weeklyFocus[0].sourceItemId, "focus-task");
 });
 
 test("context domain parsing rejects undeclared domains and limits are clamped", () => {

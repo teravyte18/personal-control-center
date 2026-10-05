@@ -368,7 +368,19 @@ Prefer imported activity/trend summaries over a manual workout logger. Recurring
 
 Photo-assisted book identification remains tracked in issue #33.
 
-A new observed need is lightweight **comic-run support** inside Books rather than another top-level Library shelf. A future Book editor option should distinguish ordinary books from sequential/comic works and may expose current issue plus lightweight issues-read information. Physical/digital format should be separate from Owned/Borrowed/Wishlist status.
+**Comic / sequential-work support is now an explicit Library follow-up.** It should stay inside the existing Books shelf rather than creating a separate top-level Comic space.
+
+The planned first version is deliberately lightweight:
+
+- optional Book editor toggle/type for **Comic / sequential work**;
+- separate reading format: **Physical / Digital / Both / Unspecified**;
+- current issue / resume position;
+- lightweight issues-read tracking that tolerates ranges or irregular labels such as `#1–6` or `Annual #1`;
+- no requirement to catalogue every issue, variant cover, or publication detail.
+
+Ownership remains independent from format: Owned/Borrowed/Wishlist answers whether the work is possessed/wanted, while Physical/Digital/Both answers how it is read/owned.
+
+If comic progress is added, the Personal Context Layer should expose it only when present.
 
 See [`book-library.md`](book-library.md). Metadata lookup, highlights, streaming availability, and automatic catalog imports should still wait for observed need.
 

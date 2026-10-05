@@ -38,6 +38,19 @@ import {
   type ReviewDraft,
   type ReviewEntry,
 } from "@/domain/personal-data";
+import {
+  normalizeRhythmCompletion,
+  normalizeRhythmCompletions,
+  normalizeRhythmTemplate,
+  normalizeRhythmTemplates,
+  normalizeWeeklyFocus,
+  normalizeWeeklyFocuses,
+  updateRhythmTemplate,
+  type RhythmCompletion,
+  type RhythmState,
+  type RhythmTemplate,
+  type WeeklyFocus,
+} from "@/domain/weekly-rhythm";
 
 export const PERSONAL_DATA_EXPORT_FORMAT = "personal-control-center";
 export const PERSONAL_DATA_EXPORT_VERSION = 1;
@@ -49,6 +62,9 @@ export type PersonalDataSnapshot = {
   expenseTransactions: ExpenseTransaction[];
   expenseSettings: ExpenseSettings;
   expenseReconciliation: ExpenseReconciliation;
+  rhythmTemplates: RhythmTemplate[];
+  rhythmCompletions: RhythmCompletion[];
+  weeklyFocuses: WeeklyFocus[];
 };
 
 export type PersonalDataExport = {
@@ -96,7 +112,19 @@ export type PersonalDataMutation =
   }
   | { type: "delete-expense-transaction"; id: string }
   | { type: "update-expense-settings"; settings: ExpenseSettings }
-  | { type: "set-expense-reconciled-through"; date: string };
+  | { type: "set-expense-reconciled-through"; date: string }
+  | { type: "add-rhythm-template"; template: RhythmTemplate }
+  | {
+    type: "update-rhythm-template";
+    id: string;
+    updates: Partial<Pick<RhythmTemplate, "title" | "targetPerWeek" | "area" | "preferredDaypart" | "approximateMinutes" | "note" | "state">>;
+    occurredAt: string;
+  }
+  | { type: "delete-rhythm-template"; id: string }
+  | { type: "add-rhythm-completion"; completion: RhythmCompletion }
+  | { type: "delete-rhythm-completion"; id: string }
+  | { type: "add-weekly-focus"; focus: WeeklyFocus }
+  | { type: "remove-weekly-focus"; id: string };
 
 export const emptyPersonalDataSnapshot: PersonalDataSnapshot = {
   items: [],
@@ -105,6 +133,9 @@ export const emptyPersonalDataSnapshot: PersonalDataSnapshot = {
   expenseTransactions: [],
   expenseSettings: { ...defaultExpenseSettings, targets: { ...defaultExpenseSettings.targets } },
   expenseReconciliation: { ...emptyExpenseReconciliation },
+  rhythmTemplates: [],
+  rhythmCompletions: [],
+  weeklyFocuses: [],
 };
 
 const reviewFields = [
@@ -282,6 +313,9 @@ export function normalizePersonalDataSnapshot(value: unknown): PersonalDataSnaps
     expenseTransactions: normalizeExpenseTransactions(value.expenseTransactions),
     expenseSettings: normalizeExpenseSettings(value.expenseSettings),
     expenseReconciliation: normalizeExpenseReconciliation(value.expenseReconciliation),
+    rhythmTemplates: normalizeRhythmTemplates(value.rhythmTemplates),
+    rhythmCompletions: normalizeRhythmCompletions(value.rhythmCompletions),
+    weeklyFocuses: normalizeWeeklyFocuses(value.weeklyFocuses),
   };
 }
 
@@ -293,6 +327,9 @@ export function hasPersonalData(snapshot: PersonalDataSnapshot) {
     || snapshot.history.length > 0
     || snapshot.expenseTransactions.length > 0
     || snapshot.expenseReconciliation.reconciledThrough.length > 0
+    || snapshot.rhythmTemplates.length > 0
+    || snapshot.rhythmCompletions.length > 0
+    || snapshot.weeklyFocuses.length > 0
     || customizedExpenseTargets
     || reviewContentFields.some((field) => snapshot.draft[field].trim().length > 0);
 }
@@ -452,6 +489,67 @@ export function normalizePersonalDataMutation(value: unknown): PersonalDataMutat
       : null;
   }
 
+  if (value.type === "add-rhythm-template") {
+    const template = normalizeRhythmTemplate(value.template);
+    return template ? { type: "add-rhythm-template", template } : null;
+  }
+
+  if (value.type === "update-rhythm-template") {
+    if (typeof value.id !== "string" || !isDateTime(value.occurredAt) || !isRecord(value.updates)) return null;
+    const updates: Partial<Pick<RhythmTemplate, "title" | "targetPerWeek" | "area" | "preferredDaypart" | "approximateMinutes" | "note" | "state">> = {};
+    if ("title" in value.updates) {
+      if (typeof value.updates.title !== "string" || !value.updates.title.trim()) return null;
+      updates.title = value.updates.title;
+    }
+    if ("targetPerWeek" in value.updates) {
+      if (typeof value.updates.targetPerWeek !== "number") return null;
+      updates.targetPerWeek = value.updates.targetPerWeek;
+    }
+    if ("area" in value.updates) {
+      if (value.updates.area !== undefined && (typeof value.updates.area !== "string" || !areaIds.includes(value.updates.area as Item["area"]))) return null;
+      updates.area = value.updates.area as Item["area"] | undefined;
+    }
+    if ("preferredDaypart" in value.updates) {
+      if (value.updates.preferredDaypart !== undefined && !["morning", "afternoon", "evening"].includes(String(value.updates.preferredDaypart))) return null;
+      updates.preferredDaypart = value.updates.preferredDaypart as RhythmTemplate["preferredDaypart"];
+    }
+    if ("approximateMinutes" in value.updates) {
+      if (value.updates.approximateMinutes !== undefined && typeof value.updates.approximateMinutes !== "number") return null;
+      updates.approximateMinutes = value.updates.approximateMinutes as number | undefined;
+    }
+    if ("note" in value.updates) {
+      if (value.updates.note !== undefined && typeof value.updates.note !== "string") return null;
+      updates.note = value.updates.note as string | undefined;
+    }
+    if ("state" in value.updates) {
+      if (typeof value.updates.state !== "string" || !["active", "paused"].includes(value.updates.state)) return null;
+      updates.state = value.updates.state as RhythmState;
+    }
+    return { type: "update-rhythm-template", id: value.id, updates, occurredAt: value.occurredAt };
+  }
+
+  if (value.type === "delete-rhythm-template") {
+    return typeof value.id === "string" ? { type: "delete-rhythm-template", id: value.id } : null;
+  }
+
+  if (value.type === "add-rhythm-completion") {
+    const completion = normalizeRhythmCompletion(value.completion);
+    return completion ? { type: "add-rhythm-completion", completion } : null;
+  }
+
+  if (value.type === "delete-rhythm-completion") {
+    return typeof value.id === "string" ? { type: "delete-rhythm-completion", id: value.id } : null;
+  }
+
+  if (value.type === "add-weekly-focus") {
+    const focus = normalizeWeeklyFocus(value.focus);
+    return focus ? { type: "add-weekly-focus", focus } : null;
+  }
+
+  if (value.type === "remove-weekly-focus") {
+    return typeof value.id === "string" ? { type: "remove-weekly-focus", id: value.id } : null;
+  }
+
   return null;
 }
 
@@ -517,6 +615,61 @@ export function applyPersonalDataMutation(
     return {
       ...snapshot,
       expenseReconciliation: { reconciledThrough: mutation.date },
+    };
+  }
+
+  if (mutation.type === "add-rhythm-template") {
+    return snapshot.rhythmTemplates.some((template) => template.id === mutation.template.id)
+      ? snapshot
+      : { ...snapshot, rhythmTemplates: [mutation.template, ...snapshot.rhythmTemplates] };
+  }
+
+  if (mutation.type === "update-rhythm-template") {
+    return {
+      ...snapshot,
+      rhythmTemplates: snapshot.rhythmTemplates.map((template) => (
+        template.id === mutation.id
+          ? updateRhythmTemplate(template, mutation.updates, new Date(mutation.occurredAt))
+          : template
+      )),
+    };
+  }
+
+  if (mutation.type === "delete-rhythm-template") {
+    return {
+      ...snapshot,
+      rhythmTemplates: snapshot.rhythmTemplates.filter((template) => template.id !== mutation.id),
+      rhythmCompletions: snapshot.rhythmCompletions.filter((completion) => completion.templateId !== mutation.id),
+    };
+  }
+
+  if (mutation.type === "add-rhythm-completion") {
+    const templateExists = snapshot.rhythmTemplates.some((template) => template.id === mutation.completion.templateId);
+    if (!templateExists || snapshot.rhythmCompletions.some((completion) => completion.id === mutation.completion.id)) return snapshot;
+    return { ...snapshot, rhythmCompletions: [mutation.completion, ...snapshot.rhythmCompletions] };
+  }
+
+  if (mutation.type === "delete-rhythm-completion") {
+    return {
+      ...snapshot,
+      rhythmCompletions: snapshot.rhythmCompletions.filter((completion) => completion.id !== mutation.id),
+    };
+  }
+
+  if (mutation.type === "add-weekly-focus") {
+    const duplicate = snapshot.weeklyFocuses.some((focus) => (
+      focus.weekStart === mutation.focus.weekStart
+      && focus.sourceType === mutation.focus.sourceType
+      && focus.sourceItemId === mutation.focus.sourceItemId
+      && focus.sourceActionId === mutation.focus.sourceActionId
+    ));
+    return duplicate ? snapshot : { ...snapshot, weeklyFocuses: [mutation.focus, ...snapshot.weeklyFocuses] };
+  }
+
+  if (mutation.type === "remove-weekly-focus") {
+    return {
+      ...snapshot,
+      weeklyFocuses: snapshot.weeklyFocuses.filter((focus) => focus.id !== mutation.id),
     };
   }
 

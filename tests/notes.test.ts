@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   getNotes,
+  isStructuredPccNoteDescription,
   NOTE_ORDER_METADATA_TITLE,
   noteContent,
   parseNoteContent,
@@ -9,6 +10,7 @@ import {
   reorderNotes,
   serializeNoteOrder,
 } from "../src/domain/notes.ts";
+import { createBookDetails, serializeBookDetails } from "../src/domain/library.ts";
 import type { Item } from "../src/domain/personal-data.ts";
 
 function item(overrides: Partial<Item>): Item {
@@ -62,10 +64,23 @@ test("shows only organised active notes and initially orders them by last edit",
     item({ id: "thought", title: "Thought", kind: "thought" }),
     item({ id: "archived", title: "Archived", status: "archived" }),
     item({ id: "legacy-book", title: "Legacy book", description: "__pcc_book_v1__\n{}" }),
-    item({ id: "current-book", title: "Current book", description: "__pcc_book_v2__\n{}" }),
+    item({ id: "v2-book", title: "V2 book", description: "__pcc_book_v2__\n{}" }),
+    item({ id: "current-book", title: "Current book", description: serializeBookDetails(createBookDetails()) }),
+    item({ id: "future-book", title: "Future book", description: "__pcc_book_v99__\n{}" }),
+    item({ id: "recipe", title: "Recipe", description: "__pcc_recipe_v1__\n{}" }),
+    item({ id: "media", title: "Media", description: "__pcc_media_v1__\n{}" }),
   ]);
 
   assert.deepEqual(notes.map((note) => note.id), ["newer", "older"]);
+});
+
+test("treats PCC structured note payloads as reserved across schema versions", () => {
+  assert.equal(isStructuredPccNoteDescription("__pcc_book_v3__\n{}"), true);
+  assert.equal(isStructuredPccNoteDescription("__pcc_book_v99__\n{}"), true);
+  assert.equal(isStructuredPccNoteDescription("__pcc_recipe_v1__\n{}"), true);
+  assert.equal(isStructuredPccNoteDescription("__pcc_media_v1__\n{}"), true);
+  assert.equal(isStructuredPccNoteDescription("__pcc_book_v3__ without newline"), false);
+  assert.equal(isStructuredPccNoteDescription("Normal note body"), false);
 });
 
 test("manual order persists while newly created unordered notes appear first", () => {

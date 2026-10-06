@@ -103,6 +103,9 @@ test("Home near-term treats Friday as the end of the current Rhythm week", () =>
 
   assert.deepEqual(
     buildHomeNearTermEntries(items, new Date(2026, 8, 26, 12)).map((entry) => [entry.state, entry.title]),
-    [["today", "Saturday"]],
+    [
+      ["overdue", "Friday"],
+      ["today", "Saturday"],
+    ],
   );
 });

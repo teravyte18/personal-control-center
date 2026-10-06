@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useMemo, useState, useSyncExternalStore } from "react";
-import { buildHomeTodayEntries, type HomeTodayEntry } from "@/domain/home-today";
+import { buildHomeNearTermEntries, type HomeNearTermEntry } from "@/domain/home-today";
 import { usePersonalData } from "@/lib/personal-data";
 import { useOfflineCapture } from "@/providers/offline-capture-provider";
 
@@ -74,7 +74,7 @@ export default function CapturePage() {
     () => items.filter((item) => item.status === "inbox").length + pendingNotInSnapshot.length,
     [items, pendingNotInSnapshot.length],
   );
-  const todayEntries = useMemo(() => buildHomeTodayEntries(items), [items]);
+  const todayEntries = useMemo(() => buildHomeNearTermEntries(items), [items]);
 
   async function submitCapture(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -167,13 +167,13 @@ export default function CapturePage() {
           </Link>
         </div>
 
-        <TodayPanel entries={todayEntries} />
+        <NearTermPanel entries={todayEntries} />
       </div>
     </section>
   );
 }
 
-function TodayPanel({ entries }: { entries: HomeTodayEntry[] }) {
+function NearTermPanel({ entries }: { entries: HomeNearTermEntry[] }) {
   const overdueCount = entries.filter((entry) => entry.state === "overdue").length;
   const todayCount = entries.filter((entry) => entry.state === "today").length;
   const upcomingCount = entries.filter((entry) => entry.state === "upcoming").length;
@@ -219,7 +219,7 @@ function TodayPanel({ entries }: { entries: HomeTodayEntry[] }) {
   );
 }
 
-function TodayRow({ entry }: { entry: HomeTodayEntry }) {
+function TodayRow({ entry }: { entry: HomeNearTermEntry }) {
   const overdue = entry.state === "overdue";
   const upcoming = entry.state === "upcoming";
   const href = entry.kind === "task" ? "/tasks" : "/projects";

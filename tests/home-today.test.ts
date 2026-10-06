@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildHomeTodayEntries } from "../src/domain/home-today.ts";
+import { buildHomeNearTermEntries } from "../src/domain/home-today.ts";
 import type { Item } from "../src/domain/personal-data.ts";
 
 function baseItem(overrides: Partial<Item> & Pick<Item, "id" | "title" | "kind">): Item {
@@ -54,7 +54,7 @@ test("Home near-term combines overdue, today, and upcoming work through Friday",
     }),
   ];
 
-  const entries = buildHomeTodayEntries(items, new Date(2026, 8, 19, 12));
+  const entries = buildHomeNearTermEntries(items, new Date(2026, 8, 19, 12));
 
   assert.deepEqual(entries.map((entry) => [entry.state, entry.title]), [
     ["overdue", "Old action"],
@@ -87,7 +87,7 @@ test("Home near-term ignores undated, completed, waiting, archived, and beyond-F
     }),
   ];
 
-  assert.deepEqual(buildHomeTodayEntries(items, new Date(2026, 8, 19, 12)), []);
+  assert.deepEqual(buildHomeNearTermEntries(items, new Date(2026, 8, 19, 12)), []);
 });
 
 test("Home near-term treats Friday as the end of the current Rhythm week", () => {
@@ -97,12 +97,12 @@ test("Home near-term treats Friday as the end of the current Rhythm week", () =>
   ];
 
   assert.deepEqual(
-    buildHomeTodayEntries(items, new Date(2026, 8, 21, 12)).map((entry) => [entry.state, entry.title]),
+    buildHomeNearTermEntries(items, new Date(2026, 8, 21, 12)).map((entry) => [entry.state, entry.title]),
     [["upcoming", "Friday"]],
   );
 
   assert.deepEqual(
-    buildHomeTodayEntries(items, new Date(2026, 8, 26, 12)).map((entry) => [entry.state, entry.title]),
+    buildHomeNearTermEntries(items, new Date(2026, 8, 26, 12)).map((entry) => [entry.state, entry.title]),
     [["today", "Saturday"]],
   );
 });

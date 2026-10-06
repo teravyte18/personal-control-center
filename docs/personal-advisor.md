@@ -89,7 +89,11 @@ It lets the user select context domains and a purpose, then shows:
 - character count;
 - an approximate token count.
 
-This is primarily a development and privacy-audit tool rather than an everyday workflow. It makes it possible to inspect exactly what a future integration would receive before any provider API key or model request exists.
+This is primarily a development and privacy-audit tool rather than an everyday workflow. It makes it possible to inspect exactly what a future integration may receive before any provider API key or model request exists.
+
+The current Inspector shows **raw bounded domain context**, not the final retrieval behavior a future Advisor should use. Its record/recency limits are output bounds, not a statement that older records become unsearchable. A future question-driven **Resolved Context** mode should show planner output, retrieval candidates, ranking reasons, current-state additions, and the final budgeted bundle.
+
+See [`context-retrieval-memory.md`](context-retrieval-memory.md).
 
 ## LLM sandbox
 
@@ -127,50 +131,67 @@ Examples include:
 
 These examples are deliberately conversational. PCC should not pretend that adding a model beside a workflow automatically turns it into a therapist, coach, project manager, or expert advisor.
 
-## Memory experiments
+## Retrieval and memory
 
-Long-lived personalisation should not be implemented by continually resending an unbounded transcript.
+Long-lived personalisation should not be implemented by continually resending an unbounded transcript, and the current twelve-record/90-day context bounds should not make older personal history undiscoverable.
 
-If persistent conversational memory is explored, separate at least four concepts:
+The architecture now separates:
 
-### Canonical PCC state
+### Canonical PCC archive
 
-Projects, Tasks, Library entries, Reviews, Food, Expenses, and other application records remain canonical in their normal domains and are queried fresh when relevant.
+Projects, Tasks, Library entries, Reviews, Thoughts, Notes, Food, Expenses, and other normal application records remain canonical in their domains.
+
+All retained eligible history can later participate in retrieval, even when it is too old or too numerous to appear in the default Personal Context bundle.
+
+### Retrieval corpus
+
+Eligible canonical records can be projected into derived retrieval documents with stable source IDs, searchable text, dates, domain, and metadata.
+
+The retrieval corpus may be much larger than an active model prompt.
+
+A future request should search that corpus first, then apply record/token limits **after ranking**.
 
 ### Short-term conversation state
 
-The recent portion of the current conversation can be sent verbatim for normal follow-ups.
+Recent conversation turns can be sent verbatim for normal follow-ups.
+
+### Episodic memory
+
+Older conversations or dense historical periods may later receive compact summaries that remain linked to their source records.
+
+Retrieval can find a summary first and expand to original material when needed.
 
 ### Stable personal memory
 
-A much smaller PCC-owned store may eventually hold durable information learned through conversations, such as preferences, recurring concerns, or explicit user instructions.
+A much smaller PCC-owned store may eventually hold durable conclusions/preferences worth carrying between conversations.
 
-Possible approaches should be evaluated rather than assumed:
+Stable memories should retain provenance and distinguish explicit user statements, deterministic facts, and model inference. They must be editable, supersedable/retirable, exportable, and deletable.
 
-- explicit “remember this” only;
-- model-proposed memories requiring user confirmation;
-- automatically extracted memories with review/edit/delete controls;
-- deterministic extraction for narrowly defined facts.
+The desired request shape is therefore:
 
-### Episodic conversation memory
+```text
+recent conversation
++ current canonical state
++ relevant retrieved old records
++ relevant episodic summaries
++ relevant stable memories
+```
 
-Older conversations should be summarised or selectively retrieved when relevant rather than replayed in full. For example, a discussion about a particular book could be retrieved when that book becomes relevant again without attaching months of unrelated conversation.
+rather than months of raw transcript or a permanently growing context dump.
 
-The purpose is bounded continuity: recent messages + relevant old material + compact stable memory + fresh PCC context.
-
-Conversation/memory storage, deletion, export, backup, retention, and privacy need explicit design before any persistent memory is shipped.
+See [`context-retrieval-memory.md`](context-retrieval-memory.md) for the detailed retrieval, ranking, token-budget, and memory design.
 
 ## Learning from experience
 
 “Learning from experience” should not initially mean fine-tuning a model on private PCC history or allowing a model to silently rewrite its own behaviour.
 
-A safer first interpretation is **memory + retrieval + feedback**:
+A safer first interpretation is **archive + retrieval + memory + feedback**:
 
 1. fresh canonical PCC state describes what is true now;
-2. Weekly Reviews and completion/history records provide longitudinal evidence;
-3. older conversations may produce bounded episodic summaries;
-4. stable memories store only durable conclusions/preferences worth carrying forward;
-5. later conversations retrieve only the memories/episodes relevant to the current question;
+2. the complete retained eligible archive remains searchable even when records fall outside default context bounds;
+3. retrieval selects only old records relevant to the current question;
+4. older conversations or dense periods may produce bounded episodic summaries;
+5. stable memories store only durable conclusions/preferences worth carrying forward;
 6. user corrections or explicit feedback can revise or retire stored memories.
 
 This keeps learning inspectable and model-independent. A provider can improve or be replaced without losing PCC-owned experience.
@@ -325,7 +346,7 @@ If those signals do not appear, the experiment may remain a developer tool, be r
 - unrestricted database reads or writes;
 - Keychain access of any kind;
 - automatic creation of personal records from ordinary conversation;
-- mandatory embeddings/vector search;
+- treating embeddings/vector search as mandatory before deterministic retrieval has been tested;
 - unbounded transcript replay as memory;
 - proactive periodic LLM polling;
 - autonomous purchases, bookings, messages, or Calendar changes;
@@ -334,12 +355,13 @@ If those signals do not appear, the experiment may remain a developer tool, be r
 ## Likely sequence
 
 1. Personal Context Layer and Context Inspector — **implemented**;
-2. Weekly Rhythm and Review integration — **implemented in PR #79; pending real-use test**;
-3. define a provider-neutral LLM adapter and test one local or hosted provider;
-4. add a small explicit multi-turn sandbox with inspectable context;
-5. compare model quality, latency, context selection, and cost/privacy trade-offs using real questions;
-6. experiment with PCC-owned episodic summaries, stable memory proposals, retrieval, and feedback;
-7. only then consider safe confirmed tools or a polished Advisor;
-8. decide from actual use whether PCC needs its own Advisor UI, contextual AI features, an external assistant connector, or no permanent AI product at all.
+2. Weekly Rhythm and Review integration — **implemented in PR #79; under real-use testing**;
+3. **Context Retrieval Foundation** — project eligible canonical history into retrieval documents, add deterministic full-history search, and add a question-driven Resolved Context Inspector;
+4. add a provider-neutral structured **Context Planner** that converts a user question into validated domain/search instructions;
+5. add hybrid semantic retrieval only where lexical/exact retrieval misses useful conceptual matches;
+6. add a small final-answer LLM sandbox with inspectable planner/retrieval/context/token/cost data;
+7. experiment with episodic summaries and provenance-aware stable memory;
+8. only then consider safe confirmed tools or a polished Advisor;
+9. decide from actual use whether PCC needs its own Advisor UI, contextual AI features, an external assistant connector, or no permanent AI product at all.
 
 The core rule remains: **PCC should become more coherent before it becomes more intelligent.**

@@ -1,4 +1,4 @@
-export type HomeTodayEntry = {
+export type HomeNearTermEntry = {
   id: string;
   sourceId: string;
   kind: "task" | "project-action";
@@ -47,10 +47,10 @@ function endOfRhythmWeek(reference: Date) {
   return localDateKey(end);
 }
 
-export function buildHomeTodayEntries(items: readonly HomeItem[], reference = new Date()): HomeTodayEntry[] {
+export function buildHomeNearTermEntries(items: readonly HomeItem[], reference = new Date()): HomeNearTermEntry[] {
   const today = localDateKey(reference);
   const weekEnd = endOfRhythmWeek(reference);
-  const entries: HomeTodayEntry[] = [];
+  const entries: HomeNearTermEntry[] = [];
 
   for (const item of items) {
     if (isOpenTask(item)) {
@@ -85,7 +85,7 @@ export function buildHomeTodayEntries(items: readonly HomeItem[], reference = ne
     }
   }
 
-  const stateOrder: Record<HomeTodayEntry["state"], number> = {
+  const stateOrder: Record<HomeNearTermEntry["state"], number> = {
     overdue: 0,
     today: 1,
     upcoming: 2,

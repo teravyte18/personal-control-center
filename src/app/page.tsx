@@ -175,21 +175,24 @@ export default function CapturePage() {
 
 function TodayPanel({ entries }: { entries: HomeTodayEntry[] }) {
   const overdueCount = entries.filter((entry) => entry.state === "overdue").length;
-  const dueCount = entries.length - overdueCount;
-  const visible = entries.slice(0, 5);
+  const todayCount = entries.filter((entry) => entry.state === "today").length;
+  const upcomingCount = entries.filter((entry) => entry.state === "upcoming").length;
+  const visible = entries.slice(0, 7);
 
   return (
     <aside className="min-w-0 max-w-full self-start overflow-hidden rounded-[1.6rem] border border-slate-200 bg-white p-4 shadow-sm sm:rounded-[2rem] sm:p-6 lg:self-stretch">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Near term</p>
-          <h2 className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">Today</h2>
+          <h2 className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">This week</h2>
         </div>
         {entries.length ? (
           <p className="pt-1 text-right text-xs font-medium text-slate-500">
             {overdueCount ? `${overdueCount} overdue` : ""}
-            {overdueCount && dueCount ? " · " : ""}
-            {dueCount ? `${dueCount} today` : ""}
+            {overdueCount && (todayCount || upcomingCount) ? " · " : ""}
+            {todayCount ? `${todayCount} today` : ""}
+            {todayCount && upcomingCount ? " · " : ""}
+            {upcomingCount ? `${upcomingCount} later` : ""}
           </p>
         ) : null}
       </div>
@@ -200,25 +203,31 @@ function TodayPanel({ entries }: { entries: HomeTodayEntry[] }) {
         </div>
       ) : (
         <p className="mt-5 rounded-2xl bg-slate-50 px-4 py-5 text-sm text-slate-500">
-          Nothing dated needs attention today.
+          Nothing dated needs attention through Friday.
         </p>
       )}
 
-      {entries.length > visible.length ? (
-        <p className="mt-3 text-xs font-medium text-slate-500">+{entries.length - visible.length} more dated {entries.length - visible.length === 1 ? "item" : "items"}</p>
-      ) : null}
+      <div className="mt-4 flex items-center justify-between gap-3 border-t border-slate-100 pt-3">
+        {entries.length > visible.length ? (
+          <p className="text-xs font-medium text-slate-500">+{entries.length - visible.length} more dated {entries.length - visible.length === 1 ? "item" : "items"}</p>
+        ) : <span />}
+        <Link href="/rhythm" className="shrink-0 text-xs font-semibold text-slate-600 hover:underline">
+          Open full week →
+        </Link>
+      </div>
     </aside>
   );
 }
 
 function TodayRow({ entry }: { entry: HomeTodayEntry }) {
   const overdue = entry.state === "overdue";
+  const upcoming = entry.state === "upcoming";
   const href = entry.kind === "task" ? "/tasks" : "/projects";
 
   return (
     <Link href={href} className="group flex min-w-0 max-w-full gap-3 overflow-hidden py-3 first:pt-0 last:pb-0">
       <span
-        className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${overdue ? "bg-rose-600" : "bg-amber-500"}`}
+        className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${overdue ? "bg-rose-600" : upcoming ? "bg-slate-400" : "bg-amber-500"}`}
         aria-hidden="true"
       />
       <span className="min-w-0 flex-1 overflow-hidden">
@@ -227,8 +236,8 @@ function TodayRow({ entry }: { entry: HomeTodayEntry }) {
           <span className="min-w-0 truncate text-slate-500">
             {entry.kind === "task" ? "Task" : entry.context}
           </span>
-          <span className={`shrink-0 font-semibold ${overdue ? "text-rose-700" : "text-amber-700"}`}>
-            {overdue ? `Past ${formatDate(entry.date)}` : "Today"}
+          <span className={`shrink-0 font-semibold ${overdue ? "text-rose-700" : upcoming ? "text-slate-600" : "text-amber-700"}`}>
+            {overdue ? `Past ${formatDate(entry.date)}` : upcoming ? formatWeekdayDate(entry.date) : "Today"}
           </span>
         </span>
       </span>
@@ -240,5 +249,12 @@ function formatDate(value: string) {
   return new Date(`${value}T12:00:00`).toLocaleDateString(undefined, {
     day: "numeric",
     month: "short",
+  });
+}
+
+function formatWeekdayDate(value: string) {
+  return new Date(`${value}T12:00:00`).toLocaleDateString(undefined, {
+    weekday: "short",
+    day: "numeric",
   });
 }

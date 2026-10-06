@@ -10,7 +10,7 @@ There is no separate top-level Media destination. Library is the umbrella for th
 - **Movies**;
 - **Series**.
 
-Comics/sequential works should remain a mode inside **Books** rather than creating another top-level shelf. They may later gain current-issue and lightweight issues-read progress while sharing the normal Book ownership/rating model.
+Comics/sequential works are implemented as a mode inside **Books** rather than a separate top-level shelf. They share the normal Book ownership/rating model and add format plus lightweight current-issue/issues-read progress.
 
 The underlying Book and Media records remain separate domain models. The unification is a navigation and browsing decision, not an attempt to force books, films, and series into one generic schema.
 
@@ -31,7 +31,8 @@ The existing Books shelf keeps its current model and views, including:
 - Wishlist;
 - Finished;
 - Paused / abandoned;
-- ownership, priority, ratings, dates, notes, and private covers.
+- ownership, priority, ratings, dates, notes, and private covers;
+- optional Comic/sequential mode with Physical/Digital/Both format and lightweight issue progress.
 
 See [`book-library.md`](book-library.md) for the detailed Books model.
 

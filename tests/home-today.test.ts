@@ -18,10 +18,12 @@ function baseItem(overrides: Partial<Item> & Pick<Item, "id" | "title" | "kind">
   };
 }
 
-test("Home Today combines overdue and due Tasks with Project Actions", () => {
+test("Home near-term combines overdue, today, and upcoming work through Friday", () => {
   const items: Item[] = [
     baseItem({ id: "task-overdue", title: "Old task", kind: "task", checkInDate: "2026-09-18" }),
     baseItem({ id: "task-today", title: "Today task", kind: "task", checkInDate: "2026-09-19" }),
+    baseItem({ id: "task-upcoming", title: "Later task", kind: "task", checkInDate: "2026-09-24" }),
+    baseItem({ id: "task-next-week", title: "Next week task", kind: "task", checkInDate: "2026-09-26" }),
     baseItem({
       id: "project",
       title: "Example project",
@@ -41,6 +43,13 @@ test("Home Today combines overdue and due Tasks with Project Actions", () => {
           openedAt: "2026-09-10T10:00:00.000Z",
           updatedAt: "2026-09-10T10:00:00.000Z",
         },
+        {
+          id: "friday-action",
+          title: "Friday action",
+          targetDate: "2026-09-25",
+          openedAt: "2026-09-10T10:00:00.000Z",
+          updatedAt: "2026-09-10T10:00:00.000Z",
+        },
       ],
     }),
   ];
@@ -52,14 +61,17 @@ test("Home Today combines overdue and due Tasks with Project Actions", () => {
     ["overdue", "Old task"],
     ["today", "Today action"],
     ["today", "Today task"],
+    ["upcoming", "Later task"],
+    ["upcoming", "Friday action"],
   ]);
   assert.equal(entries[0].context, "Example project");
 });
 
-test("Home Today ignores undated, completed, waiting, and archived work", () => {
+test("Home near-term ignores undated, completed, waiting, archived, and beyond-Friday work", () => {
   const items: Item[] = [
     baseItem({ id: "undated", title: "Undated task", kind: "task" }),
     baseItem({ id: "done", title: "Done task", kind: "task", status: "completed", checkInDate: "2026-09-18" }),
+    baseItem({ id: "beyond", title: "Beyond Friday", kind: "task", checkInDate: "2026-09-26" }),
     baseItem({
       id: "waiting",
       title: "Waiting project",
@@ -76,4 +88,21 @@ test("Home Today ignores undated, completed, waiting, and archived work", () => 
   ];
 
   assert.deepEqual(buildHomeTodayEntries(items, new Date(2026, 8, 19, 12)), []);
+});
+
+test("Home near-term treats Friday as the end of the current Rhythm week", () => {
+  const items: Item[] = [
+    baseItem({ id: "friday", title: "Friday", kind: "task", checkInDate: "2026-09-25" }),
+    baseItem({ id: "saturday", title: "Saturday", kind: "task", checkInDate: "2026-09-26" }),
+  ];
+
+  assert.deepEqual(
+    buildHomeTodayEntries(items, new Date(2026, 8, 21, 12)).map((entry) => [entry.state, entry.title]),
+    [["upcoming", "Friday"]],
+  );
+
+  assert.deepEqual(
+    buildHomeTodayEntries(items, new Date(2026, 8, 26, 12)).map((entry) => [entry.state, entry.title]),
+    [["today", "Saturday"]],
+  );
 });

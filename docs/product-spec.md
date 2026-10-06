@@ -292,11 +292,13 @@ The module-building sequence through Media is complete, the broad UI/UX consolid
 
 The current direction is:
 
-1. **Combined Context + Rhythm real-use test** — deploy/test the branch before expanding the planning surface;
+1. **Combined Context + Rhythm real-use test** — continue testing before expanding the planning surface;
 2. **Home / Agenda integration** — if Rhythm proves useful, use its weekly horizon plus Calendar context to improve visibility while leaving detailed calendar browsing to Google Calendar;
-3. **Review refinement** — evaluate whether the new Rhythm progress/focus panels improve reflection and whether carry-forward information needs adjustment;
-4. **LLM sandbox (experimental)** — only after deterministic integration has a clearer shape, test whether stored PCC context materially improves conversation;
-5. **Evaluate from real usage** — promote an Advisor, external-assistant connector, local model workflow, or model-assisted actions only if repeated value appears.
+3. **Context Retrieval Foundation** — project eligible full-history records into retrieval documents, add deterministic search, and add a question-driven Resolved Context Inspector;
+4. **Context Planner experiment** — test a provider-neutral structured model step that chooses domains/searches without seeing the whole archive;
+5. **Hybrid retrieval + LLM sandbox** — add semantic retrieval only where useful, then test final conversational answers using inspectable resolved context;
+6. **Memory experiments** — episodic summaries and provenance-aware stable memory only after retrieval value is proven;
+7. **Evaluate from real usage** — promote an Advisor, external-assistant connector, local model workflow, or model-assisted actions only if repeated value appears.
 
 The usage evidence behind this choice is recorded in [`usage-audit-2026-10.md`](usage-audit-2026-10.md), and the implemented Rhythm model is documented in [`weekly-rhythm.md`](weekly-rhythm.md).
 
@@ -310,7 +312,9 @@ Prefer **shared context before hard coupling**.
 
 Do not create database relationships just because two domains could theoretically interact.
 
-The Personal Context Layer exposes deliberate representations for Projects, Tasks, Reviews, Thoughts, Notes, Library, Food, and bounded Expenses context. New domains should be added only for a concrete cross-space consumer.
+The Personal Context Layer exposes deliberate representations for Projects, Tasks, Reviews, Rhythm, Thoughts, Notes, Library, Food, and bounded Expenses context. New domains should be added only for a concrete cross-space consumer.
+
+These bounded representations are **active-context outputs**, not the complete future retrieval universe. Older eligible Reviews, Library records, Notes, Thoughts, and other retained history should remain searchable even after they fall outside default record/recency limits.
 
 Important rules:
 
@@ -336,18 +340,25 @@ Interesting conversations may include discussing a finished book, comparing a la
 
 A recommendation engine alone is not the target product.
 
-### Memory direction
+### Retrieval and memory direction
 
-If long-term conversational memory is explored, do not replay an ever-growing raw transcript.
+If long-term conversational continuity is explored, do not replay an ever-growing raw transcript and do not solve it by continually increasing Context limits.
 
 Separate:
 
-- fresh canonical PCC state;
+- canonical PCC archive;
+- a searchable retrieval corpus over eligible retained history;
+- fresh/current state selected deterministically;
 - recent conversation turns;
-- compact stable personal memory;
-- retrieved/summarised older relevant conversations.
+- retrieved old canonical records relevant to the current question;
+- episodic summaries for dense historical material;
+- compact stable personal memory with provenance.
 
-PCC should own durable memory/context so a later model/provider can consume the same history.
+The future resolver should search first and apply record/token limits **after ranking**. A Library item or Review can therefore remain discoverable years later without being present in every request.
+
+PCC should own retrieval documents, summaries, and stable memory so a later model/provider can consume the same history.
+
+See [`context-retrieval-memory.md`](context-retrieval-memory.md).
 
 ### Write direction
 

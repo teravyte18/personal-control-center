@@ -294,6 +294,24 @@ The Context Inspector at `/spaces/context` calls the same endpoint and renders t
 
 Calendar and Markets are intentionally absent from the first context version. They can be added later when a concrete integration requires a deliberate representation.
 
+### Retrieval is a separate layer
+
+The bounded Personal Context representation is **not** the future search universe for an Advisor.
+
+Record-count, recency, and text limits protect the active representation sent to a consumer. They do not imply that older eligible records should become undiscoverable.
+
+The planned retrieval architecture introduces three distinct layers:
+
+1. **canonical archive** — the complete retained PCC records in their normal domains;
+2. **retrieval corpus** — derived searchable documents with stable source IDs, text, dates, and metadata;
+3. **resolved context bundle** — the small ranked/current subset selected for one question and constrained by a token/character budget.
+
+A future Context Planner may select domains and searches from a free-form question, but PCC executes and validates retrieval. The model never receives unrestricted SQL access.
+
+Retrieval should combine exact/lexical matching, metadata/current-state boosts, and later semantic similarity where useful. The record cap applies after retrieval/ranking, not before.
+
+See [`context-retrieval-memory.md`](context-retrieval-memory.md).
+
 ## Google Calendar projection
 
 The optional Calendar integration stores one encrypted refresh-token connection per application user plus durable source-to-event mappings.

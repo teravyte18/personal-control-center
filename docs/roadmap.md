@@ -229,33 +229,32 @@ The model may bring broader public/general knowledge into the conversation while
 
 This is closer to the long-term idea of a conversational personal counterpart than a recommendation engine, but it must prove value through real use.
 
-### Memory is a separate design problem
+### Retrieval and memory
 
-Do not implement long-term personalisation by replaying an unbounded transcript.
+The current bounded Personal Context is not the final retrieval system.
 
-If memory is explored, separate:
+Future Advisor/context work should keep three boundaries distinct:
 
-- **canonical PCC state** — queried fresh from Projects, Tasks, Library, Reviews, Food, etc.;
-- **short-term conversation state** — recent turns sent verbatim for follow-ups;
-- **stable personal memory** — a compact PCC-owned store of durable preferences or conclusions;
-- **episodic conversation memory** — summaries/retrieval of older relevant discussions.
+- the **canonical archive** can retain and expose all eligible historical records for search;
+- the **retrieval layer** selects relevant old records from that archive for the current question;
+- **memory** stores only durable learned conclusions or episodic summaries that are worth carrying forward.
 
-A useful request should eventually be closer to:
+The twelve-record/90-day defaults are therefore active-context bounds, not the point at which old Reviews or Library records become inaccessible.
 
-```text
-recent conversation
-+ relevant older conversation summaries
-+ compact stable memory
-+ fresh relevant PCC context
-```
+The selected next context/Advisor engineering slice is a **Context Retrieval Foundation**:
 
-rather than months of raw transcript.
+1. project eligible records into searchable retrieval documents with stable provenance;
+2. search the whole eligible archive with deterministic exact/lexical ranking;
+3. add a question-driven Resolved Context Inspector that shows candidates, scores, current-state additions, and the final budgeted context;
+4. only then add a structured model-based Context Planner;
+5. add embeddings/hybrid semantic retrieval only where lexical search demonstrably misses useful material;
+6. defer episodic summaries and stable memory until retrieval itself is useful.
 
-Persistent memory, if implemented, needs explicit retention, editing, deletion, export, backup, and privacy rules.
+See [`context-retrieval-memory.md`](context-retrieval-memory.md).
 
 ### Model independence
 
-Durable PCC context and memory should be owned by PCC rather than one model generation. A later model should be able to consume the same personal history even if the provider or model changes.
+Durable PCC context, retrieval documents/indexes, episodic summaries, and stable memory should be owned by PCC rather than one model generation. A later model should be able to consume the same personal history even if the provider or model changes.
 
 ### Promotion gate
 

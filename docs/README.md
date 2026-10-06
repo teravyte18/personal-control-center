@@ -20,7 +20,8 @@ This directory contains current product/operations documentation plus a small am
 - [`notes.md`](notes.md) — Markdown subset, autosave rules, safe preview rendering, and regression checks
 - [`book-library.md`](book-library.md) — Books shelf model, ratings, owned-first default view, Wishlist isolation, covers, caching, regression checks, and the planned comic/sequential-work extension
 - [`media-library.md`](media-library.md) — unified Library navigation for Books, Movies, and Series; separate media wishlists/state, ratings, Movie watched date, Series resume progress, private posters, and integration boundaries
-- [`personal-advisor.md`](personal-advisor.md) — implemented Personal Context Layer and Context Inspector plus the later LLM-experiment direction, memory ideas, Keychain exclusion, action boundaries, and promotion gate
+- [`personal-advisor.md`](personal-advisor.md) — implemented Personal Context Layer plus the retrieval-first Advisor/LLM direction, memory boundaries, Keychain exclusion, action boundaries, and promotion gate
+- [`context-retrieval-memory.md`](context-retrieval-memory.md) — planned full-history retrieval, context planning/resolution, token budgeting, episodic summaries, stable memory, and the recommended build sequence
 - [`google-calendar.md`](google-calendar.md) — one-way Calendar setup, projection rules, and troubleshooting
 - [`offline-capture.md`](offline-capture.md) — Capture-only offline boundary, device queue, service worker, and recovery tests
 - [`password-keychain.md`](password-keychain.md) — implemented encrypted-vault boundary, threat model, recovery rules, hardening, and residual risks

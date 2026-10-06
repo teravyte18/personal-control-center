@@ -408,7 +408,7 @@ These remain candidates rather than selected commitments:
 - Trips;
 - imported Fitness/activity summaries;
 - Food meal-prep/freezer/weekly-meal extensions after real Recipe Book use;
-- **Library comic/sequential-work support inside Books**: optional comic type/toggle, Physical/Digital/Both format, current issue/resume position, and lightweight tolerant issues-read ranges; do not require issue-by-issue catalogue completeness;
+- richer comic metadata only if the delivered lightweight Comic/sequential mode (format, current issue, issues-read ranges) proves insufficient;
 - optional inbound/two-way Calendar when ownership/conflict rules are clear;
 - advanced theme art direction.
 
@@ -422,7 +422,7 @@ The system is useful when:
 - Thoughts and editable Notes remain distinct;
 - long-form typing remains responsive while persistence happens safely;
 - Weekly Review provides enough recorded context to reduce reconstruction from memory;
-- Library lets Books, Movies, and Series remain useful without exhaustive metadata/backfilling;
+- Library lets Books, Comic/sequential works, Movies, and Series remain useful without exhaustive metadata/backfilling;
 - Series progress prevents losing resume position across long breaks;
 - Food stores recipes worth making again without becoming maintenance-heavy;
 - expenses can be entered quickly and analysed without a second checking ritual;

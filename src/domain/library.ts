@@ -1,6 +1,7 @@
 import type { Item } from "./personal-data";
 
-export const BOOK_DESCRIPTION_PREFIX = "__pcc_book_v2__\n";
+export const BOOK_DESCRIPTION_PREFIX = "__pcc_book_v3__\n";
+const BOOK_DESCRIPTION_V2_PREFIX = "__pcc_book_v2__\n";
 const LEGACY_BOOK_DESCRIPTION_PREFIX = "__pcc_book_v1__\n";
 
 export const bookReadingStates = ["unread", "reading", "finished", "paused", "abandoned"] as const;
@@ -12,6 +13,12 @@ export type BookOwnershipState = (typeof bookOwnershipStates)[number];
 export const bookPriorities = ["none", "up-next", "soon", "later"] as const;
 export type BookPriority = (typeof bookPriorities)[number];
 
+export const bookContentTypes = ["book", "comic"] as const;
+export type BookContentType = (typeof bookContentTypes)[number];
+
+export const bookFormats = ["unspecified", "physical", "digital", "both"] as const;
+export type BookFormat = (typeof bookFormats)[number];
+
 export type BookRatings = {
   enjoyment?: number;
   impact?: number;
@@ -22,6 +29,10 @@ export type BookRatings = {
 export type BookDetails = {
   author: string;
   editionNote: string;
+  contentType: BookContentType;
+  format: BookFormat;
+  currentIssue: string;
+  issuesRead: string;
   readingState: BookReadingState;
   ownership: BookOwnershipState;
   priority: BookPriority;
@@ -73,10 +84,22 @@ function isPriority(value: unknown): value is BookPriority {
   return typeof value === "string" && bookPriorities.includes(value as BookPriority);
 }
 
+function isContentType(value: unknown): value is BookContentType {
+  return typeof value === "string" && bookContentTypes.includes(value as BookContentType);
+}
+
+function isBookFormat(value: unknown): value is BookFormat {
+  return typeof value === "string" && bookFormats.includes(value as BookFormat);
+}
+
 export function createBookDetails(thoughts = ""): BookDetails {
   return {
     author: "",
     editionNote: "",
+    contentType: "book",
+    format: "unspecified",
+    currentIssue: "",
+    issuesRead: "",
     readingState: "unread",
     ownership: "unspecified",
     priority: "none",
@@ -100,6 +123,10 @@ export function normalizeBookDetails(value: unknown, ratingScale = 1): BookDetai
   return {
     author: stringOrEmpty(value.author).trim(),
     editionNote: stringOrEmpty(value.editionNote).trim(),
+    contentType: isContentType(value.contentType) ? value.contentType : defaults.contentType,
+    format: isBookFormat(value.format) ? value.format : defaults.format,
+    currentIssue: stringOrEmpty(value.currentIssue).trim(),
+    issuesRead: stringOrEmpty(value.issuesRead).trim(),
     readingState: isReadingState(value.readingState) ? value.readingState : defaults.readingState,
     ownership: isOwnership(value.ownership) ? value.ownership : defaults.ownership,
     priority: isPriority(value.priority) ? value.priority : defaults.priority,
@@ -122,11 +149,16 @@ export function serializeBookDetails(details: BookDetails) {
 }
 
 export function parseBookDetails(description: string): BookDetails | null {
-  const legacy = description.startsWith(LEGACY_BOOK_DESCRIPTION_PREFIX);
-  const prefix = legacy ? LEGACY_BOOK_DESCRIPTION_PREFIX : BOOK_DESCRIPTION_PREFIX;
+  const legacyV1 = description.startsWith(LEGACY_BOOK_DESCRIPTION_PREFIX);
+  const legacyV2 = description.startsWith(BOOK_DESCRIPTION_V2_PREFIX);
+  const prefix = legacyV1
+    ? LEGACY_BOOK_DESCRIPTION_PREFIX
+    : legacyV2
+      ? BOOK_DESCRIPTION_V2_PREFIX
+      : BOOK_DESCRIPTION_PREFIX;
   if (!description.startsWith(prefix)) return null;
   try {
-    return normalizeBookDetails(JSON.parse(description.slice(prefix.length)) as unknown, legacy ? 2 : 1);
+    return normalizeBookDetails(JSON.parse(description.slice(prefix.length)) as unknown, legacyV1 ? 2 : 1);
   } catch {
     return null;
   }

@@ -365,23 +365,22 @@ Prefer imported activity/trend summaries over a manual workout logger. Recurring
 
 ### Library follow-ups
 
-Photo-assisted book identification remains tracked in issue #33.
+**Comic / sequential-work support is implemented** inside Books rather than as a separate top-level space.
 
-**Comic / sequential-work support is now an explicit Library follow-up.** It should stay inside the existing Books shelf rather than creating a separate top-level Comic space.
+The delivered lightweight model includes:
 
-The planned first version is deliberately lightweight:
-
-- optional Book editor toggle/type for **Comic / sequential work**;
-- separate reading format: **Physical / Digital / Both / Unspecified**;
+- optional Comic/sequential toggle;
+- Physical / Digital / Both / Unspecified format;
 - current issue / resume position;
-- lightweight issues-read tracking that tolerates ranges or irregular labels such as `#1–6` or `Annual #1`;
-- no requirement to catalogue every issue, variant cover, or publication detail.
+- tolerant free-form issues-read ranges/labels;
+- Type/Format filtering;
+- comic progress in Personal Context.
 
-Ownership remains independent from format: Owned/Borrowed/Wishlist answers whether the work is possessed/wanted, while Physical/Digital/Both answers how it is read/owned.
+It intentionally does not require issue-by-issue catalogue completeness, variant-cover cataloguing, or publication metadata.
 
-If comic progress is added, the Personal Context Layer should expose it only when present.
+Photo-assisted book identification remains tracked in issue #33. Metadata lookup, highlights, streaming availability, and automatic catalog imports should still wait for observed need.
 
-See [`book-library.md`](book-library.md). Metadata lookup, highlights, streaming availability, and automatic catalog imports should still wait for observed need.
+See [`book-library.md`](book-library.md).
 
 ### Weekly Review Web Push
 

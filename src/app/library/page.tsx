@@ -10,6 +10,8 @@ import {
   type SetStateAction,
 } from "react";
 import {
+  bookContentTypes,
+  bookFormats,
   bookOwnershipStates,
   bookPriorities,
   bookReadingStates,
@@ -20,7 +22,9 @@ import {
   reorderUpNext,
   serializeBookDetails,
   sortBooksForShelf,
+  type BookContentType,
   type BookDetails,
+  type BookFormat,
   type BookItem,
   type BookOwnershipState,
   type BookPriority,
@@ -52,6 +56,18 @@ const priorityLabels: Record<BookPriority, string> = {
   later: "Later",
 };
 
+const contentTypeLabels: Record<BookContentType, string> = {
+  book: "Book",
+  comic: "Comic / sequential",
+};
+
+const formatLabels: Record<BookFormat, string> = {
+  unspecified: "Unspecified",
+  physical: "Physical",
+  digital: "Digital",
+  both: "Both",
+};
+
 const shelves: { id: BookShelfId; label: string }[] = [
   { id: "owned", label: "My library" },
   { id: "reading", label: "Currently reading" },
@@ -73,6 +89,8 @@ export default function LibraryPage() {
   const [readingFilter, setReadingFilter] = useState<BookReadingState | "">("");
   const [ownershipFilter, setOwnershipFilter] = useState<BookOwnershipState | "">("");
   const [priorityFilter, setPriorityFilter] = useState<BookPriority | "">("");
+  const [contentTypeFilter, setContentTypeFilter] = useState<BookContentType | "">("");
+  const [formatFilter, setFormatFilter] = useState<BookFormat | "">("");
   const [minimumRating, setMinimumRating] = useState("");
   const [creating, setCreating] = useState(false);
   const [openBookId, setOpenBookId] = useState<string | null>(null);
@@ -89,10 +107,12 @@ export default function LibraryPage() {
       if (readingFilter && book.details.readingState !== readingFilter) return false;
       if (ownershipFilter && book.details.ownership !== ownershipFilter) return false;
       if (priorityFilter && book.details.priority !== priorityFilter) return false;
+      if (contentTypeFilter && book.details.contentType !== contentTypeFilter) return false;
+      if (formatFilter && book.details.format !== formatFilter) return false;
       if (minimum !== undefined && (score === undefined || score < minimum)) return false;
       return true;
     });
-  }, [books, shelf, query, readingFilter, ownershipFilter, priorityFilter, minimumRating]);
+  }, [books, shelf, query, readingFilter, ownershipFilter, priorityFilter, contentTypeFilter, formatFilter, minimumRating]);
 
   function nextQueueOrder() {
     return books.reduce((maximum, book) => Math.max(maximum, book.details.upNextOrder), 0) + 1;
@@ -141,10 +161,12 @@ export default function LibraryPage() {
     setReadingFilter("");
     setOwnershipFilter("");
     setPriorityFilter("");
+    setContentTypeFilter("");
+    setFormatFilter("");
     setMinimumRating("");
   }
 
-  const filterCount = [readingFilter, ownershipFilter, priorityFilter, minimumRating].filter(Boolean).length;
+  const filterCount = [readingFilter, ownershipFilter, priorityFilter, contentTypeFilter, formatFilter, minimumRating].filter(Boolean).length;
   const currentShelf = shelves.find((candidate) => candidate.id === shelf) ?? shelves[0];
 
   return (
@@ -197,12 +219,18 @@ export default function LibraryPage() {
 
       {filtersOpen ? (
         <div id="library-filters" className="mt-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <FilterSelect label="Type" value={contentTypeFilter} onChange={(value) => setContentTypeFilter(value as BookContentType | "")}>
+              {bookContentTypes.map((value) => <option key={value} value={value}>{contentTypeLabels[value]}</option>)}
+            </FilterSelect>
             <FilterSelect label="Reading state" value={readingFilter} onChange={(value) => setReadingFilter(value as BookReadingState | "")}>
               {bookReadingStates.map((value) => <option key={value} value={value}>{readingLabels[value]}</option>)}
             </FilterSelect>
             <FilterSelect label="Ownership" value={ownershipFilter} onChange={(value) => setOwnershipFilter(value as BookOwnershipState | "")}>
               {bookOwnershipStates.map((value) => <option key={value} value={value}>{ownershipLabels[value]}</option>)}
+            </FilterSelect>
+            <FilterSelect label="Format" value={formatFilter} onChange={(value) => setFormatFilter(value as BookFormat | "")}>
+              {bookFormats.map((value) => <option key={value} value={value}>{formatLabels[value]}</option>)}
             </FilterSelect>
             <FilterSelect label="Priority" value={priorityFilter} onChange={(value) => setPriorityFilter(value as BookPriority | "")}>
               {bookPriorities.map((value) => <option key={value} value={value}>{priorityLabels[value]}</option>)}
@@ -299,7 +327,9 @@ function BookCard({
           </div>
           <p className="mt-1 truncate text-xs text-slate-500">{book.details.author || "Unknown author"}</p>
           <div className="mt-3 flex flex-wrap gap-1.5">
+            {book.details.contentType === "comic" ? <Badge>Comic</Badge> : null}
             <Badge>{readingLabels[book.details.readingState]}</Badge>
+            {book.details.contentType === "comic" && book.details.currentIssue ? <Badge>{book.details.currentIssue}</Badge> : null}
             {book.details.priority !== "none" ? <Badge>{priorityLabels[book.details.priority]}</Badge> : null}
           </div>
         </div>
@@ -586,7 +616,27 @@ function BookEditor({
 
           <div className="space-y-6">
             <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <h3 className="text-sm font-semibold text-slate-900">Book</h3>
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-900">Book</h3>
+                  <p className="mt-1 text-xs leading-5 text-slate-500">Use comic mode for runs or sequential works where issue progress matters.</p>
+                </div>
+                <label className="flex min-h-10 cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={details.contentType === "comic"}
+                    onChange={(event) => setDetails((current) => ({
+                      ...current,
+                      contentType: event.target.checked ? "comic" : "book",
+                      format: event.target.checked ? current.format : "unspecified",
+                      currentIssue: event.target.checked ? current.currentIssue : "",
+                      issuesRead: event.target.checked ? current.issuesRead : "",
+                    }))}
+                    className="h-4 w-4"
+                  />
+                  Comic / sequential
+                </label>
+              </div>
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 <Field label="Title" wide><input className="input" value={title} onChange={(event) => setTitle(event.target.value)} required autoFocus /></Field>
                 <Field label="Author"><input className="input" value={details.author} onChange={(event) => setDetails((current) => ({ ...current, author: event.target.value }))} placeholder="Optional" /></Field>
@@ -620,6 +670,38 @@ function BookEditor({
               </div>
               <p className="mt-4 text-xs leading-5 text-slate-500">Dates are optional. Marking a book Finished defaults the finish date to today, but it can be changed or cleared.</p>
             </section>
+
+            {details.contentType === "comic" ? (
+              <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-900">Comic progress</h3>
+                  <p className="mt-1 text-xs leading-5 text-slate-500">Keep this lightweight. Issue labels are free-form so annuals, volumes, decimals, and unusual numbering still fit.</p>
+                </div>
+                <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                  <Field label="Format">
+                    <select className="input" value={details.format} onChange={(event) => setDetails((current) => ({ ...current, format: event.target.value as BookFormat }))}>
+                      {bookFormats.map((value) => <option key={value} value={value}>{formatLabels[value]}</option>)}
+                    </select>
+                  </Field>
+                  <Field label="Current issue / resume position">
+                    <input
+                      className="input"
+                      value={details.currentIssue}
+                      onChange={(event) => setDetails((current) => ({ ...current, currentIssue: event.target.value }))}
+                      placeholder="#6, Vol. 2 #3, Annual #1…"
+                    />
+                  </Field>
+                  <Field label="Issues read" wide>
+                    <textarea
+                      className="input min-h-24 resize-y"
+                      value={details.issuesRead}
+                      onChange={(event) => setDetails((current) => ({ ...current, issuesRead: event.target.value }))}
+                      placeholder="#1–6, Annual #1, #8–12…"
+                    />
+                  </Field>
+                </div>
+              </section>
+            ) : null}
 
             <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
               <div className="flex items-start justify-between gap-4">

@@ -73,7 +73,7 @@
     ["Pessoa: A Biography", "Richard Zenith"],
   ].map(([title, author]) => ({ title, author }));
 
-  const BOOK_PREFIXES = ["__pcc_book_v1__\n", "__pcc_book_v2__\n"];
+  const BOOK_PREFIXES = ["__pcc_book_v1__\n", "__pcc_book_v2__\n", "__pcc_book_v3__\n"];
 
   const normalize = (value) => value
     .normalize("NFKD")
@@ -146,9 +146,13 @@
   );
   if (!confirmed) return;
 
-  const descriptionFor = (author) => `__pcc_book_v2__\n${JSON.stringify({
+  const descriptionFor = (author) => `__pcc_book_v3__\n${JSON.stringify({
     author,
     editionNote: "",
+    contentType: "book",
+    format: "unspecified",
+    currentIssue: "",
+    issuesRead: "",
     readingState: "unread",
     ownership: "wishlist",
     priority: "none",

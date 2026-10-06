@@ -62,7 +62,45 @@ test("migrates legacy five-point ratings to the ten-point scale", () => {
     execution: 0,
     overallOverride: 10,
   });
-  assert.match(serializeBookDetails(migrated), /^__pcc_book_v2__\n/);
+  assert.match(serializeBookDetails(migrated), /^__pcc_book_v3__\n/);
+});
+
+
+test("migrates version 2 books with ordinary-book comic defaults", () => {
+  const legacyDescription = `__pcc_book_v2__\n${JSON.stringify({
+    ...createBookDetails(),
+    author: "Legacy Author",
+    contentType: undefined,
+    format: undefined,
+    currentIssue: undefined,
+    issuesRead: undefined,
+  })}`;
+  const migrated = parseBookDetails(legacyDescription);
+  assert.ok(migrated);
+  assert.equal(migrated.author, "Legacy Author");
+  assert.equal(migrated.contentType, "book");
+  assert.equal(migrated.format, "unspecified");
+  assert.equal(migrated.currentIssue, "");
+  assert.equal(migrated.issuesRead, "");
+});
+
+test("stores lightweight comic progress without requiring numeric issue IDs", () => {
+  const description = serializeBookDetails({
+    ...createBookDetails(),
+    contentType: "comic",
+    format: "digital",
+    currentIssue: "Vol. 2 #3",
+    issuesRead: "#1–6, Annual #1, Vol. 2 #1–3",
+    readingState: "reading",
+    ownership: "owned",
+  });
+  const parsed = parseBookDetails(description);
+  assert.ok(parsed);
+  assert.equal(parsed.contentType, "comic");
+  assert.equal(parsed.format, "digital");
+  assert.equal(parsed.currentIssue, "Vol. 2 #3");
+  assert.equal(parsed.issuesRead, "#1–6, Annual #1, Vol. 2 #1–3");
+  assert.match(description, /^__pcc_book_v3__\n/);
 });
 
 test("keeps zero ratings distinct from unrated and honors an overall override", () => {

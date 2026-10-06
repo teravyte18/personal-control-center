@@ -127,6 +127,10 @@ type ContextLibraryRecord =
     id: string;
     title: string;
     author?: string;
+    contentType: string;
+    format: string;
+    currentIssue?: string;
+    issuesRead?: string;
     readingState: string;
     ownership: string;
     priority: string;
@@ -454,6 +458,10 @@ function libraryContext(items: readonly Item[], limits: PersonalContextLimits): 
     id: book.item.id,
     title: book.item.title,
     author: text(book.details.author, limits.maxTextChars),
+    contentType: book.details.contentType,
+    format: book.details.format,
+    currentIssue: text(book.details.currentIssue, limits.maxTextChars),
+    issuesRead: text(book.details.issuesRead, limits.maxTextChars),
     readingState: book.details.readingState,
     ownership: book.details.ownership,
     priority: book.details.priority,

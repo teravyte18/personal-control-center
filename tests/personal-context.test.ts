@@ -70,6 +70,10 @@ test("personal context exposes only explicitly selected bounded domains", () => 
     description: serializeBookDetails({
       ...createBookDetails("Book reflection"),
       author: "Example Author",
+      contentType: "comic",
+      format: "physical",
+      currentIssue: "#6",
+      issuesRead: "#1–6",
       readingState: "reading",
       ownership: "owned",
     }),
@@ -109,6 +113,14 @@ test("personal context exposes only explicitly selected bounded domains", () => 
   assert.match(context.domains.projects?.[0].description ?? "", /…$/);
   assert.deepEqual(context.domains.notes?.map((entry) => entry.id), ["note"]);
   assert.deepEqual(context.domains.library?.map((entry) => entry.id), ["book", "series"]);
+  const comic = context.domains.library?.find((entry) => entry.id === "book");
+  assert.equal(comic?.type, "book");
+  if (comic?.type === "book") {
+    assert.equal(comic.contentType, "comic");
+    assert.equal(comic.format, "physical");
+    assert.equal(comic.currentIssue, "#6");
+    assert.equal(comic.issuesRead, "#1–6");
+  }
   assert.deepEqual(context.domains.food?.map((entry) => entry.id), ["recipe"]);
   assert.equal("expenses" in context.domains, false);
 });

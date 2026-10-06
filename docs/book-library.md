@@ -1,12 +1,20 @@
 # Book Library
 
-**Status: delivered in PR #32, with cover-delivery performance improvements in PR #35 and later shelf/rating refinements.**
+**Status: delivered in PR #32, with later cover, shelf/rating, and comic/sequential-work refinements.**
 
 The Library is a books-first personal reading space. It is intentionally separate from Tasks, Projects, Notes, Thoughts, and later general-media ideas.
 
 ## Product model
 
-Every book has a required title and optional author, edition note, cover, start/finish dates, and one flexible Thoughts and takeaways field.
+Every Library Book record has a required title and optional author, edition note, cover, start/finish dates, and one flexible Thoughts and takeaways field.
+
+A record can optionally be marked **Comic / sequential work**. Comic mode adds:
+
+- reading format: Unspecified, Physical, Digital, or Both;
+- free-form current issue / resume position;
+- free-form issues-read history.
+
+Issue fields deliberately accept labels and ranges such as `#6`, `#1–6`, `Vol. 2 #3`, or `Annual #1` instead of assuming simple integer numbering.
 
 Three independent classifications generate useful views:
 
@@ -14,7 +22,7 @@ Three independent classifications generate useful views:
 - ownership: Unspecified, Owned, Borrowed, or Wishlist;
 - priority: None, Up next, Soon, or Later.
 
-Ratings are optional half-step values from 0 to 10 for Enjoyment, Impact, and Execution. The aggregate uses whichever dimensions are filled; an optional overall override preserves the dimensions. Zero remains distinct from Unrated. Legacy 0-to-5 ratings are read at twice their stored value and written to the version 2 Library payload on the book's next save.
+Ratings are optional half-step values from 0 to 10 for Enjoyment, Impact, and Execution. The aggregate uses whichever dimensions are filled; an optional overall override preserves the dimensions. Zero remains distinct from Unrated. Legacy 0-to-5 ratings are read at twice their stored value. Existing v1/v2 records remain readable and are written to the version 3 Library payload on the record's next save.
 
 Dates are optional historical context. Selecting Finished supplies today only when the finish date is empty, and the value can be changed or cleared.
 
@@ -70,29 +78,26 @@ Ambiguous results are intentionally rejected rather than guessed. This is especi
 
 The runtime includes English and Portuguese Tesseract language data. Recognition is occasional CPU work on the Raspberry Pi rather than a continuously running model.
 
-## Comic / sequential-work follow-up
+## Comic / sequential-work support
 
-Real use suggests that comics belong inside the Books shelf rather than requiring a fourth top-level Library category, but they need a little more progress structure than ordinary books.
+Comic support is implemented as a mode inside Books rather than a fourth top-level Library shelf.
 
-A future Book editor may add an optional **Comic / sequential work** toggle.
+The Book editor exposes a **Comic / sequential** toggle. When enabled, it shows:
 
-When enabled, the record may expose:
+- **Format** — Unspecified, Physical, Digital, or Both;
+- **Current issue / resume position** — free-form;
+- **Issues read** — free-form ranges/labels.
 
-- content type: ordinary book or comic/sequential work;
-- format: Unspecified, Physical, Digital, or Both;
-- current issue / resume position;
-- lightweight issues-read information, preferably supporting simple labels or ranges rather than requiring a complete issue catalogue.
-
-The exact issue representation should remain tolerant because comic numbering is irregular. A free-form value such as `#6`, `#1–6`, or `Annual #1` may be more useful initially than enforcing integer-only issue IDs.
-
-The existing ownership field remains separate:
+Ownership remains independent from format:
 
 - Owned/Borrowed/Wishlist answers **whether the work is possessed/wanted**;
 - Physical/Digital/Both answers **how it is possessed/read**.
 
-Do not require issue-by-issue completion tracking, variant-cover cataloguing, publication metadata, or exhaustive run backfilling in the first version.
+Library filters include Type and Format. Comic cards surface a Comic badge and current issue when present.
 
-If implemented, the Personal Context Layer should expose current issue/progress only when present.
+The first version deliberately does **not** require issue-by-issue catalogue completeness, variant-cover cataloguing, public publication metadata, or automatic issue-number validation.
+
+The Personal Context Layer exposes content type, format, current issue, and issues-read data when present, so later retrieval/Advisor work can reason about comic progress without a separate Comic domain.
 
 ## Weekly Review and Calendar
 
@@ -105,7 +110,7 @@ A book appears in generated Review context when its optional start or finish dat
 3. Confirm Wishlist books appear only in the explicit Wishlist view and do not leak into reading-state views.
 4. Create an Owned + Unread + Up next book and confirm it appears in the expected generated views without duplicates.
 5. Reorder several Up next books, refresh, and confirm persistence.
-6. Search by title/author and exercise detailed filters.
+6. Search by title/author and exercise detailed filters, including Type and Format.
 7. Move a book through Reading and Finished, including editable/clearable optional dates.
 8. Verify zero versus Unrated ratings, aggregate calculation, and overall override.
 9. Save and reopen Thoughts and takeaways.
@@ -115,10 +120,13 @@ A book appears in generated Review context when its optional start or finish dat
 13. Organise an Inbox capture as Book and confirm context becomes initial takeaways.
 14. Confirm Books remain absent from Notes and Thoughts.
 15. Confirm dated reading activity appears in the correct Review period.
-16. Confirm cross-account cover URLs remain inaccessible.
+16. Create/edit a Comic record with Physical/Digital/Both format, a non-numeric current issue, and mixed issue ranges; refresh and confirm persistence.
+17. Confirm Comic records remain inside ordinary Library shelves and do not leak into Notes.
+18. Inspect Library Personal Context and confirm comic progress appears only on the Book record.
+19. Confirm cross-account cover URLs remain inaccessible.
 
 ## Current boundaries
 
-The delivered Library does not yet include Comic/sequential-work progress, ISBN/barcode scanning, reverse-image cover matching, page progress, reading timers, highlights, ebook ingestion, detailed lending, social activity, AI summaries/recommendations, or automatic metadata saving.
+The delivered Library does not yet include issue-by-issue comic catalogues, automatic issue metadata/number validation, ISBN/barcode scanning, reverse-image cover matching, page progress, reading timers, highlights, ebook ingestion, detailed lending, social activity, AI summaries/recommendations, or automatic metadata saving.
 
 Cover recognition is intentionally best-effort OCR + metadata matching rather than a general visual-recognition system.

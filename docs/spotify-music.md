@@ -12,9 +12,13 @@ This first slice includes:
 - hourly background polling in a small optional Alpine Compose service;
 - a Music space with connection status, totals, first/last play and last poll.
 
-The second slice (issue #86) adds a timezone-aware monthly/yearly Music Insights panel, listing plays, distinct songs, first-ever songs, most played tracks, top credited artists, six-month rediscoveries and a year-at-a-glance view.
+The second slice (issue #86) adds a timezone-aware monthly/yearly/all-time Music Insights panel, listing plays, distinct songs, first-ever songs, most played tracks, top credited artists, six-month rediscoveries and a year-at-a-glance view.
 
-The API is GET `/api/music/insights?mode=month&period=2026-10&tz=Europe/Lisbon` (or `mode=year&period=2026`). It requires an authenticated session and always derives the user from that session. Dates are bounded using PostgreSQL local-calendar timestamps converted to UTC; no listening data is sent to third parties for analytics.
+The API is GET `/api/music/insights?mode=month&period=2026-10&tz=Europe/Lisbon` (or `mode=year&period=2026` or `mode=all&period=all`). It requires an authenticated session and always derives the user from that session. Dates are bounded using PostgreSQL local-calendar timestamps converted to UTC; no listening data is sent to third parties for analytics.
+
+Spotify OAuth connection, permission upgrades, manual collection sync, disconnection, last check and errors are managed alongside Google Calendar under **Account & access → Spotify**. The Spotify callback returns there. The Music space contains only listening insights, random discovery, playlist archive configuration and genre enrichment; the archive section links to Account when additional Spotify permission is required.
+
+The **All time** view covers all stored listening records without a date cutoff, using lifetime top songs/artists, genre coverage and a year-by-year playback timeline that drills down into a selected year. It shows the longest recorded 180-day rediscovery gaps and omits comparison-based "rising" artists. Exact known listening time excludes API events without duration.
 
 Music now follows the Expenses space hierarchy: timeline and archive settings live in separate tabs; month/year controls lead into compact summaries, genre coverage and ranked listening lists. Ranked artists are ordered by their **numeric** play counts, not the text representation of those counts. The genre section remains visible even with zero enrichment, offering setup guidance rather than silently disappearing. The archive's optional Last.fm key needs to be configured privately on the Pi before any tags can appear.
 
@@ -37,8 +41,8 @@ See https://developer.spotify.com/documentation/web-api/reference/get-playlists-
 
 ### Setup checklist for archive and optional genres
 1. Keep the existing Spotify developer client ID/secret/encryption key unchanged.
-2. In Music, select **Reconnect Spotify with playlist access**. Approve the explicitly added playlist scopes.
-3. Paste a Spotify playlist link, choose the minimum plays, enable automatic additions, and Save.
+2. In **Account & access → Spotify**, select **Allow playlist updates**. Approve the explicitly added playlist scopes.
+3. In **Music → Archive**, paste a Spotify playlist link, choose the minimum plays, enable automatic additions, and Save.
 4. Press **Check playlist now** to verify the first reconciliation. Existing entries are not removed or reordered.
 5. Optional: create a Last.fm API key and set `PCC_LASTFM_API_KEY` privately in `.env`, then redeploy the app container with its environment. The collector's hourly enrichment remains bounded; manual enrichment is available from Music.
 6. If the playlist owner differs from your Spotify account, linking while enabled is rejected. If you want to stop automatic additions, disable it and Save; archived Spotify songs remain intact.

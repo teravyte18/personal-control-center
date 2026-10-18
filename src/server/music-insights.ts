@@ -22,7 +22,7 @@ export async function getMusicInsights(userId: string, mode: string | null, valu
   const lower = sql`(${start}::timestamp at time zone ${tz})`;
   const upper = sql`(${end}::timestamp at time zone ${tz})`;
   const prevStart = all ? "2000-01-01" : period.mode === "month"
-    ? new Date(Date.UTC(Number(start!.slice(0,4)), Number(start.slice(5,7)) - 2, 1)).toISOString().slice(0,10)
+    ? new Date(Date.UTC(Number(start!.slice(0,4)), Number(start!.slice(5,7)) - 2, 1)).toISOString().slice(0,10)
     : `${Number(start!.slice(0,4))-1}-01-01`;
   const previousLower = sql`(${prevStart}::timestamp at time zone ${tz})`;
   const plainWindow = all ? sql`true` : sql`played_at >= ${lower} and played_at < ${upper}`;

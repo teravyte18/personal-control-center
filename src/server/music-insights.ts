@@ -84,6 +84,14 @@ export async function getMusicInsights(userId: string, mode: string | null, valu
       where user_id = ${userId} and played_at >= ${lower} and played_at < ${upper}
       group by 1 order by 1 asc
     `,
+    sql<Genre[]>`
+      select tags.tags[1] as name, count(*)::text as plays
+      from spotify_play_events p
+      join spotify_track_tags tags on tags.user_id = p.user_id and tags.track_id = p.track_id
+      where p.user_id = ${userId} and p.played_at >= ${lower} and p.played_at < ${upper}
+        and cardinality(tags.tags) > 0
+      group by tags.tags[1] order by count(*) desc limit 8
+    `,
   ]);
 
   return {

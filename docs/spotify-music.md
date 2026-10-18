@@ -41,6 +41,26 @@ See https://developer.spotify.com/documentation/web-api/reference/get-playlists-
 5. Optional: create a Last.fm API key and set `PCC_LASTFM_API_KEY` privately in `.env`, then redeploy the app container with its environment. The collector's hourly enrichment remains bounded; manual enrichment is available from Music.
 6. If the playlist owner differs from your Spotify account, linking while enabled is rejected. If you want to stop automatic additions, disable it and Save; archived Spotify songs remain intact.
 
+## Random song from your personal archive
+
+The **Rediscover a song → Surprise me** control on Music selects one song uniformly
+from tracks in the user's own listening-history database with at least **five**
+qualifying plays. Historical export plays count when `ms_played >= 30000` and
+recently-played API events count approximately because Spotify does not expose
+their duration. The feature works without a linked Spotify playlist or playlist
+editing permissions. It never changes a playlist or starts music remotely.
+
+The result displays title, artist, qualified play count and an **Open in Spotify**
+link. **Another song** avoids returning the immediately previous track when
+more than one eligible song exists. Selection is uniform *across tracks* (not
+weighted by play counts) to surface forgotten listening phases. It uses an
+authenticated, user-scoped, uncached API route:
+`GET /api/music/random?exclude=<previous-spotify-track-id>`.
+With no qualifying tracks, an informative empty state appears.
+
+This intentionally uses a fixed **five-play threshold**, independently of
+a separately configured automatic-playlist threshold.
+
 ## Important data boundaries
 
 - Raw Spotify exports are private and must never enter Git, PRs, issues, or the application image.

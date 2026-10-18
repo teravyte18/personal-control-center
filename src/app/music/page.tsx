@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { MusicInsightsPanel } from "@/components/music-insights-panel";
+import { MusicArchivePanel } from "@/components/music-archive-panel";
+import { MusicRandomSong } from "@/components/music-random-song";
 
 type Status = {
   configured: boolean;
@@ -121,7 +123,9 @@ export default function MusicPage() {
           )}
         </div>
       </div>
+      <MusicRandomSong />
       <MusicInsightsPanel />
+      <MusicArchivePanel />
     </section>
   );
 }

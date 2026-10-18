@@ -13,9 +13,9 @@ function oauthCookie(request: Request) {
   try {
     const decoded = JSON.parse(Buffer.from(value, "base64url").toString("utf8")) as unknown;
     if (!decoded || typeof decoded !== "object") return null;
-    const data = decoded as { state?: unknown; userId?: unknown; expiresAt?: unknown };
+    const data = decoded as { state?: unknown; userId?: unknown; expiresAt?: unknown; playlistAccess?: unknown };
     if (typeof data.state !== "string" || typeof data.userId !== "string" || typeof data.expiresAt !== "number") return null;
-    return { state: data.state, userId: data.userId, expiresAt: data.expiresAt };
+    return { state: data.state, userId: data.userId, expiresAt: data.expiresAt, playlistAccess: data.playlistAccess === true };
   } catch { return null; }
 }
 
@@ -38,7 +38,7 @@ export async function GET(request: Request) {
         state.state !== params.get("state") || !params.get("code")) {
       return redirect(request, "invalid-state");
     }
-    await connectSpotify(user.id, params.get("code")!);
+    await connectSpotify(user.id, params.get("code")!, state.playlistAccess);
     return redirect(request, "connected");
   } catch (error) {
     if (error instanceof AuthenticationRequiredError) {

@@ -24,6 +24,7 @@ function RankedTracks({ tracks }: { tracks: MusicInsights["topTracks"] }) {
             <a href={songLink(track.trackId)} target="_blank" rel="noopener noreferrer"
               className="block truncate text-sm font-semibold text-slate-800 hover:underline">{track.name}</a>
             <p className="truncate text-xs text-slate-500">{track.artist}</p>
+            {track.tags?.length ? <p className="truncate text-[11px] text-emerald-700">{track.tags.slice(0,2).join(" · ")}</p> : null}
           </div>
           <span className="shrink-0 text-xs font-medium text-slate-500">{formatCount(track.plays)} plays</span>
         </li>
@@ -150,6 +151,23 @@ export function MusicInsightsPanel() {
             </div>
           ) : null}
 
+          {insights.topGenres.length ? (
+            <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-4">
+              <h4 className="text-base font-semibold">Genres this period</h4>
+              <p className="mt-1 text-xs text-slate-500">Community tags cached from Last.fm, covering only enriched tracks. Uncategorized listening is excluded.</p>
+              <div className="mt-3 space-y-2">
+                {insights.topGenres.map((genre) => (
+                  <div key={genre.name} className="flex items-center gap-2 text-xs">
+                    <span className="w-32 truncate">{genre.name}</span>
+                    <span className="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-slate-100">
+                      <span className="block h-full rounded-full bg-emerald-600" style={{ width: `${100 * genre.plays / Math.max(1, insights.topGenres[0].plays)}%` }} />
+                    </span>
+                    <span className="w-14 text-right text-slate-500">{genre.plays} plays</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          ) : null}
           <div className="mt-5 grid gap-4 md:grid-cols-2">
             <section className="rounded-2xl border border-slate-200 bg-white p-4">
               <h4 className="text-base font-semibold">Most played tracks</h4>

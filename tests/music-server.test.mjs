@@ -92,3 +92,34 @@ test("artist ranking sorts integer counts, not their text representations", asyn
   assert.equal(own.body.taggedPlays, 0);
   assert.deepEqual(own.body.topGenres, []);
 });
+
+test("all-time insights include every recorded year, respect account isolation, and show annual trends", async () => {
+  const path = "/api/music/insights?mode=all&period=all&tz=Europe/Lisbon";
+  const unauthenticated = await request(path);
+  assert.equal(unauthenticated.response.status, 401);
+  const ownerResult = await request(path, owner);
+  assert.equal(ownerResult.response.status, 200, JSON.stringify(ownerResult.body));
+  assert.equal(ownerResult.body.period.mode, "all");
+  assert.equal(ownerResult.body.plays, 35);
+  assert.equal(ownerResult.body.uniqueTracks, 6);
+  assert.equal(ownerResult.body.knownDurationPlays, 34);
+  assert.equal(ownerResult.body.unknownDurationPlays, 1);
+  assert.equal(ownerResult.body.knownDurationMs, 717000);
+  assert.equal(ownerResult.body.taggedPlays, 1);
+  assert.deepEqual(ownerResult.body.trend, [
+    { period: "2024", plays: 10 },
+    { period: "2025", plays: 1 },
+    { period: "2026", plays: 24 },
+  ]);
+  assert.equal(ownerResult.body.topArtists[0].name, "Example Artist");
+  assert.equal(ownerResult.body.topArtists[0].plays, 14);
+  assert.ok(ownerResult.body.rediscoveries.some((entry) => entry.name === "Example A"));
+
+  const memberResult = await request(path, member);
+  assert.equal(memberResult.response.status, 200, JSON.stringify(memberResult.body));
+  assert.equal(memberResult.body.plays, 6);
+  assert.equal(memberResult.body.uniqueTracks, 2);
+  assert.ok(!JSON.stringify(memberResult.body).includes("Example A"));
+  const invalid = await request("/api/music/insights?mode=all&period=2026&tz=UTC", owner);
+  assert.equal(invalid.response.status, 400);
+});

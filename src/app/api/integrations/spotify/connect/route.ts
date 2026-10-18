@@ -11,7 +11,7 @@ const MAX_AGE = 600;
 export async function GET(request: Request) {
   try {
     const user = await resolveRequestUser(request);
-    if (!isSpotifyConfigured()) return NextResponse.redirect(new URL("/music?spotify=not-configured", request.url));
+    if (!isSpotifyConfigured()) return NextResponse.redirect(new URL("/account?spotify=not-configured", request.url));
     const playlistAccess = new URL(request.url).searchParams.get("playlist") === "1";
     const state = randomBytes(24).toString("base64url");
     const value = Buffer.from(JSON.stringify({
@@ -25,9 +25,9 @@ export async function GET(request: Request) {
     return response;
   } catch (error) {
     if (error instanceof AuthenticationRequiredError) {
-      return NextResponse.redirect(new URL("/login?next=/music", request.url));
+      return NextResponse.redirect(new URL("/login?next=/account", request.url));
     }
     console.error("Could not start Spotify authorization.", error);
-    return NextResponse.redirect(new URL("/music?spotify=error", request.url));
+    return NextResponse.redirect(new URL("/account?spotify=error", request.url));
   }
 }

@@ -63,7 +63,7 @@ function Artists({ items, expanded }: { items: MusicInsights["topArtists"]; expa
 
 export function MusicInsightsPanel({ onOpenArchive }: { onOpenArchive: () => void }) {
   const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
-  const [mode, setMode] = useState<"month" | "year">("month");
+  const [mode, setMode] = useState<"month" | "year" | "all">("month");
   const [period, setPeriod] = useState(() => todayMusicPeriod(new Date(), timeZone));
   const [insights, setInsights] = useState<MusicInsights | null>(null);
   const [loading, setLoading] = useState(true);
@@ -74,7 +74,7 @@ export function MusicInsightsPanel({ onOpenArchive }: { onOpenArchive: () => voi
   const year = period.slice(0, 4);
   useEffect(() => {
     let active = true;
-    const search = new URLSearchParams({ mode, period: mode === "year" ? year : period, tz: timeZone });
+    const search = new URLSearchParams({ mode, period: mode === "all" ? "all" : mode === "year" ? year : period, tz: timeZone });
     void fetch(`/api/music/insights?${search}`, { cache: "no-store" })
       .then(async (response) => {
         const data = await response.json() as MusicInsights & { error?: string };
@@ -87,7 +87,7 @@ export function MusicInsightsPanel({ onOpenArchive }: { onOpenArchive: () => voi
     return () => { active = false; };
   }, [mode, period, year, timeZone]);
 
-  function selectMode(next: "month" | "year") {
+  function selectMode(next: "month" | "year" | "all") {
     setMode(next); setLoading(true); setExpandedTracks(false); setExpandedArtists(false);
   }
   function selectPeriod(next: string) {
@@ -97,18 +97,20 @@ export function MusicInsightsPanel({ onOpenArchive }: { onOpenArchive: () => voi
   const topGenres = insights?.topGenres ?? [];
   const tagCoverage = insights && insights.plays > 0 ? Math.round(100 * insights.taggedPlays / insights.plays) : 0;
   const maxGenre = topGenres[0]?.plays || 1;
-  const rising = insights?.topArtists.filter((a) => a.plays >= 5 && a.plays > a.previousPlays * 2).slice(0, 3) ?? [];
+  const rising = mode === "all" ? [] : insights?.topArtists.filter((a) => a.plays >= 5 && a.plays > a.previousPlays * 2).slice(0, 3) ?? [];
   const maxMonth = Math.max(1, ...(insights?.trend.map((t) => t.plays) ?? []));
 
   return (
     <div className="mt-5">
-      <div className="grid grid-cols-2 rounded-2xl border border-slate-200 bg-white p-1 shadow-sm">
+      <div className="grid grid-cols-3 rounded-2xl border border-slate-200 bg-white p-1 shadow-sm">
         <button type="button" onClick={() => selectMode("month")} aria-pressed={mode === "month"}
           className={`min-h-11 rounded-xl text-sm font-semibold ${mode === "month" ? "bg-slate-950 text-white" : "text-slate-500"}`}>Month</button>
         <button type="button" onClick={() => selectMode("year")} aria-pressed={mode === "year"}
           className={`min-h-11 rounded-xl text-sm font-semibold ${mode === "year" ? "bg-slate-950 text-white" : "text-slate-500"}`}>Year</button>
+        <button type="button" onClick={() => selectMode("all")} aria-pressed={mode === "all"}
+          className={`min-h-11 rounded-xl text-sm font-semibold ${mode === "all" ? "bg-slate-950 text-white" : "text-slate-500"}`}>All time</button>
       </div>
-      <div className="mt-5 flex items-center justify-between gap-2">
+      {mode !== "all" && <div className="mt-5 flex items-center justify-between gap-2">
         <button type="button" className="min-h-11 min-w-11 rounded-xl border border-slate-200 bg-white text-lg"
           aria-label="Previous period" onClick={() => selectPeriod(shiftPeriod(period, mode, -1))}>‹</button>
         <div className="min-w-0 text-center">
@@ -129,7 +131,7 @@ export function MusicInsightsPanel({ onOpenArchive }: { onOpenArchive: () => voi
         </div>
         <button type="button" className="min-h-11 min-w-11 rounded-xl border border-slate-200 bg-white text-lg"
           aria-label="Next period" onClick={() => selectPeriod(shiftPeriod(period, mode, 1))}>›</button>
-      </div>
+      </div>}
 
       {error ? <p role="alert" className="mt-4 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-800">{error}</p> : null}
       {loading ? <p className="mt-6 text-sm text-slate-500">Loading listening history…</p> : null}
@@ -138,30 +140,45 @@ export function MusicInsightsPanel({ onOpenArchive }: { onOpenArchive: () => voi
           <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
             <Metric label="Plays" value={count(insights.plays)}/>
             <Metric label="Different songs" value={count(insights.uniqueTracks)}/>
-            <Metric label="First-time songs" value={count(insights.newTracks)}/>
+            {mode === "all"
+              ? <Metric label="Plays with durations" value={count(insights.knownDurationPlays)}/>
+              : <Metric label="First-time songs" value={count(insights.newTracks)}/> }
             <Metric label="Known listening time" value={listeningTime(insights.knownDurationMs)}/>
           </div>
           {insights.unknownDurationPlays > 0 ? <p className="mt-2 text-xs text-slate-500">
             {count(insights.unknownDurationPlays)} plays have unknown duration and are excluded from listening time.
           </p> : null}
 
-          {mode === "year" && insights.trend.length > 0 && (
+          {(mode === "year" || mode === "all") && insights.trend.length > 0 && (
             <section className="mt-5">
-              <h4 className="text-sm font-semibold text-slate-700">Listening through the year</h4>
+              <h4 className="text-sm font-semibold text-slate-700">{mode === "all" ? "Listening over the years" : "Listening through the year"}</h4>
               <div className="mt-3 grid grid-cols-6 gap-2 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-12">
-                {Array.from({ length: 12 }, (_, index) => {
-                  const month = `${year}-${String(index + 1).padStart(2, "0")}`;
-                  const plays = insights.trend.find((item) => item.period === month)?.plays ?? 0;
+                {(mode === "all"
+                  ? insights.trend
+                  : Array.from({ length: 12 }, (_, index) => {
+                    const month = `${year}-${String(index + 1).padStart(2, "0")}`;
+                    return { period: month, plays: insights.trend.find((item) => item.period === month)?.plays ?? 0 };
+                  })).map((item) => {
+                  const label = item.period;
+                  const plays = item.plays;
                   return (
-                    <button type="button" key={month} title={`${month}: ${count(plays)} plays`}
-                      aria-label={`Show ${month} (${plays} plays)`}
-                      onClick={() => { selectPeriod(month); selectMode("month"); }}
+                    <button type="button" key={label} title={`${label}: ${count(plays)} plays`}
+                      aria-label={`Show ${label} (${plays} plays)`}
+                      onClick={() => {
+                        if (mode === "all") {
+                          selectPeriod(`${label}-${period.slice(5, 7)}`);
+                          selectMode("year");
+                        } else {
+                          selectPeriod(label);
+                          selectMode("month");
+                        }
+                      }}
                       className="group flex min-w-0 flex-col items-center gap-1 rounded-lg py-1 hover:bg-slate-100">
                       <span className="text-[10px] tabular-nums text-slate-500">{plays ? count(plays) : "–"}</span>
                       <span className="flex h-20 w-full items-end overflow-hidden rounded bg-slate-100">
                         <span className="block w-full rounded-t bg-slate-950" style={{height: `${plays ? Math.max(4, 100 * plays / maxMonth) : 0}%`}}/>
                       </span>
-                      <span className="text-[10px] text-slate-500">{new Date(Date.UTC(Number(year), index, 1)).toLocaleString(undefined, { month: "short", timeZone: "UTC" })}</span>
+                      <span className="text-[10px] text-slate-500">{mode === "all" ? label : new Date(`${label}-01T12:00:00`).toLocaleString(undefined, { month: "short" })}</span>
                     </button>
                   );
                 })}

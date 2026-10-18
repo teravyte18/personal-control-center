@@ -23,7 +23,7 @@ export async function POST(request: Request) {
       return Response.json(status, { headers: { "Cache-Control": "no-store" } });
     }
     if (body.action === "sync") {
-      const added = await syncMusicArchive(user.id);
+      const added = await syncMusicArchive(user.id, true);
       return Response.json({ ...(await musicArchiveStatus(user.id)), added });
     }
     if (body.action === "enrich") {

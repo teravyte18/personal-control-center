@@ -15,7 +15,7 @@ function oauthCookie(request: Request) {
     if (!decoded || typeof decoded !== "object") return null;
     const data = decoded as { state?: unknown; userId?: unknown; expiresAt?: unknown };
     if (typeof data.state !== "string" || typeof data.userId !== "string" || typeof data.expiresAt !== "number") return null;
-    return data;
+    return { state: data.state, userId: data.userId, expiresAt: data.expiresAt };
   } catch { return null; }
 }
 

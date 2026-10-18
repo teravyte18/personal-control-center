@@ -9,6 +9,7 @@ create table spotify_archive_settings (
   enabled boolean not null default false,
   last_synced_at timestamptz,
   last_error text,
+  pending_count integer not null default 0,
   updated_at timestamptz not null default now()
 );
 

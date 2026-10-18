@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { MusicInsightsPanel } from "@/components/music-insights-panel";
 
 type Status = {
   configured: boolean;
@@ -120,9 +121,7 @@ export default function MusicPage() {
           )}
         </div>
       </div>
-      <p className="mt-5 text-sm text-slate-500">
-        Monthly Wrapped-style statistics, genre tags and automatic archive playlists will be added after the collector is validated.
-      </p>
+      <MusicInsightsPanel />
     </section>
   );
 }

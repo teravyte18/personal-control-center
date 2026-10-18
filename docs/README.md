@@ -16,6 +16,7 @@ This directory contains current product/operations documentation plus a small am
 
 - [`food.md`](food.md) — implemented Food v1 Recipe Book, ingredient-copy workflow, private photos, explicit exclusions, and deferred meal-prep/routine follow-ups
 - [`expenses.md`](expenses.md) — manual expense capture, fixed 50/30/20 reference, rolling Fun Fund, Insights analytics, persistence, and current boundaries
+- [`spotify-music.md`](spotify-music.md) — new Music tracking space: Spotify OAuth, hourly collection, private historic import and limits
 - [`markets.md`](markets.md) — lightweight Yahoo-backed watchlist with current price, daily movement, user-scoped persistence, and TradingView handoff
 - [`notes.md`](notes.md) — Markdown subset, autosave rules, safe preview rendering, and regression checks
 - [`book-library.md`](book-library.md) — Books shelf model, ratings, owned-first default view, Wishlist isolation, covers, caching, regression checks, and the planned comic/sequential-work extension

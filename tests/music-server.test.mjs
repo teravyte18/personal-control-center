@@ -60,3 +60,22 @@ test("music period values are validated and archive preferences are isolated", a
   assert.equal(other.response.status, 200);
   assert.equal(other.body.playlistId, null);
 });
+
+test("Surprise me picks only qualified songs and does not leak between accounts", async () => {
+  const unauthenticated = await request("/api/music/random");
+  assert.equal(unauthenticated.response.status, 401);
+  for (const [account, expected] of [
+    [owner, "Random Archive Example"],
+    [member, "Other Archive Example"],
+  ]) {
+    const first = await request("/api/music/random", account);
+    assert.equal(first.response.status, 200, JSON.stringify(first.body));
+    assert.equal(first.body.minimumPlays, 5);
+    assert.equal(first.body.song.title, expected);
+    assert.equal(first.body.song.qualifiedPlays, 5);
+    assert.equal(first.body.song.spotifyUrl, `https://open.spotify.com/track/${first.body.song.trackId}`);
+    const repeated = await request(`/api/music/random?exclude=${first.body.song.trackId}`, account);
+    assert.equal(repeated.response.status, 200, JSON.stringify(repeated.body));
+    assert.equal(repeated.body.song.title, expected, "Single eligible song must still be returned.");
+  }
+});

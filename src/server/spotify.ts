@@ -7,14 +7,16 @@ const AUTH_URL = "https://accounts.spotify.com/authorize";
 const TOKEN_URL = "https://accounts.spotify.com/api/token";
 const API_URL = "https://api.spotify.com/v1";
 const SCOPES = ["user-read-recently-played"];
+const PLAYLIST_SCOPES = ["playlist-read-private", "playlist-modify-private", "playlist-modify-public"];
 
 type Connection = {
   user_id: string;
   encrypted_refresh_token: string;
   last_polled_at: Date | string | null;
   last_error: string | null;
+  playlist_scopes_granted: boolean;
 };
-type TokenResult = { access_token?: string; refresh_token?: string };
+type TokenResult = { access_token?: string; refresh_token?: string; scope?: string };
 type RecentPlay = {
   played_at?: string;
   track?: {
@@ -56,12 +58,12 @@ export function isSpotifyConfigured() {
   }
 }
 
-export function spotifyAuthorizationUrl(state: string) {
+export function spotifyAuthorizationUrl(state: string, playlistAccess = false) {
   const url = new URL(AUTH_URL);
   url.searchParams.set("client_id", required("PCC_SPOTIFY_CLIENT_ID"));
   url.searchParams.set("response_type", "code");
   url.searchParams.set("redirect_uri", spotifyRedirectUri());
-  url.searchParams.set("scope", SCOPES.join(" "));
+  url.searchParams.set("scope", [...SCOPES, ...(playlistAccess ? PLAYLIST_SCOPES : [])].join(" "));
   url.searchParams.set("state", state);
   url.searchParams.set("show_dialog", "true");
   return url;
@@ -101,7 +103,7 @@ async function exchangeToken(parameters: URLSearchParams): Promise<TokenResult> 
   return result;
 }
 
-export async function connectSpotify(userId: string, code: string) {
+export async function connectSpotify(userId: string, code: string, playlistAccess = false) {
   const tokens = await exchangeToken(new URLSearchParams({
     grant_type: "authorization_code", code, redirect_uri: spotifyRedirectUri(),
   }));
@@ -112,6 +114,7 @@ export async function connectSpotify(userId: string, code: string) {
     values (${userId}, ${encryptToken(tokens.refresh_token)})
     on conflict (user_id) do update set
       encrypted_refresh_token = excluded.encrypted_refresh_token,
+      playlist_scopes_granted = excluded.playlist_scopes_granted,
       last_error = null, updated_at = now()
   `;
 }
@@ -119,7 +122,7 @@ export async function connectSpotify(userId: string, code: string) {
 async function connection(userId: string) {
   const sql = getDatabase();
   const [row] = await sql<Connection[]>`
-    select user_id, encrypted_refresh_token, last_polled_at, last_error
+    select user_id, encrypted_refresh_token, last_polled_at, last_error, playlist_scopes_granted
     from spotify_connections where user_id = ${userId}
   `;
   return row ?? null;
@@ -146,6 +149,7 @@ export async function spotifyStatus(userId: string) {
   return {
     configured: isSpotifyConfigured(),
     connected: Boolean(current),
+    playlistPermission: Boolean(current?.playlist_scopes_granted),
     recordedPlays: Number(summary.recorded_plays),
     recordedTracks: Number(summary.recorded_tracks),
     historicalListeningMs: Number(summary.historical_ms),
@@ -160,6 +164,21 @@ export async function disconnectSpotify(userId: string) {
   const sql = getDatabase();
   await sql`delete from spotify_connections where user_id = ${userId}`;
   // Keep the listening archive; disconnect only revokes the PCC-stored credential.
+}
+
+export async function spotifyAccessToken(userId: string) {
+  const current = await connection(userId);
+  if (!current) throw new Error("Spotify is not connected.");
+  const refreshed = await exchangeToken(new URLSearchParams({
+    grant_type: "refresh_token", refresh_token: decryptToken(current.encrypted_refresh_token),
+  }));
+  if (refreshed.refresh_token) {
+    const sql = getDatabase();
+    await sql`
+      update spotify_connections set encrypted_refresh_token = ${encryptToken(refreshed.refresh_token)}, updated_at = now()
+      where user_id = ${userId}`;
+  }
+  return refreshed.access_token as string;
 }
 
 const inFlight = new Map<string, Promise<number>>();
@@ -247,8 +266,12 @@ export async function syncAllConnectedSpotify() {
   const users = await sql<{ user_id: string }[]>`select user_id from spotify_connections`;
   let inserted = 0, failures = 0;
   for (const user of users) {
-    try { inserted += await syncSpotify(user.user_id); }
-    catch { failures++; }
+    try {
+      inserted += await syncSpotify(user.user_id);
+      const { syncMusicArchive, enrichMusicGenres } = await import("@/server/music-archive");
+      await syncMusicArchive(user.user_id);
+      await enrichMusicGenres(user.user_id, 12);
+    } catch { failures++; }
   }
   return { connected: users.length, inserted, failures };
 }

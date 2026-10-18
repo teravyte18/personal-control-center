@@ -153,6 +153,17 @@ jobs:
           select id, repeat('C',22), '2026-01-12T12:00:00Z', 'export', 40000 from users where email = 'second-user@example.test';
           insert into spotify_track_tags (user_id, track_id, tags)
           select id, repeat('B',22), array['Rock','Indie'] from users where email = 'owner@example.test';
+          -- Rankings must use numeric play counts: 12 is greater than 9.
+          insert into spotify_tracks (user_id, track_id, name, artist)
+          select id, repeat('G',22), 'Twelve Play Song', 'Twelve Play Artist' from users where email = 'owner@example.test';
+          insert into spotify_tracks (user_id, track_id, name, artist)
+          select id, repeat('H',22), 'Nine Play Song', 'Nine Play Artist' from users where email = 'owner@example.test';
+          insert into spotify_play_events (user_id, track_id, played_at, source, ms_played)
+          select u.id, repeat('G',22), '2026-02-01T12:00:00Z'::timestamptz + (g * interval '1 hour'), 'export', 60000
+          from users u cross join generate_series(0,11) g where u.email = 'owner@example.test';
+          insert into spotify_play_events (user_id, track_id, played_at, source, ms_played)
+          select u.id, repeat('H',22), '2026-02-01T12:00:00Z'::timestamptz + (g * interval '1 hour'), 'export', 60000
+          from users u cross join generate_series(0,8) g where u.email = 'owner@example.test';
           -- Random archived music: exactly five qualified listens on each account.
           insert into spotify_tracks (user_id, track_id, name, artist)
           select id, repeat('D',22), 'Random Archive Example', 'Example Artist' from users where email = 'owner@example.test';

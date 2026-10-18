@@ -108,16 +108,16 @@ export async function configureMusicArchive(userId: string, input: unknown) {
 
 const inFlight = new Map<string, Promise<number>>();
 
-export async function syncMusicArchive(userId: string): Promise<number> {
+export async function syncMusicArchive(userId: string, force = false): Promise<number> {
   const pending = inFlight.get(userId);
   if (pending) return pending;
-  const task = reconcile(userId);
+  const task = reconcile(userId, force);
   inFlight.set(userId, task);
   try { return await task; }
   finally { if (inFlight.get(userId) === task) inFlight.delete(userId); }
 }
 
-async function reconcile(userId: string) {
+async function reconcile(userId: string, force: boolean) {
   const setting = await settings(userId);
   if (!setting?.enabled) return 0;
   const sql = getDatabase();
@@ -142,11 +142,18 @@ async function reconcile(userId: string) {
       on conflict (user_id, track_id) do nothing
       returning track_id
     `;
-    if (!newlyQualified.length && setting.pending_count === 0 && setting.last_synced_at &&
+    if (!force && !newlyQualified.length && setting.pending_count === 0 && setting.last_synced_at &&
         Date.now() - new Date(setting.last_synced_at).getTime() < 24 * 3600_000) return 0;
 
     // Read all existing items (new API route, 50 per page) to avoid duplicate additions.
     const accessToken = await spotifyAccessToken(userId);
+    const [profile, playlist] = await Promise.all([
+      spotifyRequest<SpotifyProfile>(accessToken, "/me"),
+      spotifyRequest<Playlist>(accessToken, `/playlists/${setting.playlist_id}`),
+    ]);
+    if (!profile.id || playlist.owner?.id !== profile.id) {
+      throw new Error("Spotify playlist owner no longer matches the connected account.");
+    }
     const present = new Set<string>();
     let offset = 0;
     for (;;) {

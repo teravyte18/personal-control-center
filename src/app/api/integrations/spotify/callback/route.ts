@@ -20,7 +20,7 @@ function oauthCookie(request: Request) {
 }
 
 function redirect(request: Request, status: string) {
-  const response = NextResponse.redirect(new URL(`/music?spotify=${encodeURIComponent(status)}`, request.url));
+  const response = NextResponse.redirect(new URL(`/account?spotify=${encodeURIComponent(status)}`, request.url));
   response.cookies.set(COOKIE, "", {
     httpOnly: true, secure: process.env.PCC_COOKIE_SECURE === "1",
     sameSite: "lax", path: "/api/integrations/spotify", maxAge: 0,
@@ -42,7 +42,7 @@ export async function GET(request: Request) {
     return redirect(request, "connected");
   } catch (error) {
     if (error instanceof AuthenticationRequiredError) {
-      return NextResponse.redirect(new URL("/login?next=/music", request.url));
+      return NextResponse.redirect(new URL("/login?next=/account", request.url));
     }
     console.error("Could not complete Spotify authorization.", error);
     return redirect(request, "error");

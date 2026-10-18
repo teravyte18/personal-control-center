@@ -108,14 +108,13 @@ services:
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
-        if [ -z "$PCC_SPOTIFY_WORKER_TOKEN" ]; then
+        if [ -z "$$PCC_SPOTIFY_WORKER_TOKEN" ]; then
           echo "Spotify worker disabled: set PCC_SPOTIFY_WORKER_TOKEN to enable hourly collection."
           exec sleep 2147483647
         fi
         while true; do
-          wget -qO- --header="Authorization: Bearer $PCC_SPOTIFY_WORKER_TOKEN" \\
-            --post-data="" http://app:3000/api/internal/spotify-poll || true
-          sleep "$PCC_SPOTIFY_POLL_INTERVAL_SECONDS"
+          wget -qO- --header="Authorization: Bearer $$PCC_SPOTIFY_WORKER_TOKEN" --post-data="" http://app:3000/api/internal/spotify-poll || true
+          sleep "$$PCC_SPOTIFY_POLL_INTERVAL_SECONDS"
         done
     security_opt:
       - no-new-privileges:true

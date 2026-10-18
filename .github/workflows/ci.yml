@@ -159,10 +159,10 @@ jobs:
           insert into spotify_tracks (user_id, track_id, name, artist)
           select id, repeat('H',22), 'Nine Play Song', 'Nine Play Artist' from users where email = 'owner@example.test';
           insert into spotify_play_events (user_id, track_id, played_at, source, ms_played)
-          select u.id, repeat('G',22), '2026-02-01T12:00:00Z'::timestamptz + (g * interval '1 hour'), 'export', 60000
+          select u.id, repeat('G',22), '2026-02-01T12:00:00Z'::timestamptz + (g * interval '1 hour'), 'export', 12000
           from users u cross join generate_series(0,11) g where u.email = 'owner@example.test';
           insert into spotify_play_events (user_id, track_id, played_at, source, ms_played)
-          select u.id, repeat('H',22), '2026-02-01T12:00:00Z'::timestamptz + (g * interval '1 hour'), 'export', 60000
+          select u.id, repeat('H',22), '2026-02-01T12:00:00Z'::timestamptz + (g * interval '1 hour'), 'export', 12000
           from users u cross join generate_series(0,8) g where u.email = 'owner@example.test';
           -- Random archived music: exactly five qualified listens on each account.
           insert into spotify_tracks (user_id, track_id, name, artist)

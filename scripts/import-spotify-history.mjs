@@ -43,15 +43,16 @@ try {
       if (!events.length) continue;
       // One atomic transaction per batch: upsert tracks before referencing them.
       await sql.begin(async (tx) => {
-        const tracks = new Map(events.map((event) => [event.trackId, event]));
-        for (const event of tracks.values()) {
-          await tx`
-            insert into spotify_tracks (user_id, track_id, name, artist, album)
-            values (${user.id}, ${event.trackId}, ${event.name}, ${event.artist}, ${event.album})
-            on conflict (user_id, track_id) do update
-            set name = excluded.name, artist = excluded.artist, album = excluded.album, updated_at = now()
-          `;
-        }
+        const tracks = [...new Map(events.map((event) => [event.trackId, event])).values()]
+          .map((event) => ({
+            user_id: user.id, track_id: event.trackId, name: event.name,
+            artist: event.artist, album: event.album,
+          }));
+        await tx`
+          insert into spotify_tracks ${tx(tracks, "user_id", "track_id", "name", "artist", "album")}
+          on conflict (user_id, track_id) do update
+          set name = excluded.name, artist = excluded.artist, album = excluded.album, updated_at = now()
+        `;
         const rows = events.map((e) => ({
           user_id: user.id, track_id: e.trackId, played_at: e.playedAt,
           source: "export", ms_played: e.msPlayed,

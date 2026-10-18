@@ -16,6 +16,8 @@ The second slice (issue #86) adds a timezone-aware monthly/yearly Music Insights
 
 The API is GET `/api/music/insights?mode=month&period=2026-10&tz=Europe/Lisbon` (or `mode=year&period=2026`). It requires an authenticated session and always derives the user from that session. Dates are bounded using PostgreSQL local-calendar timestamps converted to UTC; no listening data is sent to third parties for analytics.
 
+Music now follows the Expenses space hierarchy: timeline and archive settings live in separate tabs; month/year controls lead into compact summaries, genre coverage and ranked listening lists. Ranked artists are ordered by their **numeric** play counts, not the text representation of those counts. The genre section remains visible even with zero enrichment, offering setup guidance rather than silently disappearing. The archive's optional Last.fm key needs to be configured privately on the Pi before any tags can appear.
+
 Historical exported durations are summed separately; Spotify API play events have null duration and contribute to play counts but *not* recorded listening hours. The UI explicitly reports that distinction. A "first-time song" means first ever recorded in the database; missing historical records can affect this label. Artist names are currently copied from Spotify's credited-artist field (collaborations may share one label), not split into separate contributors. "Artists on the rise" compares the selected period's counts with the prior period and is a listening-pattern heuristic, not a mood inference.
 
 Issue #87 implements an optional archive and genre enrichment layer:

@@ -28,6 +28,7 @@ test("Music insights protect identities and summarize real database events", asy
   assert.equal(own.body.rediscoveries.length, 1);
   assert.equal(own.body.rediscoveries[0].name, "Example A");
   assert.equal(own.body.topGenres[0].name, "Rock");
+  assert.equal(own.body.taggedPlays, 1);
 
   const other = await request(path, member);
   assert.equal(other.response.status, 200, JSON.stringify(other.body));
@@ -78,4 +79,16 @@ test("Surprise me picks only qualified songs and does not leak between accounts"
     assert.equal(repeated.response.status, 200, JSON.stringify(repeated.body));
     assert.equal(repeated.body.song.title, expected, "Single eligible song must still be returned.");
   }
+});
+
+test("artist ranking sorts integer counts, not their text representations", async () => {
+  const own = await request("/api/music/insights?mode=month&period=2026-02&tz=UTC", owner);
+  assert.equal(own.response.status, 200, JSON.stringify(own.body));
+  assert.equal(own.body.plays, 21);
+  assert.deepEqual(own.body.topArtists.slice(0, 2).map((a) => [a.name, a.plays]), [
+    ["Twelve Play Artist", 12],
+    ["Nine Play Artist", 9],
+  ]);
+  assert.equal(own.body.taggedPlays, 0);
+  assert.deepEqual(own.body.topGenres, []);
 });

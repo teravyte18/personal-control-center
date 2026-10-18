@@ -7,6 +7,7 @@ type Stats = { plays: string; unique_tracks: string; known_ms: string; known_pla
 type Track = { track_id: string; name: string; artist: string; plays: string; tags: string[] | null };
 type Artist = { name: string; plays: string; previous_plays: string };
 type Genre = { name: string; plays: string };
+type Coverage = { tagged_plays: string };
 type Novel = { total: string };
 type Return = { track_id: string; name: string; artist: string; plays: string; last_heard: Date | string; first_return: Date | string; days_away: number };
 type Trend = { period: string; plays: string };
@@ -24,7 +25,7 @@ export async function getMusicInsights(userId: string, mode: string | null, valu
     : `${Number(start.slice(0,4))-1}-01-01`;
   const previousLower = sql`(${prevStart}::timestamp at time zone ${tz})`;
 
-  const [stats, tracks, artists, discoveries, returns, timeline, genres] = await Promise.all([
+  const [stats, tracks, artists, discoveries, returns, timeline, genres, coverage] = await Promise.all([
     sql<Stats[]>`
       select count(*)::text as plays, count(distinct track_id)::text as unique_tracks,
         coalesce(sum(ms_played), 0)::text as known_ms,
@@ -48,8 +49,8 @@ export async function getMusicInsights(userId: string, mode: string | null, valu
         where p.user_id = ${userId} and p.played_at >= ${previousLower} and p.played_at < ${upper}
         group by t.artist
       )
-      select name, plays::text, previous_plays::text from counted
-      where plays > 0 order by plays desc, name asc limit 12
+      select counted.name, counted.plays::text as plays, counted.previous_plays::text as previous_plays from counted
+      where counted.plays > 0 order by counted.plays desc, counted.name asc limit 12
     `,
     sql<Novel[]>`
       select count(*)::text as total from (
@@ -92,6 +93,12 @@ export async function getMusicInsights(userId: string, mode: string | null, valu
         and cardinality(tags.tags) > 0
       group by tags.tags[1] order by count(*) desc limit 8
     `,
+    sql<Coverage[]>`
+      select count(*)::text as tagged_plays from spotify_play_events p
+      join spotify_track_tags tags on tags.user_id = p.user_id and tags.track_id = p.track_id
+      where p.user_id = ${userId} and p.played_at >= ${lower} and p.played_at < ${upper}
+        and cardinality(tags.tags) > 0
+    `,
   ]);
 
   return {
@@ -105,6 +112,7 @@ export async function getMusicInsights(userId: string, mode: string | null, valu
     topTracks: tracks.map((t) => ({ trackId: t.track_id, name: t.name, artist: t.artist, plays: Number(t.plays), tags: t.tags ?? [] })),
     topArtists: artists.map((a) => ({ name: a.name, plays: Number(a.plays), previousPlays: Number(a.previous_plays) })),
     topGenres: genres.map((g) => ({ name: g.name, plays: Number(g.plays) })),
+    taggedPlays: Number(coverage[0].tagged_plays),
     rediscoveries: returns.map((r) => ({
       trackId: r.track_id, name: r.name, artist: r.artist, plays: Number(r.plays),
       lastHeardAt: new Date(r.last_heard).toISOString(), returnedAt: new Date(r.first_return).toISOString(), daysAway: r.days_away,

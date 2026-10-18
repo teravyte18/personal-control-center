@@ -6,6 +6,10 @@ test("month/year validation and year rollover", () => {
   assert.equal(musicWindow("month", "2026-12", "Europe/Lisbon")?.end, "2027-01-01");
   assert.equal(musicWindow("year", "2026", "UTC")?.end, "2027-01-01");
   assert.equal(musicWindow("month", "2026-00", "UTC"), null);
+  assert.deepEqual(musicWindow("all", "all", "Europe/Lisbon"), {
+    mode: "all", value: "all", start: null, end: null, timeZone: "Europe/Lisbon",
+  });
+  assert.equal(musicWindow("all", "2026", "UTC"), null);
   assert.equal(musicWindow("month", "2026-13", "UTC"), null);
   assert.equal(musicWindow("month", "2026-11", "Invalid/Zone"), null);
   assert.equal(musicWindow("year", "x' OR 1=1", "UTC"), null);

@@ -78,9 +78,9 @@ export function MusicArchivePanel() {
       {status && !status.playlistPermission ? (
         <div className="mt-4">
           <p className="text-sm text-slate-600">Playlist editing is disabled until you explicitly approve the extra Spotify permissions.</p>
-          <a href="/api/integrations/spotify/connect?playlist=1"
+          <a href="/account#spotify"
             className="mt-2 inline-flex min-h-11 items-center rounded-xl border border-slate-200 px-4 text-sm font-semibold">
-            Reconnect Spotify with playlist access
+            Manage Spotify permissions in Account & access
           </a>
         </div>
       ) : null}

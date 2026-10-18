@@ -7,7 +7,7 @@ import { normalizeLastFmTags, spotifyItemIds, spotifyPlaylistId, validArchiveThr
 const BASE = "https://api.spotify.com/v1";
 type SettingsRow = {
   playlist_id: string; threshold: number; enabled: boolean;
-  last_synced_at: Date | string | null; last_error: string | null;
+  last_synced_at: Date | string | null; last_error: string | null; pending_count: number;
 };
 type AccountRow = { playlist_scopes_granted: boolean };
 type PlaylistPage = { items?: unknown[]; total?: number };
@@ -19,7 +19,7 @@ export class MusicArchiveInputError extends Error {}
 async function settings(userId: string) {
   const sql = getDatabase();
   const [row] = await sql<SettingsRow[]>`
-    select playlist_id, threshold, enabled, last_synced_at, last_error
+    select playlist_id, threshold, enabled, last_synced_at, last_error, pending_count
     from spotify_archive_settings where user_id = ${userId}
   `;
   return row ?? null;
@@ -49,6 +49,7 @@ export async function musicArchiveStatus(userId: string) {
     enabled: current?.enabled ?? false,
     lastSyncedAt: current?.last_synced_at ? new Date(current.last_synced_at).toISOString() : null,
     lastError: current?.last_error ?? null,
+    pendingCount: current?.pending_count ?? 0,
   };
 }
 
@@ -100,7 +101,7 @@ export async function configureMusicArchive(userId: string, input: unknown) {
     values (${userId}, ${playlistId}, ${threshold}, ${value.enabled}, null)
     on conflict (user_id) do update set
       playlist_id = excluded.playlist_id, threshold = excluded.threshold,
-      enabled = excluded.enabled, last_synced_at = null, last_error = null, updated_at = now()
+      enabled = excluded.enabled, last_synced_at = null, last_error = null, pending_count = 0, updated_at = now()
   `;
   return musicArchiveStatus(userId);
 }
@@ -141,7 +142,7 @@ async function reconcile(userId: string) {
       on conflict (user_id, track_id) do nothing
       returning track_id
     `;
-    if (!newlyQualified.length && setting.last_synced_at &&
+    if (!newlyQualified.length && setting.pending_count === 0 && setting.last_synced_at &&
         Date.now() - new Date(setting.last_synced_at).getTime() < 24 * 3600_000) return 0;
 
     // Read all existing items (new API route, 50 per page) to avoid duplicate additions.
@@ -172,7 +173,7 @@ async function reconcile(userId: string) {
       added += chunk.length;
     }
     await sql`
-      update spotify_archive_settings set last_synced_at = now(), last_error = null, updated_at = now()
+      update spotify_archive_settings set last_synced_at = now(), last_error = null, pending_count = ${Math.max(0, missing.length - added)}, updated_at = now()
       where user_id = ${userId}
     `;
     return added;

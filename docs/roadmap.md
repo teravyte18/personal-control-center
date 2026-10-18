@@ -392,6 +392,20 @@ This does not open a generic notifications roadmap. Broader task/project notific
 
 Issue #72 now owns the Agenda/Google Calendar product decision, including whether a dedicated Agenda survives, becomes Upcoming, or yields to selective Calendar context on Home/Today. The older optional two-way-sync issue #26 was closed as superseded.
 
+### Music listening archive
+
+**New user-validated tracking direction; ingestion foundation proposed in PR #85 (not yet deployed).**
+
+The user already has an exported multi-year Spotify listening history and a static personal replay archive. Rather than make a new music player, preserve timestamped individual plays so the archive can grow and a Music space can expose personally meaningful musical eras.
+
+- **Foundation (PR #85):** private, per-user listening-event tables, one-time Spotify history import, Spotify Premium OAuth, hourly recent-play ingestion, and Music connection/status page.
+- **Exploration (issue #86):** monthly/yearly Wrapped-style summaries, artist phases, long-dormant rediscoveries, and optional Weekly Review context; note which listening-time totals are incomplete because API plays lack duration.
+- **Enrichment and automation (issue #87):** cached third-party genre tags and idempotent append-only updates to the user's existing Spotify playlist once the collector proves reliable.
+
+Keep the raw Spotify export out of Git, minimize retained metadata, and let music statistics remain optional: the application must remain useful when Spotify is disconnected. Do not build AI-derived personal mood claims from genres.
+
+See [`spotify-music.md`](spotify-music.md).
+
 ## Product rules that continue to constrain future work
 
 - Phone usability comes before desktop decoration.

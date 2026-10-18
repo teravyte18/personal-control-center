@@ -34,10 +34,13 @@ export default function MusicPage() {
   }
   useEffect(() => {
     const result = new URLSearchParams(window.location.search).get("spotify");
-    if (result === "connected") setNotice("Spotify connected. Your listening history will sync hourly.");
-    else if (result === "not-configured") setError("Spotify API credentials are not configured on the server.");
-    else if (result && result !== "cancelled") setError("Spotify connection failed. Check the setup and try again.");
-    void load().catch((e) => setError(e instanceof Error ? e.message : "Could not load Music."));
+    void load()
+      .then(() => {
+        if (result === "connected") setNotice("Spotify connected. Your listening history will sync hourly.");
+        else if (result === "not-configured") setError("Spotify API credentials are not configured on the server.");
+        else if (result && result !== "cancelled") setError("Spotify connection failed. Check the setup and try again.");
+      })
+      .catch((e) => setError(e instanceof Error ? e.message : "Could not load Music."));
   }, []);
 
   async function action(method: "POST" | "DELETE") {
@@ -79,7 +82,7 @@ export default function MusicPage() {
         ))}
       </div>
       <p className="mt-2 text-xs text-slate-500">
-        Listening hours are from historical exported durations only. New Spotify API records don't include play duration.
+        Listening hours are from historical exported durations only. New Spotify API records do not include play duration.
       </p>
 
       <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">

@@ -47,6 +47,11 @@ services:
       PCC_GOOGLE_CLIENT_SECRET: ${PCC_GOOGLE_CLIENT_SECRET:-}
       PCC_GOOGLE_REDIRECT_URI: ${PCC_GOOGLE_REDIRECT_URI:-}
       PCC_GOOGLE_TOKEN_ENCRYPTION_KEY: ${PCC_GOOGLE_TOKEN_ENCRYPTION_KEY:-}
+      PCC_SPOTIFY_CLIENT_ID: ${PCC_SPOTIFY_CLIENT_ID:-}
+      PCC_SPOTIFY_CLIENT_SECRET: ${PCC_SPOTIFY_CLIENT_SECRET:-}
+      PCC_SPOTIFY_REDIRECT_URI: ${PCC_SPOTIFY_REDIRECT_URI:-}
+      PCC_SPOTIFY_TOKEN_ENCRYPTION_KEY: ${PCC_SPOTIFY_TOKEN_ENCRYPTION_KEY:-}
+      PCC_SPOTIFY_WORKER_TOKEN: ${PCC_SPOTIFY_WORKER_TOKEN:-}
       PCC_WEB_PUSH_PUBLIC_KEY: ${PCC_WEB_PUSH_PUBLIC_KEY:-}
       PCC_WEB_PUSH_PRIVATE_KEY: ${PCC_WEB_PUSH_PRIVATE_KEY:-}
       PCC_WEB_PUSH_SUBJECT: ${PCC_WEB_PUSH_SUBJECT:-}
@@ -86,6 +91,30 @@ services:
         while true; do
           wget -qO-             --header="Authorization: Bearer $$PCC_REVIEW_PUSH_WORKER_TOKEN"             --post-data=""             http://app:3000/api/internal/review-push || true
           sleep "$$PCC_REVIEW_PUSH_INTERVAL_SECONDS"
+        done
+    security_opt:
+      - no-new-privileges:true
+
+  spotify-poll-worker:
+    image: alpine:3.21
+    restart: unless-stopped
+    init: true
+    environment:
+      PCC_SPOTIFY_WORKER_TOKEN: ${PCC_SPOTIFY_WORKER_TOKEN:-}
+      PCC_SPOTIFY_POLL_INTERVAL_SECONDS: ${PCC_SPOTIFY_POLL_INTERVAL_SECONDS:-3600}
+    depends_on:
+      app:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        if [ -z "$$PCC_SPOTIFY_WORKER_TOKEN" ]; then
+          echo "Spotify worker disabled: set PCC_SPOTIFY_WORKER_TOKEN to enable hourly collection."
+          exec sleep 2147483647
+        fi
+        while true; do
+          wget -qO- --header="Authorization: Bearer $$PCC_SPOTIFY_WORKER_TOKEN" --post-data="" http://app:3000/api/internal/spotify-poll || true
+          sleep "$$PCC_SPOTIFY_POLL_INTERVAL_SECONDS"
         done
     security_opt:
       - no-new-privileges:true

@@ -13,6 +13,7 @@ export type IconName =
   | "food"
   | "expenses"
   | "markets"
+  | "music"
   | "keychain"
   | "trips"
   | "fitness"
@@ -153,6 +154,15 @@ export const destinations: Destination[] = [
     href: "/markets",
     icon: "markets",
     description: "Keep a lightweight stock and ETF watchlist with current price and daily movement.",
+    available: true,
+    pinnable: true,
+  },
+  {
+    id: "music",
+    label: "Music",
+    href: "/music",
+    icon: "music",
+    description: "Keep a private history of Spotify listening and explore what you heard over time.",
     available: true,
     pinnable: true,
   },

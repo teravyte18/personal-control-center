@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { GoogleCalendarSettings } from "@/components/google-calendar-settings";
+import { SpotifySettings } from "@/components/spotify-settings";
 import { ThemeSettings } from "@/components/theme-settings";
 
 type SessionUser = {
@@ -185,6 +186,7 @@ export default function AccountPage() {
 
       <ThemeSettings />
       <GoogleCalendarSettings />
+      <SpotifySettings />
 
       {currentUser?.role === "owner" ? (
         <>

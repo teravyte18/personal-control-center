@@ -1,5 +1,5 @@
 export type MusicWindow = { mode: "month" | "year"; value: string; start: string; end: string; timeZone: string };
-export type MusicRankedTrack = { trackId: string; name: string; artist: string; plays: number };
+export type MusicRankedTrack = { trackId: string; name: string; artist: string; plays: number; tags?: string[] };
 export type MusicRankedArtist = { name: string; plays: number; previousPlays: number };
 export type MusicRediscovery = MusicRankedTrack & { lastHeardAt: string; returnedAt: string; daysAway: number };
 export type MusicInsights = {
@@ -12,6 +12,7 @@ export type MusicInsights = {
   unknownDurationPlays: number;
   topTracks: MusicRankedTrack[];
   topArtists: MusicRankedArtist[];
+  topGenres: { name: string; plays: number }[];
   rediscoveries: MusicRediscovery[];
   trend: { period: string; plays: number }[];
 };

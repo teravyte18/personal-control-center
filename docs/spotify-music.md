@@ -18,7 +18,28 @@ The API is GET `/api/music/insights?mode=month&period=2026-10&tz=Europe/Lisbon` 
 
 Historical exported durations are summed separately; Spotify API play events have null duration and contribute to play counts but *not* recorded listening hours. The UI explicitly reports that distinction. A "first-time song" means first ever recorded in the database; missing historical records can affect this label. Artist names are currently copied from Spotify's credited-artist field (collaborations may share one label), not split into separate contributors. "Artists on the rise" compares the selected period's counts with the prior period and is a listening-pattern heuristic, not a mood inference.
 
-Planned follow-ups: artist/tag enrichment and a 5-play permanent archive playlist. The insights slice does not modify Spotify playlists.
+Issue #87 implements an optional archive and genre enrichment layer:
+
+- The Music page links an *existing, owner-controlled* Spotify playlist via its URL and a configurable threshold (default 5).
+- Archive editing is opt-in. **Reconnect Spotify with playlist access** requests `playlist-read-private`, `playlist-modify-private`, and `playlist-modify-public` beyond the basic recent-plays scope. The existing connection remains read-only until this consent flow is taken.
+- Saving preferences alone does not write to Spotify. Once enabled, the hourly collector (or Music → Check playlist now) reconciles: load the playlist's current items, calculate qualified tracks and append missing Spotify URIs in batches. Never delete or reorder existing entries.
+- Historical qualified listens use `ms_played >= 30000`. API listens with null duration count as **approximate** qualified events. A track's first threshold-crossing timestamp is stored privately.
+- The existing playlist need not be recreated; it is scanned before new writes. Permissions and ownership are checked before enabling.
+- A Spotify session with the extended permissions must be authorized once for the extra scopes; saved refresh tokens remain AES-256-GCM encrypted.
+- `PCC_LASTFM_API_KEY` is an optional server-side key for `track.getTopTags`. Tags are mapped through a small reviewed genre vocabulary, cached once per track, and the worker enriches up to 12 tracks per hour, prioritizing most-played songs. The Music page also has an "Enrich next 25 songs" control. Missing or unsupported tags are valid empty results; partial coverage is shown in the UI.
+- Genre charts represent **the top available cached tag** on enriched songs, not complete ground truth; genres are neither user mood nor an AI-generated inference. No new external libraries are required.
+
+The Spotify Web API uses the 2026 endpoints `GET/POST /playlists/{id}/items`; reads have a 50-item page maximum and writes support up to 100 URIs. The reconciliation writer caps additions at 200 items per run and honors Spotify errors (including 429) rather than retrying aggressively. The collector keeps the history even if playlist/Last.fm API calls fail. Nothing exposes raw exports or credentials.
+
+See https://developer.spotify.com/documentation/web-api/reference/get-playlists-items and https://www.last.fm/api/show/track.getTopTags.
+
+### Setup checklist for archive and optional genres
+1. Keep the existing Spotify developer client ID/secret/encryption key unchanged.
+2. In Music, select **Reconnect Spotify with playlist access**. Approve the explicitly added playlist scopes.
+3. Paste a Spotify playlist link, choose the minimum plays, enable automatic additions, and Save.
+4. Press **Check playlist now** to verify the first reconciliation. Existing entries are not removed or reordered.
+5. Optional: create a Last.fm API key and set `PCC_LASTFM_API_KEY` privately in `.env`, then redeploy the app container with its environment. The collector's hourly enrichment remains bounded; manual enrichment is available from Music.
+6. If the playlist owner differs from your Spotify account, linking while enabled is rejected. If you want to stop automatic additions, disable it and Save; archived Spotify songs remain intact.
 
 ## Important data boundaries
 

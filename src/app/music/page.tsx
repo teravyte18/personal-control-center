@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { MusicInsightsPanel } from "@/components/music-insights-panel";
+import { MusicArchivePanel } from "@/components/music-archive-panel";
 
 type Status = {
   configured: boolean;
@@ -122,6 +123,7 @@ export default function MusicPage() {
         </div>
       </div>
       <MusicInsightsPanel />
+      <MusicArchivePanel />
     </section>
   );
 }

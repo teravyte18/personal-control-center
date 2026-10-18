@@ -108,10 +108,13 @@ export async function connectSpotify(userId: string, code: string, playlistAcces
     grant_type: "authorization_code", code, redirect_uri: spotifyRedirectUri(),
   }));
   if (!tokens.refresh_token) throw new Error("Spotify did not provide a refresh token.");
+  const granted = new Set(tokens.scope?.split(" ") ?? []);
+  const authorized = playlistAccess && PLAYLIST_SCOPES.every((scope) => granted.has(scope));
+  if (playlistAccess && !authorized) throw new Error("Spotify did not grant playlist access.");
   const sql = getDatabase();
   await sql`
-    insert into spotify_connections (user_id, encrypted_refresh_token)
-    values (${userId}, ${encryptToken(tokens.refresh_token)})
+    insert into spotify_connections (user_id, encrypted_refresh_token, playlist_scopes_granted)
+    values (${userId}, ${encryptToken(tokens.refresh_token)}, ${authorized})
     on conflict (user_id) do update set
       encrypted_refresh_token = excluded.encrypted_refresh_token,
       playlist_scopes_granted = excluded.playlist_scopes_granted,
@@ -199,21 +202,14 @@ async function doSyncSpotify(userId: string) {
   if (!current) throw new Error("Spotify is not connected.");
   const sql = getDatabase();
   try {
-    const refreshed = await exchangeToken(new URLSearchParams({
-      grant_type: "refresh_token", refresh_token: decryptToken(current.encrypted_refresh_token),
-    }));
-    if (refreshed.refresh_token) {
-      await sql`update spotify_connections
-        set encrypted_refresh_token = ${encryptToken(refreshed.refresh_token)}, updated_at = now()
-        where user_id = ${userId}`;
-    }
+    const accessToken = await spotifyAccessToken(userId);
     const [latest] = await sql<{ played_at: Date | null }[]>`
       select max(played_at) as played_at from spotify_play_events where user_id = ${userId}
     `;
     const query = new URLSearchParams({ limit: "50" });
     if (latest?.played_at) query.set("after", String(new Date(latest.played_at).getTime()));
     const response = await fetch(`${API_URL}/me/player/recently-played?${query}`, {
-      headers: { Authorization: `Bearer ${refreshed.access_token}` },
+      headers: { Authorization: `Bearer ${accessToken}` },
       cache: "no-store",
       signal: AbortSignal.timeout(15000),
     });

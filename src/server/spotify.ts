@@ -204,7 +204,8 @@ async function doSyncSpotify(userId: string) {
     const plays = Array.isArray(result.items) ? result.items : [];
     for (const item of plays) {
       const track = item.track;
-      if (!track?.id || !/^[A-Za-z0-9]{22}$/.test(track.id) || track.is_local) continue;
+      const trackId = track?.id;
+      if (!trackId || !/^[A-Za-z0-9]{22}$/.test(trackId) || track?.is_local) continue;
       const when = item.played_at && Date.parse(item.played_at);
       if (!when || !Number.isFinite(when)) continue;
       const name = track.name?.trim();
@@ -213,13 +214,13 @@ async function doSyncSpotify(userId: string) {
       await sql.begin(async (tx) => {
         await tx`
           insert into spotify_tracks (user_id, track_id, name, artist, album)
-          values (${userId}, ${track.id}, ${name}, ${artist}, ${track.album?.name ?? ""})
+          values (${userId}, ${trackId}, ${name}, ${artist}, ${track.album?.name ?? ""})
           on conflict (user_id, track_id) do update set
             name = excluded.name, artist = excluded.artist, album = excluded.album, updated_at = now()
         `;
         const saved = await tx`
           insert into spotify_play_events (user_id, track_id, played_at, source, ms_played)
-          values (${userId}, ${track.id}, ${new Date(when).toISOString()}, 'api', null)
+          values (${userId}, ${trackId}, ${new Date(when).toISOString()}, 'api', null)
           on conflict (user_id, track_id, played_at) do nothing returning track_id
         `;
         inserted += saved.length;

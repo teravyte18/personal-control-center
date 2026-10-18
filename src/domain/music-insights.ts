@@ -13,6 +13,7 @@ export type MusicInsights = {
   topTracks: MusicRankedTrack[];
   topArtists: MusicRankedArtist[];
   topGenres: { name: string; plays: number }[];
+  taggedPlays: number;
   rediscoveries: MusicRediscovery[];
   trend: { period: string; plays: number }[];
 };

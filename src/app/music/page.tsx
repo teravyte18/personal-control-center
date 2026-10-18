@@ -20,22 +20,24 @@ function when(value: string | null) {
 function count(value: number) { return value.toLocaleString(); }
 function hours(milliseconds: number) { return Math.round(milliseconds / 3600000).toLocaleString(); }
 
+async function fetchMusicStatus(): Promise<Status> {
+  const response = await fetch("/api/integrations/spotify", { cache: "no-store" });
+  const data = await response.json() as Status & { error?: string };
+  if (!response.ok) throw new Error(data.error ?? "Could not load Music.");
+  return data;
+}
+
 export default function MusicPage() {
   const [status, setStatus] = useState<Status | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
 
-  async function load() {
-    const response = await fetch("/api/integrations/spotify", { cache: "no-store" });
-    const data = await response.json() as Status & { error?: string };
-    if (!response.ok) throw new Error(data.error ?? "Could not load Music.");
-    setStatus(data);
-  }
   useEffect(() => {
     const result = new URLSearchParams(window.location.search).get("spotify");
-    void load()
-      .then(() => {
+    void fetchMusicStatus()
+      .then((data) => {
+        setStatus(data);
         if (result === "connected") setNotice("Spotify connected. Your listening history will sync hourly.");
         else if (result === "not-configured") setError("Spotify API credentials are not configured on the server.");
         else if (result && result !== "cancelled") setError("Spotify connection failed. Check the setup and try again.");

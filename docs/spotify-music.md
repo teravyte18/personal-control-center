@@ -12,7 +12,13 @@ This first slice includes:
 - hourly background polling in a small optional Alpine Compose service;
 - a Music space with connection status, totals, first/last play and last poll.
 
-Planned follow-ups: month/year Wrapped-style views, artist/tag enrichment and a 5-play permanent archive playlist. Nothing in this slice modifies any Spotify playlist.
+The second slice (issue #86) adds a timezone-aware monthly/yearly Music Insights panel, listing plays, distinct songs, first-ever songs, most played tracks, top credited artists, six-month rediscoveries and a year-at-a-glance view.
+
+The API is GET `/api/music/insights?mode=month&period=2026-10&tz=Europe/Lisbon` (or `mode=year&period=2026`). It requires an authenticated session and always derives the user from that session. Dates are bounded using PostgreSQL local-calendar timestamps converted to UTC; no listening data is sent to third parties for analytics.
+
+Historical exported durations are summed separately; Spotify API play events have null duration and contribute to play counts but *not* recorded listening hours. The UI explicitly reports that distinction. A "first-time song" means first ever recorded in the database; missing historical records can affect this label. Artist names are currently copied from Spotify's credited-artist field (collaborations may share one label), not split into separate contributors. "Artists on the rise" compares the selected period's counts with the prior period and is a listening-pattern heuristic, not a mood inference.
+
+Planned follow-ups: artist/tag enrichment and a 5-play permanent archive playlist. The insights slice does not modify Spotify playlists.
 
 ## Important data boundaries
 
@@ -24,7 +30,7 @@ Planned follow-ups: month/year Wrapped-style views, artist/tag enrichment and a 
 - API events have `ms_played = NULL`: Spotify's recently-played endpoint does not provide exact duration. Never treat their listening-time sums as complete.
 - Counts and track metadata are user-scoped; OAuth refresh tokens use AES-256-GCM at rest.
 - Disconnect removes the app's refresh token but **keeps** the historical music data; revoking the app in Spotify account settings is a separate action.
-- No genre or emotional/mood labels are inferred yet.
+- No emotional/mood labels are inferred; rediscovery thresholds are based only on recorded timestamps.
 
 ## Spotify developer setup
 

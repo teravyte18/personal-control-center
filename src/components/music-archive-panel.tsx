@@ -14,6 +14,7 @@ type ArchiveStatus = {
   enabled: boolean;
   lastSyncedAt: string | null;
   lastError: string | null;
+  pendingCount: number;
 };
 async function fetchArchive() {
   const response = await fetch("/api/music/archive", { cache: "no-store" });
@@ -114,6 +115,7 @@ export function MusicArchivePanel() {
       </form>
       <div className="mt-4 border-t border-slate-100 pt-4 text-xs text-slate-500">
         <p>Last playlist check: {date(status?.lastSyncedAt ?? null)}</p>
+        {status?.pendingCount ? <p>{status.pendingCount} songs waiting to be added in later bounded syncs.</p> : null}
         <p>Historical plays count only if they lasted at least 30 seconds. Spotify API plays count approximately because duration is unavailable.</p>
         {status?.lastError ? <p className="mt-2 text-amber-800">Archive error: {status.lastError}</p> : null}
       </div>

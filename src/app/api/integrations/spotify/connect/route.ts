@@ -12,11 +12,12 @@ export async function GET(request: Request) {
   try {
     const user = await resolveRequestUser(request);
     if (!isSpotifyConfigured()) return NextResponse.redirect(new URL("/music?spotify=not-configured", request.url));
+    const playlistAccess = new URL(request.url).searchParams.get("playlist") === "1";
     const state = randomBytes(24).toString("base64url");
     const value = Buffer.from(JSON.stringify({
-      state, userId: user.id, expiresAt: Date.now() + MAX_AGE * 1000,
+      state, playlistAccess, userId: user.id, expiresAt: Date.now() + MAX_AGE * 1000,
     })).toString("base64url");
-    const response = NextResponse.redirect(spotifyAuthorizationUrl(state));
+    const response = NextResponse.redirect(spotifyAuthorizationUrl(state, playlistAccess));
     response.cookies.set(COOKIE, value, {
       httpOnly: true, secure: process.env.PCC_COOKIE_SECURE === "1",
       sameSite: "lax", path: "/api/integrations/spotify", maxAge: MAX_AGE,

@@ -20,7 +20,7 @@ function oauthCookie(request: Request) {
 }
 
 function redirect(request: Request, status: string) {
-  const response = NextResponse.redirect(new URL(`/account?spotify=${encodeURIComponent(status)}`, request.url));
+  const response = NextResponse.redirect(new URL(`/account?spotify=${encodeURIComponent(status)}#spotify`, request.url));
   response.cookies.set(COOKIE, "", {
     httpOnly: true, secure: process.env.PCC_COOKIE_SECURE === "1",
     sameSite: "lax", path: "/api/integrations/spotify", maxAge: 0,

@@ -52,8 +52,7 @@ export async function musicArchiveStatus(userId: string) {
   };
 }
 
-async function spotifyRequest<T>(userId: string, path: string, init?: RequestInit): Promise<T> {
-  const token = await spotifyAccessToken(userId);
+async function spotifyRequest<T>(token: string, path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${BASE}${path}`, {
     ...init,
     headers: {
@@ -87,9 +86,10 @@ export async function configureMusicArchive(userId: string, input: unknown) {
       throw new MusicArchiveInputError("Reconnect Spotify with playlist access enabled first.");
     }
     // Only a playlist owned by this account can be linked.
+    const accessToken = await spotifyAccessToken(userId);
     const [profile, playlist] = await Promise.all([
-      spotifyRequest<SpotifyProfile>(userId, "/me"),
-      spotifyRequest<Playlist>(userId, `/playlists/${playlistId}`),
+      spotifyRequest<SpotifyProfile>(accessToken, "/me"),
+      spotifyRequest<Playlist>(accessToken, `/playlists/${playlistId}`),
     ]);
     if (!profile.id || playlist.owner?.id !== profile.id) {
       throw new MusicArchiveInputError("Choose a playlist owned by your connected Spotify account.");
@@ -145,10 +145,11 @@ async function reconcile(userId: string) {
         Date.now() - new Date(setting.last_synced_at).getTime() < 24 * 3600_000) return 0;
 
     // Read all existing items (new API route, 50 per page) to avoid duplicate additions.
+    const accessToken = await spotifyAccessToken(userId);
     const present = new Set<string>();
     let offset = 0;
     for (;;) {
-      const page = await spotifyRequest<PlaylistPage>(userId,
+      const page = await spotifyRequest<PlaylistPage>(accessToken,
         `/playlists/${setting.playlist_id}/items?limit=50&offset=${offset}`);
       for (const id of spotifyItemIds(page)) present.add(id);
       const total = Number(page.total ?? 0);
@@ -165,7 +166,7 @@ async function reconcile(userId: string) {
     // Keep hourly work bounded; remaining songs are added during later polls/syncs.
     for (let offset = 0; offset < Math.min(missing.length, 200); offset += 100) {
       const chunk = missing.slice(offset, offset + 100);
-      await spotifyRequest(userId, `/playlists/${setting.playlist_id}/items`, {
+      await spotifyRequest(accessToken, `/playlists/${setting.playlist_id}/items`, {
         method: "POST", body: JSON.stringify({ uris: chunk.map((id) => `spotify:track:${id}`) }),
       });
       added += chunk.length;

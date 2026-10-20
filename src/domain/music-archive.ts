@@ -68,3 +68,30 @@ export function normalizeLastFmTags(value: unknown): string[] {
   return [...new Map(list.sort((a,b) => b.count - a.count).map((tag) => [tag.name, tag])).values()]
     .slice(0,3).map((tag) => tag.name);
 }
+
+// Last.fm uses HTTP 200 for some API errors. An unknown track is an ordinary
+// metadata miss; a bad API key, rate limit, or malformed lookup is not.
+export class LastFmTagLookupError extends Error {}
+
+export function parseLastFmGenreTags(value: unknown): string[] {
+  if (value && typeof value === "object" && "error" in value) {
+    const payload = value as { error: unknown; message?: unknown };
+    const code = Number(payload.error);
+    const message = typeof payload.message === "string" ? payload.message.trim() : "";
+    if (code === 6 && /^(track|artist) not found\.?$/i.test(message)) return [];
+    if (code === 10) {
+      throw new LastFmTagLookupError("Last.fm rejected the API key. Check PCC_LASTFM_API_KEY on the Raspberry Pi.");
+    }
+    if (code === 26) {
+      throw new LastFmTagLookupError("Last.fm reports that this API key is suspended.");
+    }
+    if (code === 29) {
+      throw new LastFmTagLookupError("Last.fm rate limit reached. Wait before enriching more songs.");
+    }
+    if (code === 11 || code === 16) {
+      throw new LastFmTagLookupError("Last.fm is temporarily unavailable. Try again later.");
+    }
+    throw new LastFmTagLookupError(`Last.fm rejected the genre lookup (error ${Number.isInteger(code) ? code : "unknown"}).`);
+  }
+  return normalizeLastFmTags(value);
+}

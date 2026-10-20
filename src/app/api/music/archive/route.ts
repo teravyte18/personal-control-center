@@ -1,5 +1,6 @@
 import { configureMusicArchive, enrichMusicGenres, musicArchiveStatus, MusicArchiveInputError, syncMusicArchive } from "@/server/music-archive";
 import { AuthenticationRequiredError, resolveRequestUser } from "@/server/request-user";
+import { LastFmTagLookupError } from "@/domain/music-archive";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -34,6 +35,10 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof AuthenticationRequiredError) return Response.json({ error: error.message }, { status: 401 });
     if (error instanceof MusicArchiveInputError) return Response.json({ error: error.message }, { status: 400 });
+    if (error instanceof LastFmTagLookupError) {
+      console.error("Last.fm genre enrichment failed:", error.message);
+      return Response.json({ error: error.message }, { status: 503 });
+    }
     console.error("Music archive operation failed.", error);
     return Response.json({ error: "Archive operation failed. Check connection and archive status." }, { status: 503 });
   }

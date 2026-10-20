@@ -1,0 +1,16 @@
+Rank,Recommendation,Impact,Effort,Layer,Acceptance check
+1,"N1: Give Spaces a labelled, comfortable target",High,S�M,Interface/accessibility,Reach all unpinned spaces reliably at 320/390; no Capture overlap
+2,W1: Open the selected source task/action directly,High,M,Routing/interaction,Rhythm/Home select exact item; Back restores weekly context
+3,N2: Preserve full launcher destination names,High at narrow widths,S,Responsive layout,No ambiguous label fragments at 320; touch targets maintained
+4,M1: Put Music rankings before secondary panels,High,M,Interface,"At 390�844, expose ranked content in first screen without hiding controls"
+5,W2: Align Home's weekly summary with Rhythm,High,M,Product integration,Undated selected work stays visible without inventing dates
+6,W3: Reorder and compact the weekly planning view,High,M,Interface/product,Constraints visible early; focus preserves dates/status; less nested chrome
+7,W4: Make Calendar coverage/freshness visible,Medium�high,M,Integration trust,Empty selected-source feed never implies verified free time
+8,A1: Decide Agenda's role and retain future horizon,"High, usage-dependent",M�L,Product,"Current week, next week and distant commitments all remain reachable"
+9,M2: Match genre prominence to coverage,Medium�high,S�M,Data presentation,Coverage denominator/unit clear beside any chart
+10,M3: Clarify playlist setup and discovery terminology,Medium,S,Copy/navigation,Settings tab describes setup; fixed discovery threshold not conflated
+11,A2: Replace event cards with compact expandable rows,Medium,M,Interface,More meaningful upcoming entries visible; source/details still available
+12,M4: Improve historical comparisons and empty periods,Medium,S�M,Interface/data context,"Comparison baseline, partial periods and return-to-current action clear"
+13,R2: Handle missing recorded income and sparse averages,Medium,S�M,Data presentation,No over-target judgment from absent income; average denominator explicit
+14,N3/R3: Align terminology and reusable screen patterns,Medium,S�M,Shared system,Same destination names; no dead Settings promise; themes preserved
+15,R1: Test lighter Library details before changing them,Lower,M,Product interaction,Common read/resume job improves without adding editor friction

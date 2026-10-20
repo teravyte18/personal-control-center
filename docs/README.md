@@ -11,8 +11,8 @@ This directory contains current product/operations documentation plus a small am
 - [`architecture.md`](architecture.md) — deployed stack, persistence, navigation, PWA, themes, integrations, and security boundaries
 - [`interface-rules.md`](interface-rules.md) — current UI, copy, navigation, theme, and semantic-colour rules
 - [`ux-refresh-2026.md`](ux-refresh-2026.md) — selected navigation, Home/Today, density, copy, and Calendar/Agenda refresh direction
-- [`ui-ux-audit-2026-10.md`](ui-ux-audit-2026-10.md) — public-safe live UI/UX findings, external design references, and proposals pending review
-- [`ui-ux-audit-2026-10-evidence.md`](ui-ux-audit-2026-10-evidence.md) — 39-view capture inventory and fictional reproduction recipe; private screenshots excluded
+- [`ui-ux-audit-2026-10.md`](ui-ux-audit-2026-10.md) — installed-skills reassessment: 18 ranked findings, technical measurements, and broader redesign briefs pending review
+- [`ui-ux-audit-2026-10-evidence.md`](ui-ux-audit-2026-10-evidence.md) — 23 fresh captures from the reassessment and a fictional reproduction recipe; private screenshots excluded
 - [`ui-ux-audit-2026-10-backlog.csv`](ui-ux-audit-2026-10-backlog.csv) — ranked audit recommendations with impact, effort, and acceptance checks
 
 ## Feature and design guides

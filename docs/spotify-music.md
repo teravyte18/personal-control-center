@@ -104,7 +104,7 @@ Spotify Developer Dashboard: https://developer.spotify.com/dashboard
 5. Deploy normally (`scripts/deploy-production.sh main`) after merging, then visit **Spaces → Music → Connect Spotify**.
 6. Press **Sync now** and verify that the Last API check timestamp changes. The polling worker then runs hourly.
 
-If `PCC_SPOTIFY_WORKER_TOKEN` is blank, the worker sleeps without polling. Never point `PCC_PUBLIC_URL` at an HTTP public hostname.
+If `PCC_SPOTIFY_WORKER_TOKEN` is blank, the worker sleeps without polling. The value must match in the app and worker containers (Compose passes the same .env setting to both). The Account → Spotify panel displays the last **scheduled** worker request separately from the last successful collection, which can be changed by pressing Sync now. Never point `PCC_PUBLIC_URL` at an HTTP public hostname.
 
 ## One-time backfill from Spotify Extended Streaming History
 
@@ -128,6 +128,24 @@ Complete this after deployment, ideally **before** connecting Spotify so the API
 The importer processes every `Streaming_History_Audio*.json` file recursively and ignores videos/podcasts. It inserts in small transactions; repeated runs only add missing events.
 
 If the app has already been collecting live plays before import, overlap at the export/API boundary can result in a few near-duplicate plays because the APIs may timestamp the same listening differently. Import first whenever possible.
+
+## Diagnosing scheduled collection
+
+The polling container is a separate service. Spotify manual sync and Last.fm manual enrichment can work even while the scheduler is disabled or returning 401 errors.
+
+On the Pi, from the repository checkout:
+
+```sh
+docker compose ps spotify-poll-worker app
+docker compose logs --since=3h --timestamps spotify-poll-worker
+docker compose logs --since=3h --timestamps app
+```
+
+A successful scheduled request is now logged with UTC time and a JSON summary containing `inserted` (new plays), `archived` (playlist additions), `enriched` (Last.fm tracks), and per-stage failure counts. Zero new plays can be entirely normal; the timestamps and failure counts are the diagnostic signals. If no logs exist, check whether the service is running and whether `PCC_SPOTIFY_WORKER_TOKEN` is set in the private `.env`. Never paste the secret or raw Compose configuration in an issue/chat.
+
+Spotify, playlist reconciliation and Last.fm enrichment now execute independently for each connected account; errors in one no longer prevent the others. Check the app logs for a sanitized stage-specific error if the worker summary reports failures. An invalid Last.fm JSON API response is treated as an error rather than being cached as permanently missing genre information.
+
+After updating the worker token in `.env`, recreate **both** services via `docker compose up -d --force-recreate app spotify-poll-worker` (or deploy using `scripts/deploy-production.sh main` after merging). The worker runs immediately on startup and then after each configured interval (default 3600 seconds).
 
 ## Recovery, monitoring and limitations
 

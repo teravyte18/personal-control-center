@@ -2,7 +2,7 @@ import "server-only";
 
 import { getDatabase } from "@/server/database";
 import { spotifyAccessToken } from "@/server/spotify";
-import { normalizeLastFmTags, spotifyItemIds, spotifyPlaylistId, validArchiveThreshold } from "@/domain/music-archive";
+import { LastFmTagLookupError, parseLastFmGenreTags, spotifyItemIds, spotifyPlaylistId, validArchiveThreshold } from "@/domain/music-archive";
 
 const BASE = "https://api.spotify.com/v1";
 type SettingsRow = {
@@ -222,15 +222,11 @@ export async function enrichMusicGenres(userId: string, limit = 12) {
       const response = await fetch(`https://ws.audioscrobbler.com/2.0/?${params}`, {
         cache: "no-store", signal: AbortSignal.timeout(15000),
       });
-      if (!response.ok) throw new Error(`Last.fm tag lookup HTTP ${response.status}.`);
+      if (!response.ok) throw new LastFmTagLookupError(`Last.fm genre request failed (HTTP ${response.status}).`);
       const result = await response.json() as unknown;
-      // Last.fm sometimes returns an error JSON with HTTP 200. Do not cache
-      // that as a successful empty genre set, which would never be retried.
-      if (result && typeof result === "object" && "error" in result) {
-        const code = String(result.error);
-        throw new Error(`Last.fm genre lookup rejected (error ${code}); check the API key or service status.`);
-      }
-      const tags = normalizeLastFmTags(result);
+      // A song Last.fm does not recognize is a cacheable empty tag result.
+      // Other errors are not cached and can be retried once resolved.
+      const tags = parseLastFmGenreTags(result);
       await sql`
         insert into spotify_track_tags (user_id, track_id, tags)
         values (${userId}, ${entry.track_id}, ${tags})

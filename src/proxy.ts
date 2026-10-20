@@ -11,6 +11,7 @@ function isPublicPath(pathname: string) {
     || pathname === "/api/auth/activate"
     || pathname === "/api/auth/session"
     || pathname === "/api/internal/review-push"
+    || pathname === "/api/internal/spotify-poll"
     || pathname === "/manifest.webmanifest"
     || pathname === "/favicon.ico"
     || pathname === "/pcc-sw.js"

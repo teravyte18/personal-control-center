@@ -331,7 +331,7 @@ These are proposed outcomes, not changes implemented by this PR.
 
 ### Redesign directions worth comparing next
 
-These are **three research briefs**, not rendered mockups or a selected visual world. Keep the same fictional content and identical tasks so they can be compared fairly. Each must cover Home/week and Music on phone and desktop; a single attractive dashboard shot is insufficient.
+At audit time these were **three research briefs**, not rendered mockups or a selected visual world. A subsequent [Figma exploration and Projects device study](ui-design-directions-2026-10.md) now provides editable alternatives; no visual world has been selected. Keep the same fictional content and identical tasks so they can be compared fairly. Each must cover Home/week and Music on phone and desktop; a single attractive dashboard shot is insufficient.
 
 1. **A personal daybook.** Make the week a readable sequence of commitments and chosen actions, with a compact always-available Capture entry. Music becomes a period journal with ranked songs and a short change summary, while books retain their physical identity. Distinction comes from reading rhythm, dates and object typography. Risk: drifting into fashionable newspaper styling or tiny editorial labels. Test fast scanning and thumb actions before expanding the approach.
 2. **A precise working instrument.** Use compact, well-aligned rows, a clear destination system and progressive details. The week answers what is fixed, what is chosen and what comes next; Music exposes comparative lists immediately. Distinction comes from responsive behavior and information precision. Risk: another generic monochrome admin kit. Require a recognisable PCC shell and product-specific objects rather than stock tiles.
@@ -343,7 +343,7 @@ Any direction may change palette, fonts, radius, shell structure and theme prese
 
 Use three concrete scenarios: find and open an undated selected action; understand the next fixed commitment alongside it; identify a period's top songs/artists and switch to another period. Include a long title, empty data, several intentions and a populated history. Evaluate one-handed entry, scan order, reading comfort, direct source access and return navigation. After choosing one visual direction, implement one end-to-end slice before replacing every screen.
 
-No visual option is selected by this report. Actual concept exploration should produce inspectable alternatives before implementation. The installed skills contribute criteria; they do not vote on the user's taste or override a clear brief.
+No visual option is selected by this report. The linked Figma exploration provides inspectable alternatives for review before implementation. The installed skills contribute criteria; they do not vote on the user's taste or override a clear brief.
 
 ## What to keep
 

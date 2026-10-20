@@ -11,8 +11,15 @@ This directory contains current product/operations documentation plus a small am
 - [`architecture.md`](architecture.md) — deployed stack, persistence, navigation, PWA, themes, integrations, and security boundaries
 - [`interface-rules.md`](interface-rules.md) — current UI, copy, navigation, theme, and semantic-colour rules
 - [`ux-refresh-2026.md`](ux-refresh-2026.md) — selected navigation, Home/Today, density, copy, and Calendar/Agenda refresh direction
+- [`ui-ux-audit-2026-10.md`](ui-ux-audit-2026-10.md) — installed-skills reassessment: 18 ranked findings, technical measurements, and broader redesign briefs pending review
+- [`ui-ux-audit-2026-10-evidence.md`](ui-ux-audit-2026-10-evidence.md) — 23 fresh captures from the reassessment and a fictional reproduction recipe; private screenshots excluded
+- [`ui-ux-audit-2026-10-backlog.csv`](ui-ux-audit-2026-10-backlog.csv) — ranked audit recommendations with impact, effort, and acceptance checks
 
 ## Feature and design guides
+
+- [`ui-design-directions-2026-10.md`](ui-design-directions-2026-10.md) — editable Figma concepts, separate phone/desktop Projects layouts, skill provenance and review limits
+
+- [`visual-review-workflow.md`](visual-review-workflow.md) — recommended before/after screenshot, design, privacy, and GitHub review workflow
 
 - [`food.md`](food.md) — implemented Food v1 Recipe Book, ingredient-copy workflow, private photos, explicit exclusions, and deferred meal-prep/routine follow-ups
 - [`expenses.md`](expenses.md) — manual expense capture, fixed 50/30/20 reference, rolling Fun Fund, Insights analytics, persistence, and current boundaries
@@ -49,3 +56,4 @@ Historical documents must say that they are historical. Do not follow old branch
 - [`../README.md`](../README.md) — project overview and common commands
 - [`../AGENTS.md`](../AGENTS.md) — instructions for coding agents
 - [`../CONTRIBUTING.md`](../CONTRIBUTING.md) — branch, validation, documentation, and safety workflow
+

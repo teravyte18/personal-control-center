@@ -298,6 +298,48 @@ test("authentication, same-user sharing, cross-user isolation, and review photos
   });
   assert.equal(retrievalBadDate.response.status, 400);
 
+  // Phase 3 resolves from the authenticated canonical snapshot only.
+  const unresolvedGuest = await request("/api/personal-context/resolve?q=imported");
+  assert.equal(unresolvedGuest.response.status, 401);
+  const ownerResolved = await request("/api/personal-context/resolve?q=imported&domains=notes&maxChars=1000&maxRecords=2", {
+    headers: { Cookie: ownerCookie },
+  });
+  assert.equal(ownerResolved.response.status, 200);
+  assert.match(ownerResolved.response.headers.get("cache-control") ?? "", /private.*no-store/);
+  assert.equal(ownerResolved.body.mode, "manual-deterministic");
+  assert.equal(ownerResolved.body.search.totalMatches, 1);
+  assert.equal(ownerResolved.body.selected[0].sourceId, importedItem.id);
+  assert.equal(ownerResolved.body.selected[0].sourceRefs[0].sourceId, importedItem.id);
+  assert.ok(ownerResolved.body.budget.usedChars <= 1000);
+  assert.equal(ownerResolved.body.budget.usedChars, ownerResolved.body.finalContext.length);
+
+  const secondResolved = await request("/api/personal-context/resolve?q=imported&domains=notes", {}, secondUserEmail);
+  assert.equal(secondResolved.response.status, 200);
+  assert.equal(secondResolved.body.search.totalMatches, 0);
+  assert.equal(secondResolved.body.finalContext, "");
+  assert.doesNotMatch(JSON.stringify(secondResolved.body), /Imported item/);
+
+  const crossUserResolved = await request("/api/personal-context/resolve?q=second&domains=notes", {
+    headers: { Cookie: ownerCookie },
+  });
+  assert.equal(crossUserResolved.response.status, 200);
+  assert.equal(crossUserResolved.body.search.totalMatches, 0);
+  const ownMemberResolved = await request("/api/personal-context/resolve?q=second&domains=notes", {}, secondUserEmail);
+  assert.equal(ownMemberResolved.body.selected[0].sourceId, secondPrivateItem.id);
+
+  const spoofResolved = await request("/api/personal-context/resolve?q=second&userId=other", {
+    headers: { Cookie: ownerCookie },
+  });
+  assert.equal(spoofResolved.response.status, 400);
+  const forbiddenCurrentDomain = await request("/api/personal-context/resolve?q=imported&current=keychain", {
+    headers: { Cookie: ownerCookie },
+  });
+  assert.equal(forbiddenCurrentDomain.response.status, 400);
+  const invalidBudget = await request("/api/personal-context/resolve?q=imported&maxChars=999999", {
+    headers: { Cookie: ownerCookie },
+  });
+  assert.equal(invalidBudget.response.status, 400);
+
   const refreshedOwnerClientB = await request("/api/personal-data", { headers: { Cookie: ownerCookie } });
   const refreshedSecondUser = await request("/api/personal-data", {}, secondUserEmail);
   assert.deepEqual(

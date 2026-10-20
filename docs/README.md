@@ -17,6 +17,8 @@ This directory contains current product/operations documentation plus a small am
 
 ## Feature and design guides
 
+- [`ui-design-directions-2026-10.md`](ui-design-directions-2026-10.md) — editable Figma concepts, separate phone/desktop Projects layouts, skill provenance and review limits
+
 - [`visual-review-workflow.md`](visual-review-workflow.md) — recommended before/after screenshot, design, privacy, and GitHub review workflow
 
 - [`food.md`](food.md) — implemented Food v1 Recipe Book, ingredient-copy workflow, private photos, explicit exclusions, and deferred meal-prep/routine follow-ups

@@ -2,7 +2,7 @@
 
 ## Status
 
-**Phase 1 retrieval-document projection and Phase 2 authenticated deterministic search are implemented in stacked PRs (pending review and merge).** Phase 3 (question-driven Resolved Context Inspector) remains unimplemented. Both implemented phases require no model, embeddings, index or extra database tables.
+**Phases 1–3 are implemented in stacked PRs (pending review and merge).** Phase 1 projects retained canonical history; Phase 2 performs authenticated deterministic search; Phase 3 resolves and inspects a bounded context. None requires a model, embeddings, index or new database tables.
 
 The existing Personal Context Layer is a useful privacy and representation boundary, but it is not intended to be the final retrieval system for a Personal Advisor.
 
@@ -342,15 +342,40 @@ Current behavior:
 
 ### Resolved context for a question
 
-Future behavior:
+**Implemented (Phase 3).** Context Inspector at `/spaces/context` now has two modes:
+the original **Raw domain context** and **Resolved question**.
 
-1. enter a test question;
-2. inspect the planner output;
-3. inspect all retrieval candidates and scores;
-4. inspect current-state records added automatically;
-5. inspect the final budgeted context bundle;
-6. inspect why each record was included;
-7. inspect final size/token estimate.
+In Resolved question mode:
+
+1. Enter a test question and manually choose the six historical search domains (Phase 2 uses lexical ranking, **not semantic similarity**).
+2. Optionally choose current Projects, Tasks and Rhythm, included because they are current, even if they do not match the question. Default is **none** to avoid irrelevant records being silently included.
+3. Optionally supply an inclusive creation/event date range, plus max context characters (1,000–20,000; default 8,000) and records (1–20; default 12).
+4. Inspect the explicit **manual/deterministic plan**, Phase 2 ranked matches and their relevance reasons, current-state candidates, the canonical source IDs for included records, and exclusions for hitting budget or record limits.
+5. Inspect the **exact final context text**, truncation counts and approximate token count (characters / 4). These are estimates, not model-tokenizer counts.
+
+The new authenticated `GET /api/personal-context/resolve` endpoint accepts Phase 2's
+`q, domains, from, to, limit` plus `current, maxChars, maxRecords`. It derives
+account identity from the PCC session, reads the canonical snapshot, builds the
+entire eligible retrieval corpus on demand, and returns `private, no-store`
+data. It rejects caller-supplied user IDs, Keychain and any unknown parameters;
+there is no database mutation, index, or model API request.
+
+**Resolver semantics:** Exact source IDs connect results to canonical records.
+A record appearing both as current state and in search results is deduplicated,
+and its current-state and search-ranking reasons are combined. Current state is
+collected from active Projects/open actions, open Tasks, and the existing bounded
+Weekly Rhythm provider when requested. Rhythm's generated weekly snapshot
+explicitly identifies the template/focus IDs it was derived from. Retrieved
+records stay eligible regardless of age and are scored *before* record/character
+caps. Some slots are reserved for requested current state without crowding all
+historical matches out; each included item is capped at 1,800 characters, and
+the entire final text remains at or below the chosen max character count.
+
+The inspector exposes which selected candidates were excluded, but it does not
+display **every** document in the corpus. Phase 2's `limit` determines how many
+ranked matches are available to the resolver. This is an evaluation aid, **not**
+an Advisor that answers the question; different wording can still miss relevant
+records. There is no automatic Context Planner or AI-assisted domain selection.
 
 Example:
 
@@ -440,14 +465,13 @@ Phase 3 can call the same pure search helper and then resolve selected canonical
 
 ### Phase 3 — Resolved Context Inspector
 
-Add a question-driven Inspector mode that initially uses explicit domain selection plus deterministic retrieval.
-
-This provides a visible evaluation surface for questions such as:
-
-- did the relevant old Review appear?
-- did the right Library record appear?
-- why was a result ranked?
-- how large is the final bundle?
+**Implemented.** The existing Inspector provides a question-driven mode that
+combines Phase 2 search matches with explicit current-state providers,
+deduplicates by source identity, applies record/character caps *after*
+retrieval, and exposes reasons, sources, dropped records, and the exact resulting
+context. Unit tests cover old history, arbitrary current-state inclusion,
+deduplication, budget enforcement, Rhythm provenance and Keychain exclusion;
+production integration tests check cross-account isolation and input validation.
 
 ### Phase 4 — Context Planner
 
@@ -497,11 +521,12 @@ Start with explicit or user-confirmed memory rather than fully automatic promoti
 
 ## What should be built next
 
-Phases **1 and 2** now have implementations in stacked PRs. The next engineering slice is **Phase 3**:
+Phases **1–3** now have implementations in stacked PRs. After merging and
+deploying those PRs, manually test retrieval questions against old Reviews,
+Library entries and Project actions. Identify misses caused by lexical wording
+versus missing canonical source records and assess the size of the final bundle.
 
-1. add a question-driven mode to the existing Context Inspector;
-2. inspect the ranked Phase 2 matches, relevance reasons and canonical source IDs;
-3. combine selected current-state records and historical matches, deduplicate and enforce the **final** output/token budget;
-4. compare results against representative older Reviews/Library entries to identify semantic retrieval misses.
-
-The Context Planner should be the first LLM-specific step *after* the resolved context can be inspected.
+**Next candidate:** Phase 4, a provider-neutral structured Context Planner,
+only after retrieval quality is inspectable on real data. Keep semantic/vector
+retrieval, final LLM chat, episodic summaries and stable memories later and
+evidence-driven.

@@ -129,9 +129,43 @@ The importer processes every `Streaming_History_Audio*.json` file recursively an
 
 If the app has already been collecting live plays before import, overlap at the export/API boundary can result in a few near-duplicate plays because the APIs may timestamp the same listening differently. Import first whenever possible.
 
+## Production smoke test — 20 October 2026
+
+The Raspberry Pi deployment was exercised after PRs #95 and #96 were merged.
+An explicit restart of `spotify-poll-worker` triggered an **automatic**, authenticated
+poll (without pressing either manual button). The worker reported:
+
+- new Spotify play events inserted;
+- `enriched: 12`, confirming the automatic Last.fm stage processed a full hourly batch;
+- `failures: 0`, `historyFailures: 0`, `archiveFailures: 0`, and `genreFailures: 0`.
+
+Manual **Enrich next 25 songs** also worked after the Last.fm correction.
+This is a successful **startup/scheduled-worker smoke test**, not yet evidence
+of two consecutive hourly executions. To verify periodic operation, compare
+timestamps from separate entries in the worker log without restarting it.
+The configured default interval remains 3600 seconds after each completed poll.
+
+`archived: 0` is neither an error nor proof that append-only playlist updates
+have been exercised: it can mean no qualifying tracks needed adding (or that
+playlist automation is disabled). A real threshold-crossing/playlist-addition
+case remains the relevant functional check if that feature is relied on.
+
+The earlier issues were resolved by:
+
+- **PR #95:** permit the bearer-authenticated internal polling endpoint through
+  the session proxy, isolate history/archive/genre stages, and log results;
+- **PR #96:** treat Last.fm's genuine "Track not found" response as an empty tag
+  cache result rather than letting one unmatched song fail every enrichment batch.
+
+The normal 12-tracks-per-hour genre backfill is intentionally retained;
+increasing it is **not a current priority**. At large library sizes the initial
+coverage can take weeks. `tracksWithTagCache` counts processed tracks, including
+tracks with no accepted genres, and does not guarantee every cached track has a
+genre label.
+
 ## Diagnosing scheduled collection
 
-The polling container is a separate service. Spotify manual sync and Last.fm manual enrichment can work even while the scheduler is disabled or returning 401 errors.
+The polling container is a separate service. Spotify manual sync and Last.fm manual enrichment can work even while the scheduler is disabled or returning 401 errors. The internal route bypasses only **session-cookie** authentication in the proxy; it still requires the separate bearer token checked inside the route.
 
 On the Pi, from the repository checkout:
 
@@ -145,7 +179,7 @@ A successful scheduled request is now logged with UTC time and a JSON summary co
 
 Spotify, playlist reconciliation and Last.fm enrichment now execute independently for each connected account; errors in one no longer prevent the others. Check the app logs for a sanitized stage-specific error if the worker summary reports failures. Last.fm may report a specific song as **Track not found** (HTTP 200 / error 6). Such unmatched songs are cached with no genre and enrichment continues to the next candidate; missing tags are not a failed background poll. Invalid API keys, rate limits, service outages and genuinely malformed requests remain failures and can be retried after resolving the cause. The manual genre-enrichment button now shows actionable Last.fm error messages rather than a generic playlist/archive error.
 
-After updating the worker token in `.env`, recreate **both** services via `docker compose up -d --force-recreate app spotify-poll-worker` (or deploy using `scripts/deploy-production.sh main` after merging). The worker runs immediately on startup and then after each configured interval (default 3600 seconds).
+After updating the worker token in `.env`, recreate **both** services via `docker compose up -d --force-recreate app spotify-poll-worker` (or deploy using `scripts/deploy-production.sh main` after merging). For a safe, immediate smoke test without changing credentials, run `docker compose restart spotify-poll-worker`, wait for it to finish, and check `docker compose logs --since=5m --timestamps spotify-poll-worker`. The worker runs immediately on startup and then after each configured interval (default 3600 seconds).
 
 ## Recovery, monitoring and limitations
 

@@ -5,7 +5,7 @@ This directory contains current product/operations documentation plus a small am
 ## Current product direction
 
 - [`product-spec.md`](product-spec.md) — current product model, workflows, boundaries, integration principle, and success criteria
-- [`roadmap.md`](roadmap.md) — completed modules/UI work, Personal Context Layer, real-use audit, and Weekly Rhythm MVP; current combined testing and later integration/AI direction
+- [`roadmap.md`](roadmap.md) — delivered modules, current priorities after Music verification, Weekly Rhythm/Agenda real-use decisions, and retrieval-first AI direction
 - [`usage-audit-2026-10.md`](usage-audit-2026-10.md) — real-use evidence: validated workflows, low-use experiments, planning friction, and resulting product priorities
 - [`weekly-rhythm.md`](weekly-rhythm.md) — implemented Weekly Rhythm MVP: weekly focus, recurring intentions, progress, Calendar commitments, Review integration, and follow-up boundaries
 - [`architecture.md`](architecture.md) — deployed stack, persistence, navigation, PWA, themes, integrations, and security boundaries
@@ -16,10 +16,10 @@ This directory contains current product/operations documentation plus a small am
 
 - [`food.md`](food.md) — implemented Food v1 Recipe Book, ingredient-copy workflow, private photos, explicit exclusions, and deferred meal-prep/routine follow-ups
 - [`expenses.md`](expenses.md) — manual expense capture, fixed 50/30/20 reference, rolling Fun Fund, Insights analytics, persistence, and current boundaries
-- [`spotify-music.md`](spotify-music.md) — new Music tracking space: Spotify OAuth, hourly collection, private historic import and limits
+- [`spotify-music.md`](spotify-music.md) — operational Spotify Music space: import, hourly polling, Last.fm genre backfill, playlist archive, live smoke test and troubleshooting
 - [`markets.md`](markets.md) — lightweight Yahoo-backed watchlist with current price, daily movement, user-scoped persistence, and TradingView handoff
 - [`notes.md`](notes.md) — Markdown subset, autosave rules, safe preview rendering, and regression checks
-- [`book-library.md`](book-library.md) — Books shelf model, ratings, owned-first default view, Wishlist isolation, covers, caching, regression checks, and the planned comic/sequential-work extension
+- [`book-library.md`](book-library.md) — Books shelf model, ratings, Wishlist, covers, implemented comic/sequential-work progress, and regression checks
 - [`media-library.md`](media-library.md) — unified Library navigation for Books, Movies, and Series; separate media wishlists/state, ratings, Movie watched date, Series resume progress, private posters, and integration boundaries
 - [`personal-advisor.md`](personal-advisor.md) — implemented Personal Context Layer plus the retrieval-first Advisor/LLM direction, memory boundaries, Keychain exclusion, action boundaries, and promotion gate
 - [`context-retrieval-memory.md`](context-retrieval-memory.md) — planned full-history retrieval, context planning/resolution, token budgeting, episodic summaries, stable memory, and the recommended build sequence

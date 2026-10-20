@@ -2,7 +2,7 @@
 
 ## Status
 
-**Implemented in PR #79 on the Personal Context Layer branch; pending combined real-use testing before merge/deploy.**
+**Implemented and merged in PR #79; now in real-use evaluation.** The Home near-term card was subsequently extended through the current Saturday–Friday week in PR #83. A broader Agenda/Calendar integration decision is still open in issue #72.
 
 Weekly Rhythm is a flexible weekly planning layer. It is not a habit tracker, a streak system, or a replacement for Tasks, Projects, Weekly Review, or Google Calendar.
 

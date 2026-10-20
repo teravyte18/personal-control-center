@@ -44,7 +44,7 @@ test("strict input validation and bounded defaults", () => {
   assert.throws(() => options("thesis", new URLSearchParams("limit=1.5")), /between 1 and 25/);
   assert.throws(() => options("thesis", new URLSearchParams("from=2025-02-29")), /valid inclusive date/);
   assert.throws(() => options("thesis", new URLSearchParams("from=2026-11-01&to=2026-10-01")), /valid inclusive date/);
-  assert.throws(() => options("thesis", new URLSearchParams("q=another")), /Repeated search parameters/);
+  assert.throws(() => parseRetrievalSearchParams(new URLSearchParams("q=thesis&q=another")), /Repeated search parameters/);
   assert.throws(() => options("thesis", new URLSearchParams("userId=someone-else")), /Unsupported search parameter/);
 });
 

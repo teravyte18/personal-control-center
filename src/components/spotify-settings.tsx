@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 type SpotifyStatus = {
   configured: boolean;
   connected: boolean;
+  workerTokenConfigured: boolean;
   playlistPermission: boolean;
   recordedPlays: number;
   recordedTracks: number;
@@ -12,6 +13,7 @@ type SpotifyStatus = {
   firstPlay: string | null;
   latestPlay: string | null;
   lastPolledAt: string | null;
+  lastAutomatedPollAt: string | null;
   lastError: string | null;
 };
 
@@ -113,6 +115,15 @@ export function SpotifySettings() {
               <dd className="mt-1 text-sm font-semibold">{date(status.lastPolledAt)}</dd>
             </div>
           </dl>
+          <div className="mt-3 text-xs text-slate-500">
+            <p>Last scheduled worker request: {date(status.lastAutomatedPollAt)}</p>
+            {!status.workerTokenConfigured ? (
+              <p className="mt-1 text-amber-700">Hourly collection is disabled: PCC_SPOTIFY_WORKER_TOKEN is not configured in the app.</p>
+            ) : !status.lastAutomatedPollAt ? (
+              <p className="mt-1 text-amber-700">No authorized hourly worker request recorded. Check the spotify-poll-worker container and its logs.</p>
+            ) : null}
+            <p className="mt-1">Last collection includes manual checks; the scheduled timestamp above is tracked separately.</p>
+          </div>
           {status.lastError ? <p className="mt-3 text-sm text-amber-700">Last collection error: {status.lastError}</p> : null}
           <p className="mt-3 text-xs text-slate-500">
             Playlist editing: {status.playlistPermission ? "Authorized" : "Not authorized"}.

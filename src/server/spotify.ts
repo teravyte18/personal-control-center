@@ -2,6 +2,7 @@ import "server-only";
 
 import { createCipheriv, createDecipheriv, randomBytes, timingSafeEqual } from "node:crypto";
 import { getDatabase } from "@/server/database";
+import { runMusicPollStages } from "@/domain/music-poll";
 
 const AUTH_URL = "https://accounts.spotify.com/authorize";
 const TOKEN_URL = "https://accounts.spotify.com/api/token";
@@ -13,6 +14,7 @@ type Connection = {
   user_id: string;
   encrypted_refresh_token: string;
   last_polled_at: Date | string | null;
+  last_automated_poll_at: Date | string | null;
   last_error: string | null;
   playlist_scopes_granted: boolean;
 };
@@ -125,7 +127,7 @@ export async function connectSpotify(userId: string, code: string, playlistAcces
 async function connection(userId: string) {
   const sql = getDatabase();
   const [row] = await sql<Connection[]>`
-    select user_id, encrypted_refresh_token, last_polled_at, last_error, playlist_scopes_granted
+    select user_id, encrypted_refresh_token, last_polled_at, last_automated_poll_at, last_error, playlist_scopes_granted
     from spotify_connections where user_id = ${userId}
   `;
   return row ?? null;
@@ -151,6 +153,7 @@ export async function spotifyStatus(userId: string) {
   const current = await connection(userId);
   return {
     configured: isSpotifyConfigured(),
+    workerTokenConfigured: Boolean(process.env.PCC_SPOTIFY_WORKER_TOKEN?.trim()),
     connected: Boolean(current),
     playlistPermission: Boolean(current?.playlist_scopes_granted),
     recordedPlays: Number(summary.recorded_plays),
@@ -159,6 +162,7 @@ export async function spotifyStatus(userId: string) {
     firstPlay: summary.first_play ? new Date(summary.first_play).toISOString() : null,
     latestPlay: summary.latest_play ? new Date(summary.latest_play).toISOString() : null,
     lastPolledAt: current?.last_polled_at ? new Date(current.last_polled_at).toISOString() : null,
+    lastAutomatedPollAt: current?.last_automated_poll_at ? new Date(current.last_automated_poll_at).toISOString() : null,
     lastError: current?.last_error ?? null,
   };
 }
@@ -257,19 +261,40 @@ async function doSyncSpotify(userId: string) {
 }
 
 export async function syncAllConnectedSpotify() {
-  if (!isSpotifyConfigured()) return { connected: 0, inserted: 0, failures: 0 };
+  if (!isSpotifyConfigured()) {
+    return { configured: false, connected: 0, inserted: 0, archived: 0, enriched: 0,
+      failures: 0, historyFailures: 0, archiveFailures: 0, genreFailures: 0 };
+  }
   const sql = getDatabase();
   const users = await sql<{ user_id: string }[]>`select user_id from spotify_connections`;
-  let inserted = 0, failures = 0;
+  const { syncMusicArchive, enrichMusicGenres } = await import("@/server/music-archive");
+  let inserted = 0, archived = 0, enriched = 0;
+  let failures = 0, historyFailures = 0, archiveFailures = 0, genreFailures = 0;
   for (const user of users) {
-    try {
-      inserted += await syncSpotify(user.user_id);
-      const { syncMusicArchive, enrichMusicGenres } = await import("@/server/music-archive");
-      await syncMusicArchive(user.user_id);
-      await enrichMusicGenres(user.user_id, 12);
-    } catch { failures++; }
+    // Only the authorized worker endpoint calls this function. Track its actual
+    // invocation separately from the manual "Sync now" timestamp.
+    await sql`
+      update spotify_connections set last_automated_poll_at = now()
+      where user_id = ${user.user_id}
+    `;
+    const run = await runMusicPollStages({
+      syncHistory: () => syncSpotify(user.user_id),
+      syncArchive: () => syncMusicArchive(user.user_id),
+      enrichGenres: () => enrichMusicGenres(user.user_id, 12),
+    }, (stage, error) => {
+      const message = error instanceof Error ? error.message : "Unknown error.";
+      console.error(`Automatic music ${stage} failed: ${message}`);
+    });
+    inserted += run.inserted;
+    archived += run.archived;
+    enriched += run.enriched;
+    if (run.failedStages.length) failures++;
+    if (run.failedStages.includes("history")) historyFailures++;
+    if (run.failedStages.includes("archive")) archiveFailures++;
+    if (run.failedStages.includes("genres")) genreFailures++;
   }
-  return { connected: users.length, inserted, failures };
+  return { configured: true, connected: users.length, inserted, archived, enriched,
+    failures, historyFailures, archiveFailures, genreFailures };
 }
 
 export function validSpotifyWorkerToken(request: Request) {

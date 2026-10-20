@@ -224,6 +224,12 @@ export async function enrichMusicGenres(userId: string, limit = 12) {
       });
       if (!response.ok) throw new Error(`Last.fm tag lookup HTTP ${response.status}.`);
       const result = await response.json() as unknown;
+      // Last.fm sometimes returns an error JSON with HTTP 200. Do not cache
+      // that as a successful empty genre set, which would never be retried.
+      if (result && typeof result === "object" && "error" in result) {
+        const code = String(result.error);
+        throw new Error(`Last.fm genre lookup rejected (error ${code}); check the API key or service status.`);
+      }
       const tags = normalizeLastFmTags(result);
       await sql`
         insert into spotify_track_tags (user_id, track_id, tags)

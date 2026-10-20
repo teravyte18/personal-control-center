@@ -255,6 +255,49 @@ test("authentication, same-user sharing, cross-user isolation, and review photos
   }, secondUserEmail);
   assert.equal(secondChanged.response.status, 200);
 
+  // Retrieval Phase 2 uses authenticated identity, not caller-selected user IDs.
+  const searchWithoutSession = await request("/api/personal-context/search?q=imported");
+  assert.equal(searchWithoutSession.response.status, 401);
+  assert.match(searchWithoutSession.response.headers.get("cache-control") ?? "", /no-store/);
+
+  const ownerRetrieval = await request("/api/personal-context/search?q=imported&domains=notes", {
+    headers: { Cookie: ownerCookie },
+  });
+  assert.equal(ownerRetrieval.response.status, 200);
+  assert.match(ownerRetrieval.response.headers.get("cache-control") ?? "", /private.*no-store/);
+  assert.equal(ownerRetrieval.body.totalMatches, 1);
+  assert.deepEqual(ownerRetrieval.body.results.map((result) => result.sourceId), [importedItem.id]);
+  assert.equal("text" in ownerRetrieval.body.results[0], false);
+  assert.equal("userId" in ownerRetrieval.body.results[0], false);
+
+  const otherAccountRetrieval = await request("/api/personal-context/search?q=imported&domains=notes", {}, secondUserEmail);
+  assert.equal(otherAccountRetrieval.response.status, 200);
+  assert.equal(otherAccountRetrieval.body.totalMatches, 0);
+
+  const ownerCannotSearchOther = await request("/api/personal-context/search?q=second&domains=notes", {
+    headers: { Cookie: ownerCookie },
+  });
+  assert.equal(ownerCannotSearchOther.response.status, 200);
+  assert.equal(ownerCannotSearchOther.body.totalMatches, 0);
+
+  const secondOwnRetrieval = await request("/api/personal-context/search?q=second&domains=notes", {}, secondUserEmail);
+  assert.equal(secondOwnRetrieval.response.status, 200);
+  assert.equal(secondOwnRetrieval.body.totalMatches, 1);
+  assert.equal(secondOwnRetrieval.body.results[0].sourceId, secondPrivateItem.id);
+
+  const retrievalUserSpoof = await request("/api/personal-context/search?q=second&userId=other", {
+    headers: { Cookie: ownerCookie },
+  });
+  assert.equal(retrievalUserSpoof.response.status, 400);
+  const retrievalForbiddenDomain = await request("/api/personal-context/search?q=imported&domains=keychain", {
+    headers: { Cookie: ownerCookie },
+  });
+  assert.equal(retrievalForbiddenDomain.response.status, 400);
+  const retrievalBadDate = await request("/api/personal-context/search?q=imported&from=2026-02-30", {
+    headers: { Cookie: ownerCookie },
+  });
+  assert.equal(retrievalBadDate.response.status, 400);
+
   const refreshedOwnerClientB = await request("/api/personal-data", { headers: { Cookie: ownerCookie } });
   const refreshedSecondUser = await request("/api/personal-data", {}, secondUserEmail);
   assert.deepEqual(

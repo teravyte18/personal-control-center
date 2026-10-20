@@ -113,9 +113,18 @@ services:
           echo "Spotify worker disabled: set PCC_SPOTIFY_WORKER_TOKEN to enable hourly collection."
           exec sleep 2147483647
         fi
+        interval="$PCC_SPOTIFY_POLL_INTERVAL_SECONDS"
+        case "$interval" in
+          ''|*[!0-9]*) echo "Invalid Spotify poll interval; falling back to 3600 seconds." >&2; interval=3600 ;;
+        esac
+        if [ "$interval" -lt 60 ]; then interval=60; fi
         while true; do
-          wget -qO- --header="Authorization: Bearer $$PCC_SPOTIFY_WORKER_TOKEN" --post-data="" http://app:3000/api/internal/spotify-poll || true
-          sleep "$$PCC_SPOTIFY_POLL_INTERVAL_SECONDS"
+          if result="$(wget -qO- --header="Authorization: Bearer $PCC_SPOTIFY_WORKER_TOKEN" --post-data="" http://app:3000/api/internal/spotify-poll 2>&1)"; then
+            printf '%s Spotify automatic poll: %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$result"
+          else
+            printf '%s Spotify automatic poll failed: %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$result" >&2
+          fi
+          sleep "$interval"
         done
     security_opt:
       - no-new-privileges:true

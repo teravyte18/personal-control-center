@@ -190,6 +190,7 @@ export function searchRetrievalDocuments(
     // Date filters are based on the event/record creation time (Review
     // completedAt, action openedAt, item createdAt), NOT the last edit date.
     const occurred = (document.occurredAt ?? document.updatedAt ?? "").slice(0, 10);
+    if ((options.from || options.to) && !isValidDate(occurred)) continue;
     if (options.from && occurred < options.from) continue;
     if (options.to && occurred > options.to) continue;
 

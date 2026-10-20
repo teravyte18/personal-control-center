@@ -2,7 +2,7 @@
 
 ## Status
 
-**Design direction selected; not implemented yet.**
+**Phase 1 retrieval-document projection implemented in `src/domain/retrieval-documents.ts` (pending PR review and merge).** Phases 2 (authenticated retrieval/search) and 3 (question-driven Resolved Context Inspector) remain unimplemented.
 
 The existing Personal Context Layer is a useful privacy and representation boundary, but it is not intended to be the final retrieval system for a Personal Advisor.
 
@@ -404,16 +404,20 @@ It must not expose unrestricted SQL or Keychain.
 
 ### Phase 1 — retrieval-document foundation
 
-Build deterministic retrieval documents from the existing canonical snapshot.
+**Implemented as a pure projection**, `buildRetrievalDocuments(snapshot, userId)`.
+It returns `RetrievalDocument[]` without touching network, database or LLM services.
 
-Initial goals:
+- Explicitly allowlisted domains: Reviews, Library (Books/Comics/Movies/Series), Projects, Tasks, Thoughts, and Notes.
+- The document carries `id`, `userId`, `domain`, `sourceId`, optional `sourceSubId` for a project action, `sourceKind`, `title`, `text`, `occurredAt`, `updatedAt`, and allowlisted metadata.
+- Published Review entries, including old entries, are projected. An unsubmitted Review draft remains *current state*, not historical retrieval content.
+- Each Project has a parent document and one document per action, including completed actions, details, completion notes and rescheduling history.
+- Retained archived/completed Tasks, Projects, Notes and Thoughts remain eligible; canonical deletion removes them on the next projection. No 90-day window, 12-record cap or `maxTextChars` truncation is applied.
+- Library payloads are decoded with the canonical Book/Media parsers. Raw structured Note JSON, cover/poster identifiers, Note ordering metadata and unknown/invalid PCC structured payloads are excluded.
+- Keychain never enters the domain allowlist or projection. Expenses, Food, Rhythm, Music and Calendar are intentionally outside this initial historical corpus.
+- The returned array is deterministically ordered; user-scoped derived IDs incorporate the authenticated user ID supplied by the eventual Phase 2 caller. The builder itself **does not authenticate** any caller.
+- Unit tests cover old and archived records, multiple actions, exact source provenance, structured-record isolation, deterministic projection and disappearing/deleted sources.
 
-- cover Reviews, Library, Projects, Tasks, Thoughts, and Notes;
-- preserve source IDs, dates, domain, and useful metadata;
-- search the **whole eligible archive**, independent of Personal Context's 90-day/12-record defaults;
-- do not create an LLM dependency yet.
-
-The first implementation can generate documents from the snapshot on demand and use local lexical scoring. Persistence/vector indexing can follow after the document model proves useful.
+**Not yet available in the app:** search UI, retrieval endpoint, relevance ranking, question-to-domain planning or final context budget. Phase 2 should load the authenticated user's canonical snapshot, call this function on demand, then rank/filter the resulting corpus. Indexing/persistence/embeddings should remain optional performance improvements after correctness is tested.
 
 ### Phase 2 — deterministic search API
 

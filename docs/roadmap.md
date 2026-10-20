@@ -6,7 +6,7 @@ The project has now moved out of its module-building phase. The default question
 
 The broad UI/UX consolidation work is complete enough to return to a usage-led approach: future interface changes should respond to concrete friction rather than modernisation for its own sake. The **Personal Context Layer and Context Inspector are now implemented** as the cross-space foundation.
 
-The real-use audit is documented and **Weekly Rhythm is now implemented in PR #79 alongside the Personal Context Layer**. The current step is combined real-use testing. After that, Agenda/Home integration can consume the weekly model if testing confirms the direction. AI remains exploratory rather than a committed next slice.
+The real-use audit is documented, **Weekly Rhythm and the Personal Context Layer are implemented**, and Home already displays dated work through the current Saturday–Friday week (PR #83). The Spotify Music space is also deployed and its automatic collection and genre-enrichment worker passed a live Pi smoke test on 20 October 2026. The next technical candidate is **context retrieval Phases 1–3** (deterministic document projection, search, and a question-driven Inspector), without an LLM dependency. In parallel, keep testing Weekly Rhythm and decide Agenda's remaining role in issue #72. AI remains exploratory, not a committed next slice.
 
 See [`usage-audit-2026-10.md`](usage-audit-2026-10.md) and [`weekly-rhythm.md`](weekly-rhythm.md).
 
@@ -19,19 +19,23 @@ graph LR
     CTX["Personal Context Layer<br/>+ Inspector<br/>✅"]
     AUDIT["Real-use audit<br/>✅"]
     RHY["Weekly Rhythm MVP<br/>✅"]
-    TEST["Current<br/>Deploy + real-use test"]
-    INT["Then, if useful<br/>Agenda / Home<br/>integration"]
-    LAB["Later experiment<br/>LLM sandbox / Advisor<br/>only if useful"]
+    HOME["Home through week-end<br/>+ Music live sync<br/>✅"]
+    TEST["Current<br/>Real-use feedback"]
+    RET["Next technical candidate<br/>Retrieval phases 1–3<br/>No LLM"]
+    CAL["Parallel product decision<br/>Agenda / Calendar #72"]
+    LAB["Later experiment<br/>LLM Planner / Advisor<br/>only if useful"]
 
-    S1 --> UX --> CTX --> AUDIT --> RHY --> TEST --> INT --> LAB
+    S1 --> UX --> CTX --> AUDIT --> RHY --> HOME --> TEST
+    TEST --> RET --> LAB
+    TEST --> CAL
 
     classDef done fill:#ecfdf5,stroke:#10b981,color:#065f46;
     classDef selected fill:#eff6ff,stroke:#3b82f6,color:#1e3a8a;
     classDef experimental fill:#fff7ed,stroke:#f59e0b,color:#78350f;
     classDef planned fill:#f8fafc,stroke:#94a3b8,color:#334155;
-    class S1,UX,CTX,AUDIT,RHY done;
-    class TEST selected;
-    class INT planned;
+    class S1,UX,CTX,AUDIT,RHY,HOME done;
+    class TEST,RET selected;
+    class CAL planned;
     class LAB experimental;
 ```
 
@@ -159,7 +163,7 @@ This is a development/privacy-audit surface rather than a normal daily workflow.
 
 ## Weekly Rhythm — implemented, pending real-use test
 
-The real-use audit led to the Weekly Rhythm MVP now implemented in PR #79. The next decision should come from actually using the combined Context + Rhythm branch.
+The real-use audit led to the Weekly Rhythm MVP implemented in merged PR #79. Real-use validation should continue on the deployed product, especially whether weekly focus and the Saturday–Friday horizon reduce artificial due dates.
 
 The strongest signal is a gap between work with a genuinely meaningful date and work that should remain visible during the week but can happen flexibly. Arbitrary dates can become hiding places when items are repeatedly rescheduled.
 
@@ -179,12 +183,33 @@ The initial experience should be a phone-first **This Week** view with simple pr
 
 See [`weekly-rhythm.md`](weekly-rhythm.md) for the implementation-ready product specification and [`usage-audit-2026-10.md`](usage-audit-2026-10.md) for the evidence behind it.
 
-If Weekly Rhythm proves useful in real use:
+The Weekly Rhythm domain is already exposed through Personal Context, and
+Weekly Review already includes Rhythm progress/focus. Home now shows dated work
+through Friday of the current weekly period (PR #83). The next product decision
+is whether additional **native Calendar context** is useful on Home or in a
+simpler Upcoming view; issue #72 owns that assessment.
 
-1. Home can surface a compact weekly horizon;
-2. Agenda can be simplified, repurposed, or removed if Rhythm plus the specialist Calendar already covers its value;
-3. Weekly Review can include Rhythm target/progress and carry-forward context;
-4. the Personal Context Layer can add a dedicated Rhythm domain for later deterministic or AI consumers.
+## Next technical candidate — deterministic retrieval (Phases 1–3)
+
+The existing Context Inspector exposes bounded current-state snapshots, not an
+on-demand search across all eligible retained history. The proposed next
+technical slice, detailed in [`context-retrieval-memory.md`](context-retrieval-memory.md),
+would deliver:
+
+1. **Retrieval documents** from the complete eligible PCC archive with domain,
+   canonical source IDs, dates and metadata;
+2. **Authenticated lexical/exact retrieval** with rankings, reasons and source
+   provenance, including old Reviews and Library entries outside the default
+   bounded context;
+3. **Question-driven Resolved Context Inspector** showing selected current
+   state, retrieved records, why they were included, and the final budgeted
+   context bundle.
+
+This is intentionally **not** an LLM chat feature. It establishes and tests
+retrieval quality first; a provider-neutral model-based Context Planner is a
+later phase if the deterministic resolver proves useful. Keychain stays
+excluded. The decision to start this slice should be made after confirming
+current real-use priorities.
 
 ## AI direction — experiment, not committed product slice
 
@@ -341,7 +366,11 @@ These are examples, not commitments.
 
 ### Today/Home horizon
 
-A focused near-term view for genuinely dated work may still be useful, likely from Home rather than All Spaces. It should not pressure uncertain work to acquire invented dates.
+**Delivered (PR #83).** Home's compact near-term list now includes overdue
+work, due-today items and upcoming dated Tasks/Project Actions through Friday
+of the current Saturday–Friday week. It does not pressure flexible work into
+invented dates. Calendar events/commitments on Home are a separate product
+decision under issue #72.
 
 ### Food follow-ups
 
@@ -378,13 +407,13 @@ The delivered lightweight model includes:
 
 It intentionally does not require issue-by-issue catalogue completeness, variant-cover cataloguing, or publication metadata.
 
-Photo-assisted book identification remains tracked in issue #33. Metadata lookup, highlights, streaming availability, and automatic catalog imports should still wait for observed need.
+Cover-assisted book identification remains a deferred reliability/performance follow-up in open issue #77. Metadata lookup beyond that experiment, highlights, streaming availability, and automatic catalog imports should still wait for observed need.
 
 See [`book-library.md`](book-library.md).
 
 ### Weekly Review Web Push
 
-The real-device observation in issue #21 confirmed that browser-side scheduling alone does not deliver while the PWA is closed. Issue #74 implements the deliberately narrow follow-up: one server-driven reminder each local morning from Saturday through Friday while the current Weekly Review remains unsubmitted.
+The real-device observation in issue #21 confirmed that browser-side scheduling alone does not deliver while the PWA is closed. The narrow server-driven Web Push follow-up shipped in PR #75 (with proxy access corrected in PR #78): an hourly worker checks for a due Weekly Review and sends at most one reminder per local day from Saturday through Friday while it remains unsubmitted.
 
 This does not open a generic notifications roadmap. Broader task/project notifications remain out of scope unless real usage creates a specific need.
 
@@ -394,15 +423,25 @@ Issue #72 now owns the Agenda/Google Calendar product decision, including whethe
 
 ### Music listening archive
 
-**New user-validated tracking direction; ingestion foundation proposed in PR #85 (not yet deployed).**
+**Status: delivered and deployed; scheduled-worker smoke test passed on Raspberry Pi (20 October 2026).**
 
-The user already has an exported multi-year Spotify listening history and a static personal replay archive. Rather than make a new music player, preserve timestamped individual plays so the archive can grow and a Music space can expose personally meaningful musical eras.
+The Music space preserves timestamped Spotify listening history as a private personal time capsule; it is not a new streaming player.
 
-- **Foundation (PR #85):** private, per-user listening-event tables, one-time Spotify history import, Spotify Premium OAuth, hourly recent-play ingestion, and Music connection/status page.
-- **Exploration (issue #86):** monthly/yearly Wrapped-style summaries, artist phases, long-dormant rediscoveries, and optional Weekly Review context; note which listening-time totals are incomplete because API plays lack duration.
-- **Enrichment and automation (issue #87):** cached third-party genre tags and idempotent append-only updates to the user's existing Spotify playlist once the collector proves reliable.
+- **Foundation (PR #85):** user-scoped historical import, OAuth, encrypted refresh credentials, recent-play ingestion, and a dedicated worker.
+- **Insights (issue #86; PR #90 with later refinements):** month/year/all-time listening summaries, artist rankings, rediscovery, genre coverage, and time-zone-aware views.
+- **Enrichment and archive (issue #87; restored in PR #92):** bounded Last.fm genre caching and opt-in append-only playlist updates once songs qualify.
+- **Production fixes (PRs #95–96):** let the authenticated worker pass the session proxy, isolate polling stages, log outcomes, and skip unrecognized Last.fm songs without stopping the tagging batch.
 
-Keep the raw Spotify export out of Git, minimize retained metadata, and let music statistics remain optional: the application must remain useful when Spotify is disconnected. Do not build AI-derived personal mood claims from genres.
+A live automatic poll after restarting the worker imported new plays and processed
+12 genre candidates with **zero stage failures**. This validates the startup
+path; consecutive hourly invocations were not separately observed at the time
+of documentation. Playlist reconciliation returned zero additions, so an
+actual qualifying-track append remains unverified. The user opted to keep the
+12-tracks-per-hour backfill instead of prioritizing bulk enrichment.
+
+**No additional Music development is selected now.** Keep the raw Spotify
+export out of Git, minimize retained metadata, and keep the rest of PCC useful
+if Spotify is disconnected. Genres are not personal mood inferences.
 
 See [`spotify-music.md`](spotify-music.md).
 
@@ -423,4 +462,4 @@ See [`spotify-music.md`](spotify-music.md).
 - Keychain secrets are never part of AI/context paths.
 - Features should be selected from observed friction or value, not because they are common in planning apps.
 
-The current selected next step is therefore simple: **make the existing product easier to navigate and scan first; then make its information coherently accessible for cross-space context before deciding what intelligence, if any, should sit on top of it.**
+The current direction is: **keep real-use feedback on Weekly Rhythm, settle the Agenda/Calendar role only when necessary, and prefer deterministic full-history retrieval (Phases 1–3) as the next technical build before introducing an LLM.** Projects UX (#73) and cover recognition (#77) remain targeted, non-blocking follow-ups.

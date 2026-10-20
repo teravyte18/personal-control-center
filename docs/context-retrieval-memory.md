@@ -2,7 +2,7 @@
 
 ## Status
 
-**Phase 1 retrieval-document projection implemented in `src/domain/retrieval-documents.ts` (pending PR review and merge).** Phases 2 (authenticated retrieval/search) and 3 (question-driven Resolved Context Inspector) remain unimplemented.
+**Phase 1 retrieval-document projection and Phase 2 authenticated deterministic search are implemented in stacked PRs (pending review and merge).** Phase 3 (question-driven Resolved Context Inspector) remains unimplemented. Both implemented phases require no model, embeddings, index or extra database tables.
 
 The existing Personal Context Layer is a useful privacy and representation boundary, but it is not intended to be the final retrieval system for a Personal Advisor.
 
@@ -417,21 +417,26 @@ It returns `RetrievalDocument[]` without touching network, database or LLM servi
 - The returned array is deterministically ordered; user-scoped derived IDs incorporate the authenticated user ID supplied by the eventual Phase 2 caller. The builder itself **does not authenticate** any caller.
 - Unit tests cover old and archived records, multiple actions, exact source provenance, structured-record isolation, deterministic projection and disappearing/deleted sources.
 
-**Not yet available in the app:** search UI, retrieval endpoint, relevance ranking, question-to-domain planning or final context budget. Phase 2 should load the authenticated user's canonical snapshot, call this function on demand, then rank/filter the resulting corpus. Indexing/persistence/embeddings should remain optional performance improvements after correctness is tested.
+**Phase 1 has no API/UI of its own:** Phase 2 loads the authenticated user's canonical snapshot and searches the projected documents on demand. Indexing/persistence/embeddings remain optional performance improvements after correctness is tested.
 
 ### Phase 2 — deterministic search API
 
-Add an authenticated internal retrieval endpoint/service with:
+**Implemented:** `GET /api/personal-context/search`. The endpoint requires a PCC session, resolves the user identity server-side, loads only that user's canonical `PersonalDataSnapshot`, projects the Phase 1 retrieval documents, then performs pure deterministic search. It cannot query a different account or Keychain. Responses are `private, no-store`; the API does not change any data.
 
-- query;
-- domains;
-- optional date range;
-- top-K;
-- exact/lexical scoring;
-- deterministic current-state boosts;
-- returned score/reason/provenance.
+Parameters:
 
-Keychain remains absent by construction.
+- `q` (required, 1–240 characters, 1–16 meaningful terms after basic English/Portuguese stopwords);
+- `domains` (optional comma-separated subset of `reviews,library,projects,tasks,thoughts,notes`; defaults to all);
+- `from` and `to` (optional **inclusive** `YYYY-MM-DD` range on the record's **event/creation date**, not its last edit date);
+- `limit` (optional, 1–25, default 10).
+
+Invalid/duplicated/unknown parameters return HTTP 400, unauthenticated requests return 401, and unexpected infrastructure failures return a generic 503. The endpoint **does not accept `userId`**, raw SQL, arbitrary domain names or model-supplied permissions.
+
+Result shape: `{ query, totalMatches, results }`. Each result contains its stable document ID, source domain and canonical `sourceId` (and optional `sourceSubId` for project actions), source kind, title, dates, metadata, a **bounded snippet**, numeric relevance score and an ordered list of human-readable ranking reasons. Entire source text and arbitrary raw serialized Notes are not returned by the search API. `totalMatches` counts matches before the `limit` is applied.
+
+Ranking is intentionally simple and inspectable: Unicode-normalized exact title / title terms / phrase and body term matches are primary; active status and updated-within-90-days are small tie-breaker boosts. Stopwords are removed only from the *query*, never from the canonical text. No vector search or claim of semantic understanding yet. Ties are ordered by stable document ID. Tests exercise complete old histories, provenance, multi-account isolation, archived records, date and domain filters, malformed input, rank order and bounded output.
+
+Phase 3 can call the same pure search helper and then resolve selected canonical document IDs into a **separately bounded** final context bundle, combining current-state providers with historical matches. It must not treat search snippets as complete source text.
 
 ### Phase 3 — Resolved Context Inspector
 
@@ -492,12 +497,11 @@ Start with explicit or user-confirmed memory rather than fully automatic promoti
 
 ## What should be built next
 
-The next context/Advisor engineering slice should be **Phases 1–3**:
+Phases **1 and 2** now have implementations in stacked PRs. The next engineering slice is **Phase 3**:
 
-1. retrieval-document projection over the full eligible PCC archive;
-2. deterministic lexical/exact search with provenance;
-3. a question-driven Resolved Context Inspector.
+1. add a question-driven mode to the existing Context Inspector;
+2. inspect the ranked Phase 2 matches, relevance reasons and canonical source IDs;
+3. combine selected current-state records and historical matches, deduplicate and enforce the **final** output/token budget;
+4. compare results against representative older Reviews/Library entries to identify semantic retrieval misses.
 
-This slice is valuable without any LLM provider, gives a testable answer to the “buried Review / old Library item” problem, and creates the substrate required by both a future local model and a hosted model.
-
-The Context Planner should be the first LLM-specific step after that substrate works.
+The Context Planner should be the first LLM-specific step *after* the resolved context can be inspected.

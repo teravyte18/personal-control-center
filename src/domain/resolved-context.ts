@@ -261,12 +261,16 @@ export function resolvePersonalContext(
   const search = searchRetrievalDocuments(documents, userId, options.search, now);
   const byId = new Map(documents.map((doc) => [doc.id, doc]));
   const matched = new Map(search.results.map((hit) => [hit.id, hit]));
-  const current = currentCandidates(snapshot, documents, options, now).map((candidate) => {
-    const hit = matched.get(candidate.id);
-    return hit
-      ? { ...candidate, score: hit.score, reasons: [...candidate.reasons, ...hit.reasons] }
-      : candidate;
-  });
+  const current = currentCandidates(snapshot, documents, options, now)
+    .map((candidate) => {
+      const hit = matched.get(candidate.id);
+      return hit
+        ? { ...candidate, score: hit.score, reasons: [...candidate.reasons, ...hit.reasons] }
+        : candidate;
+    })
+    // A current item also matching the question should precede unrelated
+    // current state. Keep stable ordering among equally ranked candidates.
+    .sort((a, b) => (b.score ?? -1) - (a.score ?? -1));
   const currentIds = new Set(current.map((candidate) => candidate.id));
   const history = search.results.flatMap((hit): Candidate[] => {
     if (currentIds.has(hit.id)) return [];

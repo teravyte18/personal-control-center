@@ -121,8 +121,6 @@ export function SpotifySettings() {
               <p className="mt-1 text-amber-700">Hourly collection is disabled: PCC_SPOTIFY_WORKER_TOKEN is not configured in the app.</p>
             ) : !status.lastAutomatedPollAt ? (
               <p className="mt-1 text-amber-700">No authorized hourly worker request recorded. Check the spotify-poll-worker container and its logs.</p>
-            ) : Date.now() - new Date(status.lastAutomatedPollAt).getTime() > 2.5 * 60 * 60 * 1000 ? (
-              <p className="mt-1 text-amber-700">The last scheduled request is overdue. Check the spotify-poll-worker logs.</p>
             ) : null}
             <p className="mt-1">Last collection includes manual checks; the scheduled timestamp above is tracked separately.</p>
           </div>

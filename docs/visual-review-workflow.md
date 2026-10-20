@@ -4,10 +4,10 @@
 
 Use this workflow for UI changes, alongside AGENTS.md and CONTRIBUTING.md. Scale the scope to the user job rather than applying a generic restyle.
 
-1. **Describe one user job and freeze a small scope.** For example, �Open a selected action from This week and return to the same week.� Record before/after behavior and anything requiring a product choice.
+1. **Describe one user job and freeze a small scope.** For example, “Open a selected action from This week and return to the same week.” Record before/after behavior and anything requiring a product choice.
 2. **Capture before touching code.** Use repeatable desktop and phone viewports and the relevant normal, expanded, empty and long-title states. Use fictional representative records in development. The live screenshots in this report should not enter the public repository, issues or PRs.
 3. **Write a short design contract.** Specify reading order, primary/secondary actions, information that must remain visible, source ownership, semantic colour meaning and expected behavior at 320 pixels. Reuse existing components and theme tokens.
-4. **Review the proposed screen before broad implementation.** A small visual comparison or focused mock is enough for hierarchy changes. Do not ask an agent to �make it modern� across the whole app. For product changes, agree on the job and ownership first.
+4. **Review the proposed screen before broad implementation.** A small visual comparison or focused mock is enough for hierarchy changes. Do not ask an agent to “make it modern” across the whole app. For product changes, agree on the job and ownership first.
 5. **Implement one independently reviewable slice.** Preserve canonical domain actions, authentication boundaries and current integrations. Keep the existing no-autonomous-write constraints. Avoid a new component library merely for a cosmetic pass.
 6. **Inspect the rendered result at the same states and sizes.** Put before and after side by side. Test full labels, long titles, nonzero and empty data, keyboard focus, source links, browser Back, dock clearance and the optional-field expansion. Include at least one light and one dark theme on layout-affecting work; run contrast/semantic-state checks across the full theme set when tokens change.
 7. **Run meaningful repository checks.** Follow AGENTS.md for the change's lint, tests, build and Compose validation. Browser screenshots complement those checks; they do not replace functional tests. Avoid tests that merely repeat styling internals.

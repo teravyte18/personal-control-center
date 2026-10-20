@@ -1,6 +1,6 @@
-# Personal Control Center � Live UI/UX Audit
+# Personal Control Center — Live UI/UX Audit
 
-20 October 2026 � Public-safe findings � Recommendations pending review
+20 October 2026 · Public-safe findings · Recommendations pending review
 
 ## Assessment
 
@@ -12,7 +12,7 @@ The recommended direction is a small sequence of changes: make navigation and so
 
 ## Scope and evidence
 
-The live audit used the existing signed-in in-app browser. The private audit captured 39 accepted screenshots with matching DOM snapshots. The images, DOM dumps and production record values are intentionally excluded from this public repository. Evidence numbers refer to the public-safe [capture matrix](ui-ux-audit-2026-10-evidence.md), not files available in Git. Desktop was checked at 1440 � 1000 CSS pixels; phone at 390 � 844; narrow reflow at 320 � 740. These are browser viewport checks, not tests on a physical phone. Browser sizing was restored afterward.
+The live audit used the existing signed-in in-app browser. The private audit captured 39 accepted screenshots with matching DOM snapshots. The images, DOM dumps and production record values are intentionally excluded from this public repository. Evidence numbers refer to the public-safe [capture matrix](ui-ux-audit-2026-10-evidence.md), not files available in Git. Desktop was checked at 1440 × 1000 CSS pixels; phone at 390 × 844; narrow reflow at 320 × 740. These are browser viewport checks, not tests on a physical phone. Browser sizing was restored afterward.
 
 Reviewed repository sources: AGENTS.md, docs/README.md, interface-rules.md, ux-refresh-2026.md, product-spec.md, roadmap.md, weekly-rhythm.md and spotify-music.md. Documentation establishes intent; the screenshots establish the observed interface. Current default-theme screens are the visual evidence. Alternate themes were not activated.
 
@@ -36,115 +36,115 @@ The proposals preserve the existing identity because the brief explicitly reques
 - **Library's browsing hierarchy.** Media shelves, search, view selection and covers make the stored objects recognisable. Series defaults to Watching and exposes the saved resume position.
 - **Expenses' filter-to-result relationship.** Selecting a category changes the summary, breakdown title, description list and trend together. Its aligned rows are a better density reference than a separate bordered card for each event.
 - **Music's working foundations.** Artist rankings were numerically ordered in the inspected data; expansion worked. The year chart drilled into a selected month correctly. Unknown playback durations and incomplete genre coverage are acknowledged. Random rediscovery returned a song and Spotify link without starting playback.
-- **Some accessibility foundations.** Inputs generally have names; navigation links have accessible labels; Music buttons expose pressed state. Tab reached Archive with a visible outline, and Enter activated it. The phone year chart wraps into two rows of six months; the sampled month target was about 45 � 126 CSS pixels. It is not a tiny-target defect.
+- **Some accessibility foundations.** Inputs generally have names; navigation links have accessible labels; Music buttons expose pressed state. Tab reached Archive with a visible outline, and Enter activated it. The phone year chart wraps into two rows of six months; the sampled month target was about 45 × 126 CSS pixels. It is not a tiny-target defect.
 
 ## Findings: navigation and shared shell
 
-### N1 � The phone's gateway to unpinned spaces is too small and visually ambiguous
+### N1 — The phone's gateway to unpinned spaces is too small and visually ambiguous
 
-**Observed � High impact � Interface/accessibility � Evidence 23, 26, 35.** The Open all spaces link is a small unlabelled chevron beneath Capture. Its measured link box at 390 pixels is 32 � 12 CSS pixels, versus 52 � 52 for Capture and about 69 � 48 for ordinary dock destinations. It looks like a drag handle; a tap can be confused with the nearby Capture action. Music, Expenses and Library currently depend on that route on phone.
+**Observed · High impact · Interface/accessibility · Evidence 23, 26, 35.** The Open all spaces link is a small unlabelled chevron beneath Capture. Its measured link box at 390 pixels is 32 × 12 CSS pixels, versus 52 × 52 for Capture and about 69 × 48 for ordinary dock destinations. It looks like a drag handle; a tap can be confused with the nearby Capture action. Music, Expenses and Library currently depend on that route on phone.
 
-**Change:** retain Capture in the centre, but make Spaces an explicitly labelled control with a comfortable hit area. First try a compact �Spaces� label and chevron in a distinct 44-pixel-high target outside Capture's hit area. If that makes the dock too tall, use a visible small Spaces button above the dock rather than shrinking its target. The 44-pixel goal is a comfort recommendation; WCAG's minimum target criterion uses 24 pixels with exceptions. The measured 12-pixel height is a confirmed concern; spacing and any extended hit area need formal verification. [W3C target-size guidance](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html)
+**Change:** retain Capture in the centre, but make Spaces an explicitly labelled control with a comfortable hit area. First try a compact “Spaces” label and chevron in a distinct 44-pixel-high target outside Capture's hit area. If that makes the dock too tall, use a visible small Spaces button above the dock rather than shrinking its target. The 44-pixel goal is a comfort recommendation; WCAG's minimum target criterion uses 24 pixels with exceptions. The measured 12-pixel height is a confirmed concern; spacing and any extended hit area need formal verification. [W3C target-size guidance](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html)
 
 **Trade-off:** a little more navigation space, or a small additional visible button. This is justified because Spaces is the complete launcher, not an occasional secondary shortcut. Preserve the existing themes and central artwork.
 
-### N2 � The launcher loses destination names at narrow widths
+### N2 — The launcher loses destination names at narrow widths
 
-**Observed � High impact at 320 pixels � Interface � Evidence 24, 25, 35.** At 320 pixels, Projects, Rhythm, Agenda, Thoughts, Expenses and Markets truncate to short fragments. Accomplishments is already truncated at 390 pixels. The layout technically fits, but recognising destinations requires guessing from an icon or a fragment.
+**Observed · High impact at 320 pixels · Interface · Evidence 24, 25, 35.** At 320 pixels, Projects, Rhythm, Agenda, Thoughts, Expenses and Markets truncate to short fragments. Accomplishments is already truncated at 390 pixels. The layout technically fits, but recognising destinations requires guessing from an icon or a fragment.
 
 **Change:** allow two-line names and use one column below the width at which the longest normal labels no longer fit. Keep two columns at wider phone widths. Make the full name available visually, rather than relying on a tooltip or accessible name alone. Keep comfortable row height and reduce the icon-to-label gap before reducing font size.
 
 **Trade-off:** more vertical scrolling on very narrow screens in exchange for reliable navigation. No new menu or search feature is necessary. The 320-pixel test shows that avoiding horizontal overflow alone is an insufficient acceptance check. [W3C reflow guidance](https://www.w3.org/WAI/WCAG22/Understanding/reflow.html)
 
-### N3 � The information architecture is broadly sound; labels and lower-priority entries need cleanup
+### N3 — The information architecture is broadly sound; labels and lower-priority entries need cleanup
 
-**Observed � Medium impact � Interface/product boundary � Evidence 01, 24, 25.** Plan, Reference and Tracking form understandable groups. Account and navigation preferences are correctly below working spaces. However, �Rhythm� in navigation opens �This week�; Home also has �This week�; the Calendar link says �Agenda / Google Calendar� but opens PCC Agenda. The Later section contains Settings while real account and navigation settings already exist.
+**Observed · Medium impact · Interface/product boundary · Evidence 01, 24, 25.** Plan, Reference and Tracking form understandable groups. Account and navigation preferences are correctly below working spaces. However, “Rhythm” in navigation opens “This week”; Home also has “This week”; the Calendar link says “Agenda / Google Calendar” but opens PCC Agenda. The Later section contains Settings while real account and navigation settings already exist.
 
-**Change:** keep the groups and independent pins. Use �This week� as the navigation name, with �Rhythm� retained as the recurring-intentions section or product terminology. Name the Agenda link for its actual destination. Remove the nonfunctional Settings placeholder or rename it to the specific future capability it represents.
+**Change:** keep the groups and independent pins. Use “This week” as the navigation name, with “Rhythm” retained as the recurring-intentions section or product terminology. Name the Agenda link for its actual destination. Remove the nonfunctional Settings placeholder or rename it to the specific future capability it represents.
 
 **Trade-off:** a small terminology adjustment for an existing user. Use the same chosen labels in navigation, page titles and Home links. Visible, stable labels reduce dependence on recall. [NN/g recognition guidance](https://www.nngroup.com/articles/recognition-and-recall/)
 
 ## Findings: Music
 
-### M1 � The primary listening content is buried under repeated controls and secondary content
+### M1 — The primary listening content is buried under repeated controls and secondary content
 
-**Observed � High impact � Interface � Evidence 02, 04, 26, 36.** The phone order is title, rediscovery panel, Timeline/Archive switch, Month/Year/All time switch, duplicated period heading/input, four summary tiles, duration caveat, Genres, songs, artists, then phases. At 390 � 844 in the captured layout, Most played songs starts about 1,008 pixels from the top and Top artists at 1,455. These are layout measurements, not performance timings or fixed positions for every dataset. The user cannot glance at their leading artists in the initial viewport.
+**Observed · High impact · Interface · Evidence 02, 04, 26, 36.** The phone order is title, rediscovery panel, Timeline/Archive switch, Month/Year/All time switch, duplicated period heading/input, four summary tiles, duration caveat, Genres, songs, artists, then phases. At 390 × 844 in the captured layout, Most played songs starts about 1,008 pixels from the top and Top artists at 1,455. These are layout measurements, not performance timings or fixed positions for every dataset. The user cannot glance at their leading artists in the initial viewport.
 
 **Change:** place page mode and period first, then a compact two-by-two summary with light separators rather than four independently elevated cards. Put Songs/Artists directly below it, using a shared view switch on phone and aligned lists on desktop. Move rediscovery below those lists or expose it as a modest header action whose result opens only when requested. Consolidate the period heading and picker into one readable control while keeping previous/next buttons.
 
 **Trade-off:** discovery is less prominent before it is requested; ranked listening history becomes faster to scan. Preserve rediscovery as a distinctive feature rather than deleting it. Avoid a new hero, cover collage or decorative dashboard.
 
-### M2 � Sparse genre data receives more authority and space than its coverage supports
+### M2 — Sparse genre data receives more authority and space than its coverage supports
 
-**Observed � Medium-to-high impact � Data presentation policy + interface � Evidence 02, 04, 05, 26, 27.** Tagging coverage was sparse in the inspected periods; exact personal listening counts and percentages are withheld from this public version. The chart is visually substantial and the leading bar fills its available track. The caveat exists, but the title �Genres� still invites a reading of the whole listening profile. The archive page separately reports cache coverage by tracks; that is a different denominator.
+**Observed · Medium-to-high impact · Data presentation policy + interface · Evidence 02, 04, 05, 26, 27.** Tagging coverage was sparse in the inspected periods; exact personal listening counts and percentages are withheld from this public version. The chart is visually substantial and the leading bar fills its available track. The caveat exists, but the title “Genres” still invites a reading of the whole listening profile. The archive page separately reports cache coverage by tracks; that is a different denominator.
 
-**Change:** label the section �Genres among tagged plays�, keep the play-coverage percentage beside it, and give its bars an explicit Plays unit. During sparse coverage, start with a compact summary and an expand control. Explain the per-track cache count separately in setup; do not present it as equivalent to percentage of plays with genres. Keep untagged plays visible as coverage context if using a composition chart.
+**Change:** label the section “Genres among tagged plays”, keep the play-coverage percentage beside it, and give its bars an explicit Plays unit. During sparse coverage, start with a compact summary and an expand control. Explain the per-track cache count separately in setup; do not present it as equivalent to percentage of plays with genres. Keep untagged plays visible as coverage context if using a composition chart.
 
 **Trade-off:** a quieter chart until enrichment becomes more representative. Do not increase worker throughput merely to improve appearance; the current repository explicitly retains bounded background enrichment. A low-coverage graphic can still be available on request.
 
-### M3 � �Archive� promises browsing but opens automation settings
+### M3 — “Archive” promises browsing but opens automation settings
 
-**Observed � Medium impact � Product vocabulary/interface � Evidence 06, 29.** Archive opens a playlist URL, a threshold, an automatic-add checkbox, Save, Check playlist now and genre-enrichment controls. There is no browsable archive list in this tab. Rediscovery is described as drawing from a �5+ plays archive�; the feature documentation says its fixed five-play threshold is independent from the configurable playlist threshold.
+**Observed · Medium impact · Product vocabulary/interface · Evidence 06, 29.** Archive opens a playlist URL, a threshold, an automatic-add checkbox, Save, Check playlist now and genre-enrichment controls. There is no browsable archive list in this tab. Rediscovery is described as drawing from a “5+ plays archive”; the feature documentation says its fixed five-play threshold is independent from the configurable playlist threshold.
 
-**Change:** rename the tab �Playlist setup� or move it into a clearly secondary Music settings panel. Add an �Open playlist in Spotify� link and a concise automation state if the implementation can establish it. Use �From your listening history � 5+ qualifying plays� for random discovery. If a browseable qualifying-song list is desired later, treat it as a separately justified feature, not a relabelled settings form.
+**Change:** rename the tab “Playlist setup” or move it into a clearly secondary Music settings panel. Add an “Open playlist in Spotify” link and a concise automation state if the implementation can establish it. Use “From your listening history · 5+ qualifying plays” for random discovery. If a browseable qualifying-song list is desired later, treat it as a separately justified feature, not a relabelled settings form.
 
 **Trade-off:** less evocative wording, but a more accurate expectation. Display only statuses the application can actually verify. No playlist mutations were exercised in this audit.
 
-### M4 � Historical views need clearer comparison context and small layout refinements
+### M4 — Historical views need clearer comparison context and small layout refinements
 
-**Observed � Medium impact � Interface � Evidence 03�05, 27, 28.** �Artists on the rise� names artists without showing the comparison or size of change. Rediscovery gaps are abbreviated as a large integer followed by �d�. All time uses the same large chart frame with only six annual bars occupying part of the row. Future months in the current-year chart have no records, which should not be read as a measured listening decline. The next-month empty state is informative but still keeps four zero tiles and multiple empty sections.
+**Observed · Medium impact · Interface · Evidence 03–05, 27, 28.** “Artists on the rise” names artists without showing the comparison or size of change. Rediscovery gaps are abbreviated as a large integer followed by “d”. All time uses the same large chart frame with only six annual bars occupying part of the row. Future months in the current-year chart have no records, which should not be read as a measured listening decline. The next-month empty state is informative but still keeps four zero tiles and multiple empty sections.
 
-**Change:** name the comparison (�More plays than the previous month�) and show the two counts or a small delta on expansion. Express long gaps as years/months with an exact duration available secondarily. Size the annual grid to the number of years. Mark the current month/year as partial and future periods as not yet elapsed. For a wholly empty period, keep period navigation and one useful empty state, with a return-to-current-period action; collapse repeated zero panels.
+**Change:** name the comparison (“More plays than the previous month”) and show the two counts or a small delta on expansion. Express long gaps as years/months with an exact duration available secondarily. Size the annual grid to the number of years. Mark the current month/year as partial and future periods as not yet elapsed. For a wholly empty period, keep period navigation and one useful empty state, with a return-to-current-period action; collapse repeated zero panels.
 
 **Trade-off:** some extra dynamic context, justified because it changes how the numbers are interpreted. Do not add permanent explanatory paragraphs. Numeric sorting and the responsive six-column month chart worked in this run and should be preserved.
 
 ## Findings: Weekly Rhythm and Home
 
-### W1 � Weekly focus links discard the exact work item the user selected
+### W1 — Weekly focus links discard the exact work item the user selected
 
-**Observed � High impact � Interaction/routing � Evidence 07, 10, 11, 31, 38.** Clicking a project action from weekly focus opens /projects with the entire project grid. The project is closed and the user must find and open it again before acting. The source action panel then does expose its This week state. Task focus links similarly identify a generic /tasks route; the project handoff was the one directly exercised.
+**Observed · High impact · Interaction/routing · Evidence 07, 10, 11, 31, 38.** Clicking a project action from weekly focus opens /projects with the entire project grid. The project is closed and the user must find and open it again before acting. The source action panel then does expose its This week state. Task focus links similarly identify a generic /tasks route; the project handoff was the one directly exercised.
 
 **Change:** open the owning project and selected action directly, scroll/focus it, and retain a clear return to the weekly view. For tasks, open and focus the selected task. Use stable item references already available in the domain model; a second copy or new planning database is unnecessary. Make the same source-opening behavior reusable by Home and Agenda.
 
 **Trade-off:** routing/state restoration work is greater than a styling change, but it removes a repeated navigation task. Acceptance should include browser Back and an item that is outside the initial viewport or current filter.
 
-### W2 � Home and Rhythm use the same weekly label for different sets of work
+### W2 — Home and Rhythm use the same weekly label for different sets of work
 
-**Observed � High impact � Product integration � Evidence 07, 20, 23, 30, 31.** Home's This week contains dated work and an overdue task. Rhythm also contains undated weekly focus and recurring intentions. An undated focused project action visible in Rhythm is absent from Home. The full-week link is useful, but the compact view does not advertise what it leaves out. This weakens the purpose of choosing flexible work without giving it an artificial date.
+**Observed · High impact · Product integration · Evidence 07, 20, 23, 30, 31.** Home's This week contains dated work and an overdue task. Rhythm also contains undated weekly focus and recurring intentions. An undated focused project action visible in Rhythm is absent from Home. The full-week link is useful, but the compact view does not advertise what it leaves out. This weakens the purpose of choosing flexible work without giving it an artificial date.
 
-**Change:** the smallest honest fix is to call Home's section �Dated work� and link clearly to �This week�. The more useful follow-up is one compact shared weekly summary: dated/overdue work first, then one or two selected undated focus items, plus a quiet recurring-intention summary when it adds value. Use the same Saturday�Friday boundaries. Avoid a second planning dashboard or four new summary cards.
+**Change:** the smallest honest fix is to call Home's section “Dated work” and link clearly to “This week”. The more useful follow-up is one compact shared weekly summary: dated/overdue work first, then one or two selected undated focus items, plus a quiet recurring-intention summary when it adds value. Use the same Saturday–Friday boundaries. Avoid a second planning dashboard or four new summary cards.
 
 **Trade-off:** adding flexible focus increases Home's content and requires an explicit selection limit. Decide that limit before implementation. Do not imply Home is a complete weekly plan unless it is.
 
-### W3 � Rhythm's screen order favours counters over planning; useful source metadata is lost
+### W3 — Rhythm's screen order favours counters over planning; useful source metadata is lost
 
-**Observed � High impact on phone � Interface with a small product decision � Evidence 07�09, 30, 31, 37.** On phone, recurring Rhythm starts around y=149, Weekly focus around y=579, Fixed commitments around y=843 and Dated work around y=981. Each intention has an outer grouping card, its own card, progress, a divider and always-visible Edit/Pause controls. The same project action appears in focus and dated work, with different metadata. A task flagged overdue on Home loses that date/status in weekly focus. An elapsed commitment remains in Fixed commitments without a past/upcoming distinction.
+**Observed · High impact on phone · Interface with a small product decision · Evidence 07–09, 30, 31, 37.** On phone, recurring Rhythm starts around y=149, Weekly focus around y=579, Fixed commitments around y=843 and Dated work around y=981. Each intention has an outer grouping card, its own card, progress, a divider and always-visible Edit/Pause controls. The same project action appears in focus and dated work, with different metadata. A task flagged overdue on Home loses that date/status in weekly focus. An elapsed commitment remains in Fixed commitments without a past/upcoming distinction.
 
 **Change:** put a compact upcoming/dated constraint summary near the week heading, make selected work the main working list, and place recurring intentions in compact rows afterward. Keep dates and overdue meaning when an item appears in focus. A focused dated item can appear once in the working list with both properties, while remaining canonical in Tasks/Projects. Retain elapsed commitments under a collapsible Earlier this week section when they help reflection. Put Edit/Pause behind a small per-row menu, keeping Log done immediately available. Show only title and target by default in the new-rhythm form; reveal optional details progressively.
 
 **Trade-off:** logging recurring intentions may move lower; keep a direct section shortcut if repeated use shows that logging is the main job. Do not replace weekly counts with daily streaks or invent a scheduling grid. The 0/3 state is a progress fact, not evidence that the user has failed or abandoned the feature.
 
-### W4 � Calendar context lacks visible coverage/freshness at the planning decision
+### W4 — Calendar context lacks visible coverage/freshness at the planning decision
 
-**Observed � Medium impact � Integration trust/interface � Evidence 07, 31, 12.** Rhythm shows Fixed commitments, but no source label, last-read time, selected-calendar coverage or explicit limitation is visible beside that section. Agenda shows calendar source names, but the user must leave the planning view to inspect them. This audit cannot establish whether all relevant calendar sources were loaded.
+**Observed · Medium impact · Integration trust/interface · Evidence 07, 31, 12.** Rhythm shows Fixed commitments, but no source label, last-read time, selected-calendar coverage or explicit limitation is visible beside that section. Agenda shows calendar source names, but the user must leave the planning view to inspect them. This audit cannot establish whether all relevant calendar sources were loaded.
 
-**Change:** show a quiet source/freshness line with an expandable coverage explanation, for example �Selected Google calendars � checked [time]�. Distinguish �No upcoming events from selected sources� from �No commitments�. Keep PCC-projected dated work out of external commitments to avoid double counting. Link to connection details only when needed.
+**Change:** show a quiet source/freshness line with an expandable coverage explanation, for example “Selected Google calendars · checked [time]”. Distinguish “No upcoming events from selected sources” from “No commitments”. Keep PCC-projected dated work out of external commitments to avoid double counting. Link to connection details only when needed.
 
 **Trade-off:** one small state line and source selection work if that is not already supported. Never infer free time or capacity from an incomplete calendar feed. The exact fields depend on the existing integration; do not invent a live completeness guarantee.
 
 ## Findings: Agenda
 
-### A1 � Agenda's unique value is future commitments, not a second editor for PCC work
+### A1 — Agenda's unique value is future commitments, not a second editor for PCC work
 
-**Observed � High product impact � Product decision � Evidence 12, 13, 32.** Agenda mixes PCC-projected tasks/actions, external timed events and holiday/observance entries in a feed extending several months ahead. There is no visible range/source filter in the inspected view. A PCC project action repeats its source in multiple lines and offers only Open in Google Calendar. On phone, two dated work cards consume almost the whole viewport before the next group. New event opens an inline form, but its destination calendar is not explained in that form.
+**Observed · High product impact · Product decision · Evidence 12, 13, 32.** Agenda mixes PCC-projected tasks/actions, external timed events and holiday/observance entries in a feed extending several months ahead. There is no visible range/source filter in the inspected view. A PCC project action repeats its source in multiple lines and offers only Open in Google Calendar. On phone, two dated work cards consume almost the whole viewport before the next group. New event opens an inline form, but its destination calendar is not explained in that form.
 
-**Recommendation:** do not independently redesign Agenda. First move the relevant upcoming commitments and source controls into This week, and make PCC-owned records open their PCC sources. Preserve future browsing through a compact �Upcoming� mode or secondary link, because current-week Rhythm alone does not replace Agenda's longer horizon. Use Google Calendar for detailed calendar browsing and event editing. If event creation stays in PCC, explicitly name its destination and ownership before Create event.
+**Recommendation:** do not independently redesign Agenda. First move the relevant upcoming commitments and source controls into This week, and make PCC-owned records open their PCC sources. Preserve future browsing through a compact “Upcoming” mode or secondary link, because current-week Rhythm alone does not replace Agenda's longer horizon. Use Google Calendar for detailed calendar browsing and event editing. If event creation stays in PCC, explicitly name its destination and ownership before Create event.
 
 **Trade-off:** retiring a top-level destination removes one familiar entry point and may make distant dates harder to find. Keep the current route as a redirect/secondary Upcoming view until the replacement demonstrably covers both next-week and farther-future needs. Validate issue #72's product decision with actual use before removing the page. This is a recommendation, not evidence that the user never needs Agenda.
 
-### A2 � Agenda's event density obscures the useful content
+### A2 — Agenda's event density obscures the useful content
 
-**Observed � Medium impact � Interface � Evidence 12, 32.** Long repeated phrases such as the PCC source description, full calendar identity, imported descriptions and a separate action button produce tall cards for small records. Source information is useful; repeating it is not.
+**Observed · Medium impact · Interface · Evidence 12, 32.** Long repeated phrases such as the PCC source description, full calendar identity, imported descriptions and a separate action button produce tall cards for small records. Source information is useful; repeating it is not.
 
 **Change:** group by day and use rows: time or date type, title, one compact source/owner line, then an overflow action. Expand description and secondary metadata on demand. Keep real all-day events distinct from PCC date-only check-ins; an all-day Calendar projection does not mean the task occupies the entire day. Offer source visibility controls without silently hiding potentially important holidays.
 
@@ -152,23 +152,23 @@ The proposals preserve the existing identity because the brief explicitly reques
 
 ## Internal references and secondary findings
 
-### R1 � Preserve Library's browsing strengths; reduce editing ceremony only when useful
+### R1 — Preserve Library's browsing strengths; reduce editing ceremony only when useful
 
-**Observed � Lower priority � Evidence 17�19, 33.** The cover grid and separated shelves work. Series' resume state is especially purposeful. Opening a book immediately opens the complete edit form, including cover management, metadata, shelf placement, multiple rating dimensions and reflection. This is heavier than a simple �where was I?� or �what did I think?� visit.
+**Observed · Lower priority · Evidence 17–19, 33.** The cover grid and separated shelves work. Series' resume state is especially purposeful. Opening a book immediately opens the complete edit form, including cover management, metadata, shelf placement, multiple rating dimensions and reflection. This is heavier than a simple “where was I?” or “what did I think?” visit.
 
 **Direction:** keep the shelf structure and covers. Consider a compact read/detail surface or a collapsed Advanced section only if ordinary usage shows editing friction. A separate read mode adds another transition for frequent editors, so this should not outrank source handoffs or Music. No generic restyle is warranted.
 
-### R2 � Expenses is a useful density reference, with data-coverage caveats
+### R2 — Expenses is a useful density reference, with data-coverage caveats
 
-**Observed � Medium/low priority � Evidence 14�16, 34.** Filtered results are coherent, category rows align amounts, and the chart has a textual breakdown. The missing-recorded-income condition can still produce over-target messaging, and calendar-range averages do not establish a complete recording history. The public regression case should use fictional records and a range containing months with no entries. No production income, spending amounts or recording dates are reproduced here.
+**Observed · Medium/low priority · Evidence 14–16, 34.** Filtered results are coherent, category rows align amounts, and the chart has a textual breakdown. The missing-recorded-income condition can still produce over-target messaging, and calendar-range averages do not establish a complete recording history. The public regression case should use fictional records and a range containing months with no entries. No production income, spending amounts or recording dates are reproduced here.
 
-**Change:** when no income is recorded, keep expense totals but replace over-target judgments with �No income recorded; targets unavailable�. Name an average's denominator (�per calendar month in selected range�) or offer a recording-period view. Do not equate no entries with verified zero real-world spending, and do not impose a reconciliation workflow.
+**Change:** when no income is recorded, keep expense totals but replace over-target judgments with “No income recorded; targets unavailable”. Name an average's denominator (“per calendar month in selected range”) or offer a recording-period view. Do not equate no entries with verified zero real-world spending, and do not impose a reconciliation workflow.
 
 **Trade-off:** fewer budget signals in sparse data. The trade is more honest interpretation, consistent with PCC accepting incomplete manual records.
 
-### R3 � Keep visual consistency work narrow
+### R3 — Keep visual consistency work narrow
 
-**Observed � Lower priority � Evidence 02, 07, 12, 14, 17, 20.** Shared surfaces and semantic overdue/success colours already establish continuity. Width, tab placement, optional-field density and amount of card nesting vary by space. Some variation serves the task: a media shelf should not look like a task list. The inconsistency to remove is repeated framing around simple rows and controls, not every difference in layout.
+**Observed · Lower priority · Evidence 02, 07, 12, 14, 17, 20.** Shared surfaces and semantic overdue/success colours already establish continuity. Width, tab placement, optional-field density and amount of card nesting vary by space. Some variation serves the task: a media shelf should not look like a task list. The inconsistency to remove is repeated framing around simple rows and controls, not every difference in layout.
 
 **Change:** define a small shared set: page header, page-level tabs, period/filter row, compact metric group, list row, expandable detail and empty state. Use existing type and theme tokens. Keep dark filled controls for selected modes and important actions, reducing their simultaneous prominence where a page currently has several competing primary-looking controls.
 
@@ -178,7 +178,7 @@ Confirmed concerns: the 12-pixel-high Spaces link; truncation of important desti
 
 Confirmed strengths: accessible names for the sampled navigation/actions; visible keyboard focus on the Music tab switch; Enter activation; meaningful chart-button labels; target sizes in the sampled responsive month chart; no document horizontal overflow in the measured 320-pixel Spaces view or 390-pixel Music and Rhythm views.
 
-Risks requiring further testing: muted-text contrast on every theme, full keyboard traversal and focus return from panels, screen-reader behavior for repeated Remove/Edit controls and expandable task rows, expanded-state announcements, 200�400% zoom, reduced motion, focus visibility behind the dock, software-keyboard occlusion and real iOS/Android safe areas. The screenshot/DOM checks do not establish WCAG conformance. [W3C target-size guidance](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html) and [reflow guidance](https://www.w3.org/WAI/WCAG22/Understanding/reflow.html) are the relevant acceptance references.
+Risks requiring further testing: muted-text contrast on every theme, full keyboard traversal and focus return from panels, screen-reader behavior for repeated Remove/Edit controls and expandable task rows, expanded-state announcements, 200–400% zoom, reduced motion, focus visibility behind the dock, software-keyboard occlusion and real iOS/Android safe areas. The screenshot/DOM checks do not establish WCAG conformance. [W3C target-size guidance](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html) and [reflow guidance](https://www.w3.org/WAI/WCAG22/Understanding/reflow.html) are the relevant acceptance references.
 
 ## Prioritized improvement backlog
 
@@ -186,29 +186,29 @@ Priority is an audit recommendation, not an existing GitHub issue label. S/M/L a
 
 | Rank | Recommendation | Impact | Effort | Layer | Acceptance check |
 | --- | --- | --- | --- | --- | --- |
-| 1 | N1: Give Spaces a labelled, comfortable target | High | S�M | Interface/accessibility | Reach all unpinned spaces reliably at 320/390; no Capture overlap |
+| 1 | N1: Give Spaces a labelled, comfortable target | High | S–M | Interface/accessibility | Reach all unpinned spaces reliably at 320/390; no Capture overlap |
 | 2 | W1: Open the selected source task/action directly | High | M | Routing/interaction | Rhythm/Home select exact item; Back restores weekly context |
 | 3 | N2: Preserve full launcher destination names | High at narrow widths | S | Responsive layout | No ambiguous label fragments at 320; touch targets maintained |
-| 4 | M1: Put Music rankings before secondary panels | High | M | Interface | At 390�844, expose ranked content in first screen without hiding controls |
+| 4 | M1: Put Music rankings before secondary panels | High | M | Interface | At 390×844, expose ranked content in first screen without hiding controls |
 | 5 | W2: Align Home's weekly summary with Rhythm | High | M | Product integration | Undated selected work stays visible without inventing dates |
 | 6 | W3: Reorder and compact the weekly planning view | High | M | Interface/product | Constraints visible early; focus preserves dates/status; less nested chrome |
-| 7 | W4: Make Calendar coverage/freshness visible | Medium�high | M | Integration trust | Empty selected-source feed never implies verified free time |
-| 8 | A1: Decide Agenda's role and retain future horizon | High, usage-dependent | M�L | Product | Current week, next week and distant commitments all remain reachable |
-| 9 | M2: Match genre prominence to coverage | Medium�high | S�M | Data presentation | Coverage denominator/unit clear beside any chart |
+| 7 | W4: Make Calendar coverage/freshness visible | Medium–high | M | Integration trust | Empty selected-source feed never implies verified free time |
+| 8 | A1: Decide Agenda's role and retain future horizon | High, usage-dependent | M–L | Product | Current week, next week and distant commitments all remain reachable |
+| 9 | M2: Match genre prominence to coverage | Medium–high | S–M | Data presentation | Coverage denominator/unit clear beside any chart |
 | 10 | M3: Clarify playlist setup and discovery terminology | Medium | S | Copy/navigation | Settings tab describes setup; fixed discovery threshold not conflated |
 | 11 | A2: Replace event cards with compact expandable rows | Medium | M | Interface | More meaningful upcoming entries visible; source/details still available |
-| 12 | M4: Improve historical comparisons and empty periods | Medium | S�M | Interface/data context | Comparison baseline, partial periods and return-to-current action clear |
-| 13 | R2: Handle missing recorded income and sparse averages | Medium | S�M | Data presentation | No over-target judgment from absent income; average denominator explicit |
-| 14 | N3/R3: Align terminology and reusable screen patterns | Medium | S�M | Shared system | Same destination names; no dead Settings promise; themes preserved |
+| 12 | M4: Improve historical comparisons and empty periods | Medium | S–M | Interface/data context | Comparison baseline, partial periods and return-to-current action clear |
+| 13 | R2: Handle missing recorded income and sparse averages | Medium | S–M | Data presentation | No over-target judgment from absent income; average denominator explicit |
+| 14 | N3/R3: Align terminology and reusable screen patterns | Medium | S–M | Shared system | Same destination names; no dead Settings promise; themes preserved |
 | 15 | R1: Test lighter Library details before changing them | Lower | M | Product interaction | Common read/resume job improves without adding editor friction |
 
-Recommended first implementation slice: ranks 1�3, then Music hierarchy. Discuss the Home/Rhythm/Agenda product changes before bundling them into that work. Do not hold the straightforward fixes behind the larger Calendar decision.
+Recommended first implementation slice: ranks 1–3, then Music hierarchy. Discuss the Home/Rhythm/Agenda product changes before bundling them into that work. Do not hold the straightforward fixes behind the larger Calendar decision.
 
 ## Detailed design proposals
 
 These are design specifications for discussion, not implemented screens or visually tested mockups. Example labels are fictional. Dimensions below are starting constraints to test against the existing design system, not a request for new typography or a wholesale token replacement.
 
-### Proposal 1 � Music: a compact listening-history view
+### Proposal 1 — Music: a compact listening-history view
 
 **Primary question:** What did I listen to in the selected period, and what is worth revisiting?
 
@@ -218,27 +218,27 @@ These are design specifications for discussion, not implemented screens or visua
 
 **Desktop:** keep Songs and Artists in two columns with matched headers; show a concise top set in each and expand independently. Put rediscovery in a small secondary section rather than a full-width dominant banner. The annual chart should use its full available width according to actual year count. Reserve genre space in proportion to useful coverage.
 
-**Copy examples:** �Known listening time�; �Some plays excluded: duration unavailable�; �Genres among tagged plays � [coverage]%�; �More plays than last month�; �Playlist setup�. Keep the existing unknown-duration distinction. Do not turn sparse tags into a taste profile or mood claim.
+**Copy examples:** “Known listening time”; “Some plays excluded: duration unavailable”; “Genres among tagged plays · [coverage]%”; “More plays than last month”; “Playlist setup”. Keep the existing unknown-duration distinction. Do not turn sparse tags into a taste profile or mood claim.
 
-**Review gate:** first ranked rows visible at 390�844; full names and counts fit at 320; same period governs every section; month/year drill-down and keyboard focus still work; empty periods have one coherent recovery path. Compare against evidence 02, 04, 05, 26�29 and 36.
+**Review gate:** first ranked rows visible at 390×844; full names and counts fit at 320; same period governs every section; month/year drill-down and keyboard focus still work; empty periods have one coherent recovery path. Compare against evidence 02, 04, 05, 26–29 and 36.
 
-### Proposal 2 � This week: one planning surface with compact recurring progress
+### Proposal 2 — This week: one planning surface with compact recurring progress
 
 **Primary question:** What needs room in this week, and which dates constrain it?
 
-**Phone reading order:** This week and the exact Saturday�Friday dates; a compact upcoming-commitment/dated-work summary; Focus work; recurring Rhythm rows; optional Earlier this week; then carry-forward decisions only when they exist. Put Add work beside Focus, making it the natural way to choose existing work. Keep New rhythm secondary to the weekly plan.
+**Phone reading order:** This week and the exact Saturday–Friday dates; a compact upcoming-commitment/dated-work summary; Focus work; recurring Rhythm rows; optional Earlier this week; then carry-forward decisions only when they exist. Put Add work beside Focus, making it the natural way to choose existing work. Keep New rhythm secondary to the weekly plan.
 
-**Working row:** full task/action title, owner, and meaningful date/status. A focused dated item carries a small Focus marker in a single row rather than requiring the user to reconcile two versions. A tap opens the exact canonical source. Removing from focus is a secondary action explicitly named �Remove from this week�, not an ambiguous Remove. Existing source completion remains the authoritative completion path.
+**Working row:** full task/action title, owner, and meaningful date/status. A focused dated item carries a small Focus marker in a single row rather than requiring the user to reconcile two versions. A tap opens the exact canonical source. Removing from focus is a secondary action explicitly named “Remove from this week”, not an ambiguous Remove. Existing source completion remains the authoritative completion path.
 
-**Recurring row:** title, compact 2/3 progress, and �Log done�. Optional time/duration appears only when present and useful. A secondary menu contains Edit, Pause and completion-history access. Do not show disabled-looking decorative progress as a new interactive target unless it really edits a completion. Minimal creation asks only name and weekly target, with an Optional details disclosure.
+**Recurring row:** title, compact 2/3 progress, and “Log done”. Optional time/duration appears only when present and useful. A secondary menu contains Edit, Pause and completion-history access. Do not show disabled-looking decorative progress as a new interactive target unless it really edits a completion. Minimal creation asks only name and weekly target, with an Optional details disclosure.
 
 **Desktop:** use selected work as the main column; upcoming constraints and compact recurring progress form the secondary column. This avoids giving a pair of recurring intentions most of the page while concrete project work sits below them.
 
 **Home:** reuse the same weekly selector and source-opening behavior. Start with the honest smaller label change if cross-space selection needs more discussion. A later compact list can include selected undated focus without adding another dashboard surface.
 
-**Review gate:** users can choose undated work without setting fake dates, open it directly, understand source-calendar limits, and distinguish logging a rhythm from completing a task. Validate carry-forward and undo with fictional local test data; those writes were not exercised live. Compare evidence 07�11, 20, 23, 30, 31, 37, 38.
+**Review gate:** users can choose undated work without setting fake dates, open it directly, understand source-calendar limits, and distinguish logging a rhythm from completing a task. Validate carry-forward and undo with fictional local test data; those writes were not exercised live. Compare evidence 07–11, 20, 23, 30, 31, 37, 38.
 
-### Proposal 3 � Agenda: retain an Upcoming horizon inside the planning experience
+### Proposal 3 — Agenda: retain an Upcoming horizon inside the planning experience
 
 **Primary question:** What commitments beyond this week do I need to anticipate?
 
@@ -250,10 +250,10 @@ Do not remove the existing Agenda route immediately. First let it point to this 
 
 ## Recommended GitHub design workflow
 
-1. **Describe one user job and freeze a small scope.** For example, �Open a selected action from This week and return to the same week.� Record before/after behavior and anything requiring a product choice.
+1. **Describe one user job and freeze a small scope.** For example, “Open a selected action from This week and return to the same week.” Record before/after behavior and anything requiring a product choice.
 2. **Capture before touching code.** Use repeatable desktop and phone viewports and the relevant normal, expanded, empty and long-title states. Use fictional representative records in development. The live screenshots in this report should not enter the public repository, issues or PRs.
 3. **Write a short design contract.** Specify reading order, primary/secondary actions, information that must remain visible, source ownership, semantic colour meaning and expected behavior at 320 pixels. Reuse existing components and theme tokens.
-4. **Review the proposed screen before broad implementation.** A small visual comparison or focused mock is enough for hierarchy changes. Do not ask an agent to �make it modern� across the whole app. For product changes, agree on the job and ownership first.
+4. **Review the proposed screen before broad implementation.** A small visual comparison or focused mock is enough for hierarchy changes. Do not ask an agent to “make it modern” across the whole app. For product changes, agree on the job and ownership first.
 5. **Implement one independently reviewable slice.** Preserve canonical domain actions, authentication boundaries and current integrations. Keep the existing no-autonomous-write constraints. Avoid a new component library merely for a cosmetic pass.
 6. **Inspect the rendered result at the same states and sizes.** Put before and after side by side. Test full labels, long titles, nonzero and empty data, keyboard focus, source links, browser Back, dock clearance and the optional-field expansion. Include at least one light and one dark theme on layout-affecting work; run contrast/semantic-state checks across the full theme set when tokens change.
 7. **Run meaningful repository checks.** Follow AGENTS.md for the change's lint, tests, build and Compose validation. Browser screenshots complement those checks; they do not replace functional tests. Avoid tests that merely repeat styling internals.

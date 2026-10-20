@@ -1,10 +1,10 @@
-# UI/UX audit evidence matrix � October 2026
+# UI/UX audit evidence matrix — October 2026
 
 **Status: public-safe capture inventory; original evidence remains private.**
 
 The live audit on 20 October captured and visually inspected the following 39 views. This matrix records what was inspected and its assessed health. It deliberately contains no production screenshot, DOM dump, personal record title, account identifier, financial value, listening-history value, private URL or machine path. It does not allow an outside reviewer to verify pixel findings without reproducing them.
 
-Viewports were 1440 � 1000 for desktop, 390 � 844 for phone, and 320 � 740 for narrow reflow. These are browser CSS viewports, not physical-device validation. Recommendations and limits are in the [audit](ui-ux-audit-2026-10.md).
+Viewports were 1440 × 1000 for desktop, 390 × 844 for phone, and 320 × 740 for narrow reflow. These are browser CSS viewports, not physical-device validation. Recommendations and limits are in the [audit](ui-ux-audit-2026-10.md).
 
 ## Captured states
 
@@ -55,7 +55,7 @@ Viewports were 1440 � 1000 for desktop, 390 � 844 for phone, and 320 � 740
 Use a deliberate local/development fixture set, never an export or screenshot of a real account. Keep test dates relative to a fixed test clock so week boundaries, elapsed events and overdue states are repeatable.
 
 - **Navigation:** default theme, the same bounded desktop pins and four phone shortcuts; include every launcher destination and its longest labels.
-- **Tasks/projects:** a fictional `Example project` with a long named action, a dated focused action, an undated focus item, an overdue task and an ordinary future task. Ensure one selected action is outside the initial viewport or filter. Test the Saturday�Friday transition with explicit fixtures, not production clock changes.
+- **Tasks/projects:** a fictional `Example project` with a long named action, a dated focused action, an undated focus item, an overdue task and an ordinary future task. Ensure one selected action is outside the initial viewport or filter. Test the Saturday–Friday transition with explicit fixtures, not production clock changes.
 - **Rhythm:** two fictional recurring intentions with short/long names, optional metadata and progress at zero, partial and complete. Include paused and empty states in the follow-up review; these were not all exercised live.
 - **Calendar:** fictional past, upcoming and distant timed commitments; a true all-day event, a date-only PCC projection, a holiday and incomplete selected-source coverage. Keep ownership labels distinct and do not infer free time from missing sources.
 - **Music:** fictional song/artist labels and internally consistent counts, long collaboration names, unknown durations, sparse genre tags, year/month drill-down, a partial current period and an empty future period. Use stubbed integrations; do not call playlist reconciliation or enrichment while merely capturing a visual reference.

@@ -2,6 +2,7 @@
 services:
   app-trial:
     extends:
+      file: compose.yaml
       service: app
     build:
       context: ${PCC_TRIAL_SOURCE_ROOT:?Set PCC_TRIAL_SOURCE_ROOT}

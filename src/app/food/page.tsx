@@ -20,6 +20,7 @@ import {
   type RecipeMakeAgain,
 } from "@/domain/food";
 import { usePersonalData } from "@/lib/personal-data";
+import { useDialogFocus } from "@/hooks/use-dialog-focus";
 
 const ratingValues = Array.from({ length: 21 }, (_, index) => index / 2);
 const makeAgainLabels: Record<RecipeMakeAgain, string> = {
@@ -35,6 +36,7 @@ export default function FoodPage() {
   const [tagFilter, setTagFilter] = useState("");
   const [creating, setCreating] = useState(false);
   const [openRecipeId, setOpenRecipeId] = useState<string | null>(null);
+  const [previewId, setPreviewId] = useState("");
   const openRecipe = recipes.find((recipe) => recipe.item.id === openRecipeId);
 
   const tags = useMemo(() => {
@@ -53,6 +55,7 @@ export default function FoodPage() {
     if (tagFilter && !recipe.details.tags.some((tag) => tag.toLocaleLowerCase() === tagFilter.toLocaleLowerCase())) return false;
     return true;
   }), [recipes, query, tagFilter]);
+  const preview = visibleRecipes.find(recipe => recipe.item.id === previewId) ?? visibleRecipes[0];
 
   function saveRecipe(recipe: RecipeItem | undefined, title: string, details: RecipeDetails) {
     const description = serializeRecipeDetails(details);
@@ -124,11 +127,12 @@ export default function FoodPage() {
           <p className="mt-2 text-sm leading-6 text-slate-500">Change the search or tag filter.</p>
         </div>
       ) : (
-        <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+        <div className="pcc-food-layout"><div className="pcc-food-list">
           {visibleRecipes.map((recipe) => (
-            <RecipeCard key={recipe.item.id} recipe={recipe} onOpen={() => setOpenRecipeId(recipe.item.id)} />
+            <RecipeCard key={recipe.item.id} recipe={recipe} onOpen={() => {setPreviewId(recipe.item.id); if (!window.matchMedia("(min-width: 768px)").matches) setOpenRecipeId(recipe.item.id);}} />
           ))}
         </div>
+        {preview ? <aside className="pcc-food-detail"><h3 className="pcc-section-title">{preview.item.title}</h3>{preview.details.photoId ? <RecipePhoto photoId={preview.details.photoId} title={preview.item.title} /> : <p className="pcc-record-meta">No photo added</p>}<p className="pcc-record-meta">Rating {preview.details.rating ?? "unrated"}{preview.details.makeAgain === "yes" ? " · Make again" : ""}</p><button className="pcc-control w-full mt-3" onClick={() => setOpenRecipeId(preview.item.id)}>Open recipe</button></aside> : null}</div>
       )}
 
       {creating ? (
@@ -154,9 +158,8 @@ export default function FoodPage() {
 function RecipeCard({ recipe, onOpen }: { recipe: RecipeItem; onOpen: () => void }) {
   const duration = recipeDurationLabel(recipe.details);
   return (
-    <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:border-slate-400">
+    <article className="pcc-recipe-row">
       <button type="button" onClick={onOpen} className="block w-full text-left active:bg-slate-50">
-        <RecipePhoto photoId={recipe.details.photoId} title={recipe.item.title} />
         <div className="p-3">
           <div className="flex items-start justify-between gap-2">
             <p className="line-clamp-2 text-sm font-semibold leading-5 text-slate-900">{recipe.item.title}</p>
@@ -191,8 +194,8 @@ function RecipePhoto({ photoId, title, previewUrl = "" }: { photoId: string; tit
       style={{ backgroundImage: `url(${JSON.stringify(imageUrl)})` }}
     />
   ) : (
-    <div className="flex aspect-[4/3] w-full items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 p-5 text-center">
-      <span className="line-clamp-3 text-sm font-semibold leading-5 text-slate-500">{title || "Untitled recipe"}</span>
+    <div className="flex aspect-[4/3] w-full items-center justify-center bg-slate-100 p-5 text-center">
+      <span className="text-xs text-slate-500">No photo added</span>
     </div>
   );
 }
@@ -209,6 +212,7 @@ function RecipeEditor({
   onDelete?: () => Promise<void>;
 }) {
   const initialDetails = recipe?.details ?? createRecipeDetails();
+  const dialogRef = useDialogFocus<HTMLDivElement>();
   const [title, setTitle] = useState(recipe?.item.title ?? "");
   const [details, setDetails] = useState<RecipeDetails>(initialDetails);
   const [tagsText, setTagsText] = useState(initialDetails.tags.join(", "));
@@ -298,7 +302,7 @@ function RecipeEditor({
   const shownPhotoId = removeExistingPhoto ? "" : details.photoId;
 
   return (
-    <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-50">
+    <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={recipe ? `Edit ${recipe.item.title}` : "New recipe"} tabIndex={-1} className="pcc-editor pcc-recipe-editor fixed inset-0 z-[100] overflow-y-auto bg-slate-50">
       <form className="min-h-screen" onSubmit={submit}>
         <header className="sticky top-0 z-20 border-b border-slate-200 bg-slate-50/95 px-4 py-3 backdrop-blur sm:px-6">
           <div className="mx-auto flex max-w-5xl items-center justify-between gap-3">

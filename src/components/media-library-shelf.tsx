@@ -21,6 +21,8 @@ import {
   type MediaType,
 } from "@/domain/media";
 import { usePersonalData } from "@/lib/personal-data";
+import { LibrarySectionTabs } from "@/components/library-section-tabs";
+import { useDialogFocus } from "@/hooks/use-dialog-focus";
 
 const ratingValues = Array.from({ length: 21 }, (_, index) => index / 2);
 const statusLabels: Record<MediaStatus, string> = {
@@ -40,6 +42,7 @@ export function MediaLibraryShelf({ type }: { type: MediaType }) {
   const [view, setView] = useState<ShelfView>(type === "series" ? "watching" : "library");
   const [creating, setCreating] = useState(false);
   const [openMediaId, setOpenMediaId] = useState<string | null>(null);
+  const [previewId, setPreviewId] = useState("");
   const openMedia = media.find((entry) => entry.item.id === openMediaId);
 
   const visibleMedia = useMemo(() => sortMediaItems(media).filter((entry) => {
@@ -50,6 +53,7 @@ export function MediaLibraryShelf({ type }: { type: MediaType }) {
 
   const label = type === "film" ? "Movies" : "Series";
   const singular = type === "film" ? "movie" : "series";
+  const preview = visibleMedia.find(entry => entry.item.id === previewId) ?? visibleMedia[0];
   const viewOptions: { value: ShelfView; label: string }[] = type === "film"
     ? [
         { value: "library", label: "My movies" },
@@ -92,16 +96,17 @@ export function MediaLibraryShelf({ type }: { type: MediaType }) {
   }
 
   return (
-    <section className="mx-auto max-w-6xl">
-      <div className="flex items-end justify-between gap-4">
+    <section className="pcc-library">
+      <div className="pcc-heading">
         <div>
-          <p className="text-sm text-slate-500">{media.length} {media.length === 1 ? singular : label.toLocaleLowerCase()}</p>
-          <h2 className="mt-1 text-3xl font-semibold tracking-tight">{label}</h2>
+          <h2>Library</h2>
+          <p className="pcc-context">{media.length} {media.length === 1 ? singular : label.toLocaleLowerCase()}</p>
         </div>
         <button type="button" onClick={() => setCreating(true)} className="min-h-11 shrink-0 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white active:scale-[0.99]">
-          New {singular}
+          Add {singular}
         </button>
       </div>
+      <LibrarySectionTabs />
 
       <div className="mt-5 grid gap-2 sm:grid-cols-[minmax(0,1fr)_14rem]">
         <label>
@@ -135,10 +140,22 @@ export function MediaLibraryShelf({ type }: { type: MediaType }) {
           <p className="mt-2 text-sm leading-6 text-slate-500">Change the search or selected view.</p>
         </div>
       ) : (
-        <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="pcc-collection-layout">
+        <div className="pcc-media-grid">
           {visibleMedia.map((entry) => (
-            <MediaCard key={entry.item.id} media={entry} onOpen={() => setOpenMediaId(entry.item.id)} />
+            <MediaCard key={entry.item.id} media={entry} onOpen={() => {
+              setPreviewId(entry.item.id);
+              if (!window.matchMedia("(min-width: 1200px)").matches) setOpenMediaId(entry.item.id);
+            }} />
           ))}
+        </div>
+        {preview ? <aside className="pcc-collection-detail" aria-label="Selected media">
+          <div className="pcc-detail-cover"><MediaPoster posterId={preview.details.posterId} title={preview.item.title} /></div>
+          <h3 className="pcc-section-title">{preview.item.title}</h3>
+          <p className="pcc-record-title">{statusLabels[preview.details.status]}{mediaProgressLabel(preview.details) ? ` · ${mediaProgressLabel(preview.details)}` : ""}</p>
+          {preview.details.rating !== undefined ? <p className="pcc-record-meta">{preview.details.rating.toFixed(1)} / 10</p> : null}
+          <button className="pcc-control theme-home-button" onClick={() => setOpenMediaId(preview.item.id)}>Open details</button>
+        </aside> : null}
         </div>
       )}
 
@@ -169,10 +186,10 @@ function MediaCard({ media, onOpen }: { media: MediaItem; onOpen: () => void }) 
   const progress = mediaProgressLabel(media.details);
   const showResume = media.details.type === "series" && media.details.status === "watching" && progress;
   return (
-    <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:border-slate-400">
+    <article className="pcc-media-card">
       <button type="button" onClick={onOpen} className="block w-full text-left active:bg-slate-50">
         <MediaPoster posterId={media.details.posterId} title={media.item.title} />
-        <div className="p-3">
+        <div className="pcc-media-caption">
           <div className="flex items-start justify-between gap-2">
             <p className="line-clamp-2 text-sm font-semibold leading-5 text-slate-900">{media.item.title}</p>
             {media.details.rating !== undefined ? (
@@ -193,12 +210,12 @@ function MediaPoster({ posterId, title, previewUrl = "" }: { posterId: string; t
     <div
       role="img"
       aria-label={`Poster for ${title}`}
-      className="aspect-[2/3] w-full bg-slate-100 bg-cover bg-center"
+      className="pcc-cover aspect-[2/3] w-full bg-slate-100 bg-contain bg-no-repeat bg-center"
       style={{ backgroundImage: `url(${JSON.stringify(imageUrl)})` }}
     />
   ) : (
-    <div className="flex aspect-[2/3] w-full items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 p-5 text-center">
-      <span className="line-clamp-4 text-sm font-semibold leading-5 text-slate-500">{title || "Untitled"}</span>
+    <div className="pcc-cover pcc-cover-missing flex aspect-[2/3] w-full items-center justify-center p-3 text-center">
+      <span className="text-xs text-slate-500">No poster added</span>
     </div>
   );
 }
@@ -219,6 +236,7 @@ function MediaEditor({
   onDelete?: () => Promise<void>;
 }) {
   const initialDetails = media?.details ?? normalizeMediaDetails({ ...createMediaDetails(), type, status: initialStatus });
+  const dialogRef = useDialogFocus<HTMLDivElement>();
   const [title, setTitle] = useState(media?.item.title ?? "");
   const [details, setDetails] = useState<MediaDetails>({ ...initialDetails, type });
   const [posterFile, setPosterFile] = useState<File | null>(null);
@@ -292,7 +310,7 @@ function MediaEditor({
   const noun = type === "film" ? "movie" : "series";
 
   return (
-    <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-50">
+    <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={media ? `Edit ${media.item.title}` : `New ${type === "film" ? "movie" : "series"}`} tabIndex={-1} className="pcc-editor pcc-media-editor fixed inset-0 z-[100] overflow-y-auto bg-slate-50">
       <form className="min-h-screen" onSubmit={submit}>
         <header className="sticky top-0 z-20 border-b border-slate-200 bg-slate-50/95 px-4 py-3 backdrop-blur sm:px-6">
           <div className="mx-auto flex max-w-5xl items-center justify-between gap-3">

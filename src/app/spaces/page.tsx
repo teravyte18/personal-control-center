@@ -16,9 +16,8 @@ const mobileSlotLabels = ["Left 1", "Left 2", "Right 1", "Right 2"] as const;
 
 const destinationGroups = [
   { label: "Plan", ids: ["projects", "tasks", "rhythm", "review", "agenda", "inbox"] },
-  { label: "Reference", ids: ["thoughts", "notes", "library", "food"] },
-  { label: "Tracking", ids: ["expenses", "markets", "music"] },
-  { label: "System", ids: ["keychain", "context", "accomplishments", "archive"] },
+  { label: "Keep", ids: ["thoughts", "notes", "library", "food"] },
+  { label: "Explore & manage", ids: ["expenses", "music", "markets", "keychain", "accomplishments", "archive", "context"] },
 ] as const;
 
 function availableDestination(id: string) {
@@ -42,10 +41,10 @@ export default function SpacesPage() {
   const { ids: desktopQuickAccessIds } = useDesktopQuickAccess();
 
   return (
-    <section className="mx-auto max-w-4xl">
-      <h2 className="text-3xl font-semibold tracking-tight">Spaces</h2>
+    <section className="pcc-spaces">
+      <h2>All Spaces</h2>
 
-      <div className="mt-6 space-y-6">
+      <div className="pcc-space-groups">
         {destinationGroups.map((group) => {
           const groupDestinations = group.ids.flatMap((id) => {
             const destination = availableDestination(id);
@@ -56,7 +55,8 @@ export default function SpacesPage() {
           return (
             <section key={group.label}>
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">{group.label}</p>
-              <div className="mt-2 grid grid-cols-2 gap-2">
+              <div className="pcc-space-links">
+                {group.label === "Plan" ? <Link href="/" className="pcc-record">Capture</Link> : null}
                 {groupDestinations.map((destination) => (
                   <DestinationCard key={destination.id} destination={destination} />
                 ))}
@@ -65,10 +65,10 @@ export default function SpacesPage() {
           );
         })}
 
-        <section>
+        <section className="pcc-spaces-access">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Access</p>
           <div className="mt-2 grid grid-cols-2 gap-2">
-            <details className="group col-span-2 rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <details id="quick-access" className="group col-span-2 rounded-2xl border border-slate-200 bg-white shadow-sm">
               <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 px-3 py-2.5 sm:px-4">
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
                   <Icon name="settings" />
@@ -131,12 +131,9 @@ function DestinationCard({ destination }: { destination: Destination }) {
   return (
     <Link
       href={destination.href}
-      className="flex min-h-14 items-center gap-3 rounded-2xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm transition hover:border-slate-400 sm:px-4"
+      className="pcc-record pcc-space-link"
     >
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
-        <Icon name={destination.icon} />
-      </span>
-      <p className="min-w-0 truncate font-semibold">{destination.label}</p>
+      <span>{destination.id === "rhythm" ? "Week" : destination.id === "context" ? "Context Inspector" : destination.label}</span>
     </Link>
   );
 }

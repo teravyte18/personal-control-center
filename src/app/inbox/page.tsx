@@ -18,6 +18,8 @@ type InboxClassification = ItemKind | "book";
 export default function InboxPage() {
   const { items } = usePersonalData();
   const inbox = items.filter((item) => item.status === "inbox");
+  const [selectedId, setSelectedId] = useState("");
+  const selected = inbox.find(item => item.id === selectedId) ?? inbox[0];
 
   return (
     <section className="mx-auto max-w-3xl">
@@ -34,8 +36,9 @@ export default function InboxPage() {
         </div>
       ) : null}
 
-      <div className="mt-6 space-y-3">
-        {inbox.map((item) => <InboxItem key={item.id} item={item} />)}
+      <div className="pcc-task-layout" data-detail-open={Boolean(selectedId)}>
+        <div className="pcc-task-list">{inbox.map(item => <button key={item.id} className="pcc-record w-full" onClick={() => setSelectedId(item.id)}><p className="pcc-record-title">{item.title}</p><p className="pcc-record-meta">Captured {new Date(item.createdAt).toLocaleDateString()}</p></button>)}</div>
+        <div className="pcc-task-detail"><button className="pcc-task-back pcc-control mb-4" onClick={() => setSelectedId("")}>Back to Inbox</button>{selected ? <InboxItem key={selected.id} item={selected} /> : null}</div>
       </div>
     </section>
   );
@@ -98,7 +101,7 @@ function InboxItem({ item }: { item: Item }) {
   }
 
   return (
-    <details className="group rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <details open className="group rounded-2xl border border-slate-200 bg-white shadow-sm">
       <summary className="flex min-h-16 cursor-pointer list-none items-center justify-between gap-4 px-4 py-3 sm:px-5">
         <div className="min-w-0">
           <p className="truncate font-medium text-slate-900">{title.value || "Untitled item"}</p>
@@ -162,6 +165,7 @@ function InboxItem({ item }: { item: Item }) {
 
         <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
           <button type="button" onClick={() => deleteItem(item.id)} className="min-h-11 rounded-xl px-4 text-sm font-medium text-rose-600 hover:bg-rose-50">Delete</button>
+          <button type="button" onClick={() => setItemStatus(item.id, "archived")} className="pcc-control">Archive capture</button>
           <button type="submit" className="min-h-11 rounded-xl bg-slate-950 px-5 text-sm font-semibold text-white active:scale-[0.99]">Organise item</button>
         </div>
       </form>

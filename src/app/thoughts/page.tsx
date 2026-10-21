@@ -5,16 +5,19 @@ import { getThoughts } from "@/domain/thoughts";
 import { Item, usePersonalData } from "@/lib/personal-data";
 
 export default function ThoughtsPage() {
-  const { items, addItem, updateItem } = usePersonalData();
+  const { items, addItem, updateItem, archiveItem } = usePersonalData();
+  const [creating, setCreating] = useState(false);
+  const [selectedId, setSelectedId] = useState("");
   const [thought, setThought] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
   const thoughts = useMemo(() => getThoughts(items), [items]);
+  const selected = thoughts.find(item => item.id === selectedId) ?? thoughts[0];
 
   function submitThought(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const item = addItem(thought, { kind: "thought", status: "active" });
-    if (item) setThought("");
+    if (item) { setThought(""); setCreating(false); setSelectedId(item.id); }
   }
 
   function beginEditing(item: Item) {
@@ -38,20 +41,22 @@ export default function ThoughtsPage() {
 
   return (
     <section className="mx-auto max-w-4xl">
-      <h2 className="text-3xl font-semibold tracking-tight">Thoughts</h2>
+      <div className="pcc-heading"><h2>Thoughts</h2><button className="pcc-control" onClick={() => setCreating(value => !value)}>{creating ? "Cancel" : "New thought"}</button></div>
 
-      <form onSubmit={submitThought} className="mt-5 rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-        <textarea className="input min-h-24 resize-none" value={thought} onChange={(event) => setThought(event.target.value)} placeholder="Write a thought directly here…" required />
+      {creating ? <form onSubmit={submitThought} className="mt-5 rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+        <textarea aria-label="New thought" autoFocus className="input min-h-24 resize-none" value={thought} onChange={(event) => setThought(event.target.value)} placeholder="Write a thought directly here…" required />
         <div className="mt-3 flex justify-end">
           <button type="submit" className="min-h-11 rounded-xl bg-slate-950 px-5 text-sm font-semibold text-white active:scale-[0.99]">Save thought</button>
         </div>
-      </form>
+      </form> : null}
 
       {thoughts.length === 0 ? <p className="mt-8 text-sm text-slate-500">No saved thoughts yet.</p> : null}
 
-      <div className="mt-5 columns-1 gap-3 sm:columns-2">
-        {thoughts.map((item) => (
-          <article key={item.id} className="mb-3 break-inside-avoid rounded-[1.35rem] border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="pcc-task-layout" data-detail-open={Boolean(selectedId)}>
+        <div className="pcc-task-list">{thoughts.map(item => <button key={item.id} className="pcc-record w-full" onClick={() => {setSelectedId(item.id);cancelEdit();}}><p className="pcc-record-title line-clamp-2">{item.title}</p><p className="pcc-record-meta">{new Date(item.createdAt).toLocaleDateString()}</p></button>)}</div>
+        <div className="pcc-task-detail"><button className="pcc-task-back pcc-control mb-4" onClick={() => setSelectedId("")}>Back to thoughts</button>
+        {selected ? [selected].map((item) => (
+          <article key={item.id}>
             {editingId === item.id ? (
               <form onSubmit={(event) => saveEdit(event, item)}>
                 <textarea value={editText} onChange={(event) => setEditText(event.target.value)} className="input min-h-28 resize-y text-base leading-7" aria-label="Edit thought" autoFocus required />
@@ -68,11 +73,13 @@ export default function ThoughtsPage() {
                     {new Date(item.createdAt).toLocaleDateString(undefined, { dateStyle: "medium" })}
                   </time>
                   <button type="button" onClick={() => beginEditing(item)} className="min-h-9 rounded-lg px-3 text-sm font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-900">Edit</button>
+                  <button className="pcc-control" onClick={() => archiveItem(item.id)}>Archive</button>
                 </div>
               </>
             )}
           </article>
-        ))}
+        )) : null}
+        </div>
       </div>
     </section>
   );

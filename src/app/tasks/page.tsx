@@ -18,12 +18,15 @@ export default function TasksPage() {
   const { weeklyFocuses, addWeeklyFocus, removeWeeklyFocus } = useRhythmData();
   const rhythmPeriod = useMemo(() => getRhythmPeriod(), []);
   const [creating, setCreating] = useState(false);
+  const [view, setView] = useState<"open" | "completed">("open");
+  const [selectedId, setSelectedId] = useState("");
   const [title, setTitle] = useState("");
   const [notes, setNotes] = useState("");
   const [checkInDate, setCheckInDate] = useState("");
   const [area, setArea] = useState<AreaId>("uncategorized");
 
-  const tasks = useMemo(() => items.filter(isOpenTask).sort(compareTasks), [items]);
+  const tasks = useMemo(() => items.filter(item => view === "open" ? isOpenTask(item) : item.kind === "task" && item.status === "completed").sort(compareTasks), [items, view]);
+  const selected = tasks.find(task => task.id === selectedId) ?? tasks[0];
 
   function resetForm() {
     setTitle("");
@@ -52,7 +55,7 @@ export default function TasksPage() {
   }
 
   return (
-    <section className="mx-auto max-w-4xl">
+    <section>
       <div className="flex items-center justify-between gap-4">
         <h2 className="text-3xl font-semibold tracking-tight">Tasks</h2>
         {!creating ? (
@@ -61,6 +64,7 @@ export default function TasksPage() {
           </button>
         ) : null}
       </div>
+      <div className="pcc-view-controls"><button className={`pcc-control ${view === "open" ? "is-selected" : ""}`} aria-pressed={view === "open"} onClick={() => {setView("open");setSelectedId("");}}>Open</button><button className={`pcc-control ${view === "completed" ? "is-selected" : ""}`} aria-pressed={view === "completed"} onClick={() => {setView("completed");setSelectedId("");}}>Completed</button></div>
 
       {creating ? (
         <form onSubmit={createTask} className="mt-6 rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
@@ -98,25 +102,28 @@ export default function TasksPage() {
 
       {tasks.length === 0 ? (
         <div className="mt-6 rounded-[2rem] border border-dashed border-slate-300 bg-white p-8 text-center">
-          <h3 className="text-lg font-semibold">No open tasks.</h3>
+          <h3 className="text-lg font-semibold">No {view} tasks.</h3>
         </div>
       ) : (
-        <div className="mt-6 space-y-2">
-          {tasks.map((task) => (
+        <div className="pcc-task-layout" data-detail-open={Boolean(selectedId)}>
+          <div className="pcc-task-list">{tasks.map(task => <button key={task.id} className="pcc-record w-full" onClick={() => setSelectedId(task.id)} aria-pressed={selected?.id === task.id}><p className="pcc-record-title">{task.title}</p><p className="pcc-record-meta">{areaLabels[task.area]} · {task.checkInDate ? formatDate(task.checkInDate) : "No date"}</p></button>)}</div>
+          <div className="pcc-task-detail"><button className="pcc-task-back pcc-control mb-4" onClick={() => setSelectedId("")}>Back to tasks</button>
+          {selected ? (
             <TaskCard
-              key={task.id}
-              task={task}
+              key={selected.id}
+              task={selected}
               weeklyFocusId={weeklyFocuses.find((focus) => (
-                focus.weekStart === rhythmPeriod.start && focusMatches(focus, "task", task.id)
+                focus.weekStart === rhythmPeriod.start && focusMatches(focus, "task", selected.id)
               ))?.id}
-              onUpdate={(updates) => updateItem(task.id, updates)}
-              onComplete={() => toggleCompleted(task.id)}
+              onUpdate={(updates) => updateItem(selected.id, updates)}
+              onComplete={() => {toggleCompleted(selected.id);setSelectedId("");}}
               onToggleWeeklyFocus={(focusId) => {
                 if (focusId) removeWeeklyFocus(focusId);
-                else addWeeklyFocus("task", task.id);
+                else addWeeklyFocus("task", selected.id);
               }}
             />
-          ))}
+          ) : null}
+          </div>
         </div>
       )}
     </section>
@@ -145,7 +152,7 @@ function TaskCard({
       : "border-slate-200 bg-white";
 
   return (
-    <details className={`group rounded-2xl border shadow-sm ${border}`}>
+    <details open className={`group rounded-2xl border shadow-sm ${border}`}>
       <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 px-3 py-2.5 sm:px-4">
         <button
           type="button"
@@ -155,7 +162,7 @@ function TaskCard({
             onComplete();
           }}
           className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-300 bg-white text-slate-500 transition hover:border-emerald-500 hover:text-emerald-700"
-          aria-label={`Complete ${task.title}`}
+          aria-label={`${task.status === "completed" ? "Reopen" : "Complete"} ${task.title}`}
         >
           ✓
         </button>
@@ -206,7 +213,7 @@ function TaskCard({
             {weeklyFocusId ? "Remove from this week" : "Add to this week"}
           </button>
           <button type="button" onClick={onComplete} className="min-h-11 rounded-xl bg-emerald-700 px-5 text-sm font-semibold text-white">
-            Complete task
+            {task.status === "completed" ? "Reopen task" : "Complete task"}
           </button>
         </div>
       </div>

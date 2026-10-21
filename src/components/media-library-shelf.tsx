@@ -23,6 +23,7 @@ import {
 import { usePersonalData } from "@/lib/personal-data";
 import { LibrarySectionTabs } from "@/components/library-section-tabs";
 import { useDialogFocus } from "@/hooks/use-dialog-focus";
+import { PrivateArtwork } from "@/components/private-artwork";
 
 const ratingValues = Array.from({ length: 21 }, (_, index) => index / 2);
 const statusLabels: Record<MediaStatus, string> = {
@@ -206,18 +207,7 @@ function MediaCard({ media, onOpen }: { media: MediaItem; onOpen: () => void }) 
 
 function MediaPoster({ posterId, title, previewUrl = "" }: { posterId: string; title: string; previewUrl?: string }) {
   const imageUrl = previewUrl || (posterId ? `/api/media-posters/${encodeURIComponent(posterId)}` : "");
-  return imageUrl ? (
-    <div
-      role="img"
-      aria-label={`Poster for ${title}`}
-      className="pcc-cover aspect-[2/3] w-full bg-slate-100 bg-contain bg-no-repeat bg-center"
-      style={{ backgroundImage: `url(${JSON.stringify(imageUrl)})` }}
-    />
-  ) : (
-    <div className="pcc-cover pcc-cover-missing flex aspect-[2/3] w-full items-center justify-center p-3 text-center">
-      <span className="text-xs text-slate-500">No poster added</span>
-    </div>
-  );
+  return <PrivateArtwork src={imageUrl} alt={`Poster for ${title}`} fallback="No poster added" />;
 }
 
 function MediaEditor({
@@ -321,6 +311,7 @@ function MediaEditor({
         </header>
 
         <main className="mx-auto grid w-full max-w-5xl gap-6 px-4 pb-28 pt-6 sm:px-6 md:grid-cols-[16rem_1fr]">
+          <h2>{media ? media.item.title : `New ${type === "film" ? "movie" : "series"}`}</h2>
           <aside>
             <div className="mx-auto max-w-[16rem] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"><MediaPoster posterId={shownPosterId} title={title} previewUrl={previewUrl} /></div>
             <label className="mt-4 flex min-h-11 cursor-pointer items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700">
@@ -363,7 +354,7 @@ function MediaEditor({
             <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
               <h3 className="text-sm font-semibold text-slate-900">Thoughts</h3>
               <p className="mt-1 text-xs leading-5 text-slate-500">Optional. Keep what you liked, disliked, or would want a future recommendation to understand.</p>
-              <textarea className="input mt-4 min-h-52 resize-y text-sm leading-6" value={details.thoughts} onChange={(event) => setDetails((current) => ({ ...current, thoughts: event.target.value }))} placeholder="What stood out, and why?" />
+              <textarea aria-label="Thoughts" className="input mt-4 min-h-52 resize-y text-sm leading-6" value={details.thoughts} onChange={(event) => setDetails((current) => ({ ...current, thoughts: event.target.value }))} placeholder="What stood out, and why?" />
             </section>
 
             {error ? <p className="rounded-xl bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700" aria-live="polite">{error}</p> : null}

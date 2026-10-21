@@ -21,6 +21,7 @@ import {
 } from "@/domain/food";
 import { usePersonalData } from "@/lib/personal-data";
 import { useDialogFocus } from "@/hooks/use-dialog-focus";
+import { PrivateArtwork } from "@/components/private-artwork";
 
 const ratingValues = Array.from({ length: 21 }, (_, index) => index / 2);
 const makeAgainLabels: Record<RecipeMakeAgain, string> = {
@@ -186,18 +187,7 @@ function RecipeCard({ recipe, onOpen }: { recipe: RecipeItem; onOpen: () => void
 
 function RecipePhoto({ photoId, title, previewUrl = "" }: { photoId: string; title: string; previewUrl?: string }) {
   const imageUrl = previewUrl || (photoId ? `/api/recipe-photos/${encodeURIComponent(photoId)}` : "");
-  return imageUrl ? (
-    <div
-      role="img"
-      aria-label={`Photo of ${title}`}
-      className="aspect-[4/3] w-full bg-slate-100 bg-cover bg-center"
-      style={{ backgroundImage: `url(${JSON.stringify(imageUrl)})` }}
-    />
-  ) : (
-    <div className="flex aspect-[4/3] w-full items-center justify-center bg-slate-100 p-5 text-center">
-      <span className="text-xs text-slate-500">No photo added</span>
-    </div>
-  );
+  return <PrivateArtwork src={imageUrl} alt={`Photo of ${title}`} fallback="No photo added" landscape />;
 }
 
 function RecipeEditor({
@@ -313,6 +303,7 @@ function RecipeEditor({
         </header>
 
         <main className="mx-auto grid w-full max-w-5xl gap-6 px-4 pb-28 pt-6 sm:px-6 md:grid-cols-[18rem_1fr]">
+          <h2>{recipe ? recipe.item.title : "New recipe"}</h2>
           <aside>
             <div className="mx-auto max-w-[18rem] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
               <RecipePhoto photoId={shownPhotoId} title={title} previewUrl={previewUrl} />
@@ -368,6 +359,7 @@ function RecipeEditor({
                 </button>
               </div>
               <textarea
+                aria-label="Ingredients"
                 className="input mt-4 min-h-52 resize-y font-mono text-sm leading-6"
                 value={details.ingredients}
                 onChange={(event) => { setDetails((current) => ({ ...current, ingredients: event.target.value })); setCopyState("idle"); }}
@@ -377,13 +369,13 @@ function RecipeEditor({
 
             <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
               <h3 className="text-sm font-semibold text-slate-900">Steps</h3>
-              <textarea className="input mt-4 min-h-64 resize-y text-sm leading-6" value={details.steps} onChange={(event) => setDetails((current) => ({ ...current, steps: event.target.value }))} placeholder={"1. Prepare the ingredients.\n2. Cook…"} />
+              <textarea aria-label="Cooking steps" className="input mt-4 min-h-64 resize-y text-sm leading-6" value={details.steps} onChange={(event) => setDetails((current) => ({ ...current, steps: event.target.value }))} placeholder={"1. Prepare the ingredients.\n2. Cook…"} />
             </section>
 
             <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
               <h3 className="text-sm font-semibold text-slate-900">Cooking notes</h3>
               <p className="mt-1 text-xs leading-5 text-slate-500">Keep the adjustments that make the recipe yours: quantities, substitutions, heat, timing, or what to change next time.</p>
-              <textarea className="input mt-4 min-h-40 resize-y text-sm leading-6" value={details.notes} onChange={(event) => setDetails((current) => ({ ...current, notes: event.target.value }))} placeholder="Optional notes after cooking it…" />
+              <textarea aria-label="Cooking notes" className="input mt-4 min-h-40 resize-y text-sm leading-6" value={details.notes} onChange={(event) => setDetails((current) => ({ ...current, notes: event.target.value }))} placeholder="Optional notes after cooking it…" />
             </section>
 
             {error ? <p className="rounded-xl bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700" aria-live="polite">{error}</p> : null}

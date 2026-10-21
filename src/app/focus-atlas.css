@@ -92,6 +92,8 @@ input, textarea { caret-color: var(--theme-accent); }
 .pcc-media-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 24px 16px; align-content: start; }
 .pcc-media-card { min-width: 0; }
 .pcc-cover { border-radius: 6px; overflow: hidden; }
+.pcc-artwork { position: relative; display: flex; width: 100%; align-items: center; justify-content: center; background: var(--pcc-quiet); text-align: center; }
+.pcc-artwork > span { padding: 12px; }
 .pcc-cover-missing { background: var(--pcc-quiet); color: var(--pcc-muted); }
 .pcc-media-caption { padding-top: 8px; }
 .pcc-media-caption .line-clamp-2 { display: block; overflow: visible; font-size: 14px; line-height: 20px; overflow-wrap: anywhere; }

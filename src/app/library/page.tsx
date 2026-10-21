@@ -35,6 +35,7 @@ import {
 import { usePersonalData } from "@/lib/personal-data";
 import { LibrarySectionTabs } from "@/components/library-section-tabs";
 import { useDialogFocus } from "@/hooks/use-dialog-focus";
+import { PrivateArtwork } from "@/components/private-artwork";
 
 const readingLabels: Record<BookReadingState, string> = {
   unread: "Unread",
@@ -243,7 +244,7 @@ export default function LibraryPage() {
               {bookPriorities.map((value) => <option key={value} value={value}>{priorityLabels[value]}</option>)}
             </FilterSelect>
             <FilterSelect label="Minimum score" value={minimumRating} onChange={setMinimumRating}>
-              {[1, 2, 3, 4, 5].map((value) => <option key={value} value={value}>{value}+</option>)}
+              {ratingValues.map((value) => <option key={value} value={value}>{value}+</option>)}
             </FilterSelect>
           </div>
           <div className="mt-3 flex items-center justify-between gap-3">
@@ -367,18 +368,7 @@ function BookCard({
 
 function Cover({ coverId, title, previewUrl = "" }: { coverId: string; title: string; previewUrl?: string }) {
   const imageUrl = previewUrl || (coverId ? `/api/book-covers/${encodeURIComponent(coverId)}` : "");
-  return imageUrl ? (
-    <div
-      role="img"
-      aria-label={`Cover of ${title}`}
-      className="pcc-cover aspect-[2/3] w-full bg-slate-100 bg-contain bg-no-repeat bg-center"
-      style={{ backgroundImage: `url(${JSON.stringify(imageUrl)})` }}
-    />
-  ) : (
-    <div className="pcc-cover pcc-cover-missing flex aspect-[2/3] w-full items-center justify-center p-3 text-center">
-      <span className="text-xs text-slate-500">No cover added</span>
-    </div>
-  );
+  return <PrivateArtwork src={imageUrl} alt={`Cover of ${title}`} fallback="No cover added" />;
 }
 
 function BookEditor({

@@ -119,7 +119,6 @@ export default function ContextInspectorPage() {
   return (
     <section className="mx-auto max-w-6xl">
       <div className="max-w-3xl">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Development tool</p>
         <h2 className="mt-2 text-3xl font-semibold tracking-tight">Context Inspector</h2>
         <p className="mt-3 text-sm leading-6 text-slate-600">
           Inspect which PCC records a question retrieves and how a bounded context is assembled.
@@ -127,7 +126,7 @@ export default function ContextInspectorPage() {
         </p>
       </div>
 
-      <div className="mt-5 inline-flex flex-wrap gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1" role="group" aria-label="Inspector mode">
+      <div className="pcc-view-controls" role="group" aria-label="Inspector mode">
         <button type="button" aria-pressed={mode === "resolved"}
           onClick={() => { setMode("resolved"); setError(""); }}
           className={"rounded-lg px-3 py-2 text-sm font-semibold transition " + (mode === "resolved" ? "bg-white text-slate-950 shadow-sm" : "text-slate-600 hover:text-slate-900")}>
@@ -140,7 +139,7 @@ export default function ContextInspectorPage() {
         </button>
       </div>
 
-      <div className="mt-5 grid min-w-0 gap-5 lg:grid-cols-[19rem_minmax(0,1fr)]">
+      <div className="pcc-context-columns">
         <form onSubmit={(event) => { event.preventDefault(); void buildContext(); }}
           className="min-w-0 self-start rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           {mode === "raw" ? (

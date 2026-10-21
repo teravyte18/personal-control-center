@@ -2,6 +2,7 @@
 
 import { useMemo, useState, type FormEvent } from "react";
 import { focusMatches, getRhythmPeriod } from "@/domain/weekly-rhythm";
+import { useSourceRecord } from "@/hooks/use-source-record";
 import {
   areaLabels,
   isOpenTask,
@@ -19,7 +20,9 @@ export default function TasksPage() {
   const rhythmPeriod = useMemo(() => getRhythmPeriod(), []);
   const [creating, setCreating] = useState(false);
   const [view, setView] = useState<"open" | "completed">("open");
-  const [selectedId, setSelectedId] = useState("");
+  const sourceId = useSourceRecord("task");
+  const [selectedOverride, setSelectedId] = useState<string | null>(null);
+  const selectedId = selectedOverride ?? sourceId;
   const [title, setTitle] = useState("");
   const [notes, setNotes] = useState("");
   const [checkInDate, setCheckInDate] = useState("");

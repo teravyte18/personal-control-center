@@ -29,7 +29,7 @@ export function LibrarySectionTabs() {
               aria-current={selected ? "page" : undefined}
               className={`pcc-control ${
                 selected
-                  ? "bg-slate-950 text-white"
+                  ? "is-selected"
                   : "text-slate-600 hover:bg-slate-50 hover:text-slate-950"
               }`}
             >

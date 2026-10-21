@@ -119,6 +119,7 @@ export default function RhythmPage() {
   const [selectedWork, setSelectedWork] = useState("");
   const [calendar, setCalendar] = useState<AgendaResponse | null>(null);
   const [calendarError, setCalendarError] = useState("");
+  const [calendarAttempt, setCalendarAttempt] = useState(0);
 
   const datedWork = useMemo(() => getDatedRhythmWork(items, period), [items, period]);
   const focused = useMemo(
@@ -204,7 +205,7 @@ export default function RhythmPage() {
         if (!response.ok || !("events" in body)) {
           throw new Error("Calendar commitments could not be loaded.");
         }
-        if (!cancelled) setCalendar(body);
+        if (!cancelled) { setCalendar(body); setCalendarError(""); }
       })
       .catch((error) => {
         if (!cancelled) setCalendarError(error instanceof Error ? error.message : "Calendar commitments could not be loaded.");
@@ -213,7 +214,7 @@ export default function RhythmPage() {
     return () => {
       cancelled = true;
     };
-  }, [period.end, period.start]);
+  }, [period.end, period.start, calendarAttempt]);
 
   const commitments = useMemo(
     () => (calendar?.events ?? []).filter((event) => ["google", "agenda"].includes(event.source)),
@@ -329,7 +330,7 @@ export default function RhythmPage() {
                   <div key={entry.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
                     <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-slate-400" />
                     <Link
-                      href={entry.sourceType === "task" ? "/tasks" : "/projects"}
+                      href={entry.sourceType === "task" ? `/tasks?task=${encodeURIComponent(entry.sourceItemId)}` : `/projects?project=${encodeURIComponent(entry.sourceItemId)}`}
                       className="min-w-0 flex-1"
                     >
                       <p className="truncate text-sm font-semibold text-slate-900">{entry.title}</p>
@@ -373,7 +374,7 @@ export default function RhythmPage() {
 
         <div className="min-w-0 space-y-5">
           <WeekSection title="Fixed commitments" count={commitments.length}>
-            {calendarError ? <p className="text-sm text-amber-700">{calendarError}</p> : null}
+            {calendarError ? <div role="alert"><p className="text-sm text-amber-700">{calendarError}</p><button className="pcc-control mt-2" onClick={() => setCalendarAttempt(value => value + 1)}>Retry Calendar</button></div> : null}
             {!calendarError && calendar && !calendar.connected ? (
               <p className="text-sm leading-6 text-slate-500">
                 Google Calendar is not connected. Rhythm still works with PCC work and intentions.
@@ -403,7 +404,7 @@ export default function RhythmPage() {
                 {datedWork.map((entry) => (
                   <Link
                     key={entry.id}
-                    href={entry.sourceType === "task" ? "/tasks" : "/projects"}
+                    href={entry.sourceType === "task" ? `/tasks?task=${encodeURIComponent(entry.sourceItemId)}` : `/projects?project=${encodeURIComponent(entry.sourceItemId)}`}
                     className="flex items-center gap-3 py-3 first:pt-0 last:pb-0"
                   >
                     <div className="min-w-0 flex-1">
@@ -505,7 +506,7 @@ function RhythmCard({
                 className={`h-1.5 min-w-0 flex-1 ${index < completed ? "bg-slate-900" : "bg-slate-200"}`}
               />
             ))}
-            <span className="ml-2 shrink-0 text-xs font-semibold tabular-nums text-slate-600">
+            <span className="ml-2 shrink-0 text-xs font-semibold tabular-nums text-slate-600" aria-live="polite">
               {count} / {template.targetPerWeek}{exceeded ? ` +${exceeded}` : ""}
             </span>
           </div>

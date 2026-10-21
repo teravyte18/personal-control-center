@@ -181,7 +181,7 @@ export default function LibraryPage() {
           <h2>Library</h2>
           <p className="pcc-context">{books.length} {books.length === 1 ? "book" : "books"}</p>
         </div>
-        <button type="button" onClick={() => setCreating(true)} className="min-h-11 shrink-0 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white active:scale-[0.99]">
+        <button type="button" onClick={() => setCreating(true)} className="pcc-control">
           Add book
         </button>
       </div>

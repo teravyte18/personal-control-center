@@ -6,6 +6,7 @@ import { ProjectDetail, formatDateOnly } from "@/components/project-detail";
 import { isProjectActionPastCheckIn } from "@/domain/project-dates";
 import { focusMatches, getRhythmPeriod } from "@/domain/weekly-rhythm";
 import { areaLabels, getOpenProjectActions, type AreaId, usePersonalData, useRhythmData } from "@/lib/personal-data";
+import { useSourceRecord } from "@/hooks/use-source-record";
 
 type View = "active" | "waiting" | "all";
 type AreaFilter = "all" | AreaId | "incubating";
@@ -18,7 +19,9 @@ export default function ProjectsPage() {
   const [area, setArea] = useState<AreaFilter>("all");
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState("");
-  const [detailId, setDetailId] = useState("");
+  const sourceId = useSourceRecord("project");
+  const [detailOverride, setDetailId] = useState<string | null>(null);
+  const detailId = detailOverride ?? sourceId;
   const [creating, setCreating] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");

@@ -219,7 +219,7 @@ function NearTermPanel({ entries }: { entries: HomeNearTermEntry[] }) {
 function TodayRow({ entry }: { entry: HomeNearTermEntry }) {
   const overdue = entry.state === "overdue";
   const upcoming = entry.state === "upcoming";
-  const href = entry.kind === "task" ? "/tasks" : "/projects";
+  const href = entry.kind === "task" ? `/tasks?task=${encodeURIComponent(entry.sourceId)}` : `/projects?project=${encodeURIComponent(entry.sourceId)}`;
 
   return (
     <Link href={href} className="group flex min-w-0 max-w-full gap-3 overflow-hidden py-3 first:pt-0 last:pb-0">

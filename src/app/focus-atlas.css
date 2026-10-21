@@ -58,6 +58,7 @@ input, textarea { caret-color: var(--theme-accent); }
 .pcc-dock-pins { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); }
 .pcc-dock-link { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 50px; gap: 4px; font-size: 12px; line-height: 18px; border-radius: 12px; color: var(--foreground); text-align: center; }
 .pcc-navigation-icon { display: block; width: 20px; height: 20px; mask-repeat: no-repeat; mask-position: center; background: currentColor; }
+.pcc-capture-glyph { display: block; mask: url("/focus-atlas/capture.svg") no-repeat center; background: currentColor; }
 .pcc-all-spaces { display: flex; align-items: center; justify-content: center; margin-top: 4px; min-height: 44px; font-size: 14px; font-weight: 500; }
 .theme-nav-active { background: var(--pcc-selected); color: var(--foreground); box-shadow: none; }
 .pcc-skip-link { position: fixed; left: 16px; top: -80px; z-index: 200; padding: 12px 20px; background: var(--theme-surface); color: var(--foreground); border: 1px solid var(--theme-line); border-radius: 12px; }
@@ -67,6 +68,7 @@ input, textarea { caret-color: var(--theme-accent); }
 .pcc-view-controls { display: flex; gap: 8px; margin-block: 16px; }
 .pcc-view-controls > * { flex: 1; }
 .pcc-view-controls .is-selected { background: var(--theme-home-bg); color: var(--theme-home-fg); }
+.pcc-control.is-selected { background: var(--foreground); color: var(--background); border-color: var(--foreground); }
 .pcc-empty { padding: 24px; border: 1px dashed var(--theme-line); border-radius: 16px; color: var(--pcc-muted); font-size: 14px; }
 .pcc-record { display: block; padding: 12px 16px; text-align: left; min-width: 0; }
 .pcc-record-title { font-size: 14px; line-height: 20px; overflow-wrap: anywhere; }
@@ -105,11 +107,15 @@ input, textarea { caret-color: var(--theme-accent); }
 .pcc-week-columns { display: grid; gap: 24px; margin-top: 20px; align-items: start; }
 .pcc-week-section { min-width: 0; scroll-margin-top: 24px; }
 .pcc-week-section .pcc-section-title { margin: 0; }
-.pcc-rhythm-card { padding: 12px; border-radius: 16px; background: var(--theme-surface); }
-.pcc-rhythm-progress { position: relative; display: flex; gap: 4px; margin-top: 12px; padding-top: 4px; }
-.pcc-rhythm-progress > span:last-child { position: absolute; right: 0; top: -48px; background: var(--theme-surface); padding-left: 12px; }
+.pcc-rhythm-card { position: relative; padding: 12px; border-radius: 16px; background: var(--theme-surface); }
+.pcc-rhythm-card > div:first-child > div > p:first-child { padding-right: 70px; overflow-wrap: anywhere; }
+.pcc-rhythm-progress { display: flex; gap: 4px; margin-top: 12px; padding-top: 4px; }
+.pcc-rhythm-progress > span:last-child { position: absolute; right: 12px; top: 12px; background: var(--theme-surface); padding-left: 12px; }
 .pcc-rhythm-commands { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; margin-top: 8px; }
 .pcc-rhythm-commands > button { min-width: 0; padding-inline: 8px; }
+.pcc-week-columns > div { display: flex; flex-direction: column; gap: 24px; }
+.pcc-week-columns > div > section { margin: 0; }
+#week-dated-work { order: -1; }
 .pcc-editor { overscroll-behavior: contain; }
 .pcc-editor > form > header { position: fixed; top: auto; bottom: 0; left: 0; right: 0; border-block: 1px solid var(--theme-line); background: var(--theme-surface); padding: 12px 20px calc(12px + env(safe-area-inset-bottom,0px)); backdrop-filter: none; }
 .pcc-editor > form > header > div { max-width: none; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); }
@@ -156,6 +162,19 @@ input, textarea { caret-color: var(--theme-accent); }
 .pcc-expense-metric > p:last-child { font-size: 28px; line-height: 34px; font-variant-numeric: tabular-nums; }
 .pcc-expense-buckets { display: grid; gap: 16px; }
 .pcc-expense-buckets > div { border: 0; background: transparent; padding-inline: 0; }
+.pcc-main .pcc-control.theme-home-button, html .pcc-main .bg-slate-950.text-white { background: var(--foreground); color: var(--background); border-color: var(--foreground); }
+.pcc-agenda-days { display: grid; gap: 32px; margin-top: 24px; align-items: start; }
+.pcc-agenda-event { padding: 12px 0; min-width: 0; }
+.pcc-agenda-event button { min-width: 44px; min-height: 44px; }
+.pcc-context-columns { display: grid; gap: 24px; min-width: 0; align-items: start; }
+.pcc-auth { min-height: 100dvh; }
+.pcc-auth-brand { padding: 20px; background: var(--theme-surface); }
+.pcc-auth-content { padding: 20px; }
+.pcc-auth h1 { font-size: 28px; font-weight: 500; line-height: 34px; }
+.pcc-auth-form { display: grid; gap: 20px; padding: 20px; background: var(--theme-surface); border-radius: 16px; margin-top: 24px; }
+.pcc-auth input { border-radius: 12px; border-color: var(--theme-line); background: var(--theme-surface); color: var(--foreground); font-size: 16px; }
+.pcc-auth-form > button { border-radius: 12px; background: var(--foreground); color: var(--background); min-height: 48px; }
+.pcc-shell[data-space="keychain"] .pcc-main > section > form { max-width: 720px; border: 0; border-radius: 16px; padding: 20px; }
 .pcc-recipe-row { min-width: 0; }
 .pcc-recipe-row .line-clamp-2 { display: block; overflow: visible; }
 @media (pointer: coarse) { .pcc-main .input { font-size: 16px; } }
@@ -202,6 +221,13 @@ input, textarea { caret-color: var(--theme-accent); }
   .pcc-account-sections { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
   .pcc-expense-metrics { grid-template-columns: repeat(4,minmax(0,1fr)); }
   .pcc-expense-buckets { max-width: 70%; }
+  .pcc-agenda-days { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .pcc-context-columns { grid-template-columns: minmax(320px,1.2fr) minmax(0,.8fr); }
+  .pcc-auth { padding-left: var(--pcc-rail-width); }
+  .pcc-auth-brand { position: fixed; inset: 0 auto 0 0; width: var(--pcc-rail-width); }
+  .pcc-auth-content { padding: 32px; }
+  .pcc-auth-form { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .pcc-auth-form > button, .pcc-auth-form > p { grid-column: 1 / -1; }
   :is(.pcc-editor,.pcc-project-detail,.pcc-note-editor) { left: var(--pcc-rail-width); }
   .pcc-editor > form > header { left: var(--pcc-rail-width); }
   .pcc-editor > form > main { padding: 32px 24px 96px; }

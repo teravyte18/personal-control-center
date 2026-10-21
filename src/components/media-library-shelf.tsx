@@ -102,7 +102,7 @@ export function MediaLibraryShelf({ type }: { type: MediaType }) {
           <h2>Library</h2>
           <p className="pcc-context">{media.length} {media.length === 1 ? singular : label.toLocaleLowerCase()}</p>
         </div>
-        <button type="button" onClick={() => setCreating(true)} className="min-h-11 shrink-0 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white active:scale-[0.99]">
+        <button type="button" onClick={() => setCreating(true)} className="pcc-control">
           Add {singular}
         </button>
       </div>

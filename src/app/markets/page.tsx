@@ -72,6 +72,8 @@ export default function MarketsPage() {
   const [adding, setAdding] = useState(false);
   const [removing, setRemoving] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [selectedSymbol, setSelectedSymbol] = useState("");
+  const selected = quotes.find(item => item.symbol === selectedSymbol) ?? quotes[0];
 
   useEffect(() => {
     let cancelled = false;
@@ -216,18 +218,17 @@ export default function MarketsPage() {
       {!loaded ? (
         <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500">Loading watchlist…</div>
       ) : quotes.length ? (
-        <div className="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="pcc-task-layout" data-detail-open={Boolean(selectedSymbol)}><div className="pcc-task-list">
           {quotes.map((item, index) => (
             <div
               key={item.symbol}
               className={`flex min-h-20 items-center gap-3 px-4 py-3 ${index ? "border-t border-slate-100" : ""}`}
             >
-              <a
-                href={tradingViewSearch(item.symbol)}
-                target="_blank"
-                rel="noreferrer"
-                className="min-w-0 flex-1"
-                aria-label={`Open ${item.symbol} in TradingView search`}
+              <button
+                type="button"
+                onClick={() => setSelectedSymbol(item.symbol)}
+                className="min-w-0 flex-1 text-left"
+                aria-label={`Inspect ${item.symbol}`}
               >
                 <div className="flex items-center gap-2">
                   <p className="font-semibold text-slate-950">{item.symbol}</p>
@@ -236,7 +237,7 @@ export default function MarketsPage() {
                 <p className="mt-1 truncate text-xs text-slate-500">
                   {item.quote?.name || item.error || "Quote unavailable"}
                 </p>
-              </a>
+              </button>
 
               <div className="shrink-0 text-right">
                 {item.quote ? (
@@ -265,6 +266,7 @@ export default function MarketsPage() {
             </div>
           ))}
         </div>
+        <aside className="pcc-task-detail"><button className="pcc-task-back pcc-control mb-4" onClick={() => setSelectedSymbol("")}>Back to watchlist</button>{selected ? <><h3 className="pcc-section-title">{selected.symbol} · {selected.quote?.name || "Quote unavailable"}</h3>{selected.quote ? <><p className="text-2xl tabular-nums">{formatPrice(selected.quote.price,selected.quote.currency,selected.quote.priceHint)}</p><p className={`mt-2 text-sm ${movementClass(selected.quote.change)}`}>{formatChange(selected.quote)}</p></> : <p className="pcc-record-meta">{selected.error}</p>}<a href={tradingViewSearch(selected.symbol)} target="_blank" rel="noreferrer" className="pcc-control mt-4">Open in TradingView</a><button className="pcc-control ml-2 mt-4" disabled={removing === selected.symbol} onClick={() => void removeTicker(selected.symbol)}>Remove</button></> : null}</aside></div>
       ) : (
         <div className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-500">
           Your watchlist is empty. Add a Yahoo Finance ticker above.

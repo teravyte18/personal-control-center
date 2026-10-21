@@ -41,14 +41,13 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12 text-slate-950">
-      <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-900/5 sm:p-8">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-950 text-lg font-semibold text-white">P</div>
-        <p className="mt-7 text-sm font-medium text-slate-500">Personal Control Center</p>
-        <h1 className="mt-1 text-3xl font-semibold tracking-tight">Sign in to your space.</h1>
+    <main className="pcc-auth">
+      <aside className="pcc-auth-brand"><span className="pcc-brand">PCC</span><p className="pcc-record-meta">Personal Control Center</p></aside>
+      <div className="pcc-auth-content">
+        <h1>Sign in</h1>
         <p className="mt-3 text-sm leading-6 text-slate-500">Accounts are invite-only. Your cards, projects, thoughts, and reviews remain separate from every other account.</p>
 
-        <form className="mt-7 space-y-4" onSubmit={submit}>
+        <form className="pcc-auth-form" onSubmit={submit}>
           <label className="block">
             <span className="text-sm font-medium text-slate-700">Email</span>
             <input
@@ -74,7 +73,7 @@ export default function LoginPage() {
             />
           </label>
 
-          {error ? <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p> : null}
+          {error ? <p role="alert" className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p> : null}
 
           <button
             className="w-full rounded-2xl bg-slate-950 px-4 py-3 font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"

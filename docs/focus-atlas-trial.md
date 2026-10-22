@@ -4,18 +4,19 @@ Status: implemented and deployed for personal trial on `agent/focus-atlas-trial`
 
 ## Active usage trial — 22 October 2026
 
-The owner has chosen to use the branch for a few days before returning feedback. The trial is underway; no finish date or automatic merge date is agreed. Passing validation and the visual review do not replace the owner's usage feedback or merge approval.
+The owner has chosen to use the branch for a few days before returning feedback and has explicitly authorized replacing the normal production UI with this unmerged branch. Use the usual HTTPS URL on 443; the separate 8443 preview is retired. Redeploy `main` to restore the earlier UI. No finish date or automatic merge date is agreed. Production deployment for testing does not constitute design acceptance or merge approval.
 
 | Gate | State |
 | --- | --- |
-| Implementation and authenticated preview | Available |
+| Implementation and normal-URL production trial | Authorized for owner usage |
 | Automated checks and browser/visual review | Completed at the scope documented below |
 | Owner usage trial | In progress |
 | Owner feedback and follow-up adjustments | Pending |
 | Explicit approval to merge | Pending |
-| Merge and replacement of stable main deployment | Not authorized |
+| Replace the production UI for usage testing | Authorized |
+| Merge to main | Not authorized |
 
-Keep PR #102 in draft and make subsequent feedback-driven changes on the same branch. Keep the stable main deployment and preview available during the trial. Do not withdraw the preview or promote it to main merely because several days have passed.
+Keep PR #102 in draft and make subsequent feedback-driven changes on the same branch. The previous UI does not need a second running service: the unchanged main branch is the rollback source. Do not merge merely because several days have passed.
 
 ## Direction
 
@@ -57,7 +58,7 @@ Checked means the implementation retains the capability and its existing domain/
 - GitHub CI run [732](https://github.com/teravyte18/personal-control-center/actions/runs/39758554688) passes for application commit `43ae934`, including Quality and Production stack (persistence, authentication, private artwork, Keychain server boundaries, PWA and backup checks).
 - The documentation handoff commit `847abcc` also passed [CI run 733](https://github.com/teravyte18/personal-control-center/actions/runs/39759447155); its previously pending rerun is complete. These are recorded validation points, not claims about later commits.
 - Production ARM64 image built on the existing Pi. Base, Funnel and trial Compose configuration and trial shell syntax validated. Both main and trial report healthy; unauthenticated trial page returns 307 to login and personal-data API returns 401.
-- Main remains on `271ce085195c826e147cd5d7285ec6bc9d910bc8`; its container was not replaced. Trial uses a second application process. No domain, provider, API, database, crypto or authentication implementation changed.
+- At the initial separate-preview validation, main was on `271ce085195c826e147cd5d7285ec6bc9d910bc8` and its container was not replaced. The owner subsequently authorized the normal-URL production trial described below. No domain, provider, API, database, crypto or authentication implementation changed.
 
 ### Browser checks
 
@@ -79,13 +80,15 @@ A fresh Impeccable reviewer inspected all 66 primary captures and the selected F
 
 ### Preview and rollback
 
-The owner receives the authenticated HTTPS trial URL directly, outside the repository. Port 8443 serves the trial; existing port 443 serves main. **The trial shares the real account database and private uploads:** ordinary edits made during the trial are real and also appear in main. A pre-deployment backup runs through the existing validated backup process. No schema migration or data-copy/import occurs.
+The trial now replaces the normal `app` UI at the usual authenticated HTTPS URL on 443. The repository branch remains unmerged. The earlier `app-trial` service and 8443 ingress are retired. **This is real account data and private uploads:** ordinary edits made during the trial survive a UI rollback. Do not restore a database backup just to change the UI.
 
-Deploy from the separate clean branch checkout with `PCC_TRIAL_PUBLIC_URL=https://<existing-tailnet-host>:8443 sh scripts/deploy-trial.sh`. The script rejects main, the live checkout, and changes to persistence/authentication boundaries. It starts only `app-trial` and leaves workers/main intact.
+From the clean live deployment checkout, use `sh scripts/deploy-production.sh agent/focus-atlas-trial`. Non-main refs deploy at their fetched commit in detached HEAD, so a branch already held by a separate worktree does not cause a checkout conflict. That worktree and the main branch remain intact. The normal script validates pre-deployment database/upload backups and recreates the application/Tailscale stack with existing runtime configuration.
 
-To withdraw the UI trial, run the existing live Compose command's `exec -T tailscale tailscale funnel --https=8443 off`, then the trial Compose command's `stop app-trial`. Do not stop main, disable port 443, run `down`, remove volumes or restore backups for an ordinary UI rollback. UI rollback does not undo ordinary personal data edits. A future recreation of main's application network namespace may require recreating `app-trial` too.
+For UI rollback, run `sh scripts/deploy-production.sh main` from the same live deployment checkout. No volume deletion or data import is required. There is no destructive schema change in this UI branch.
 
-Exact preview deployment and withdrawal commands are in [`phone-deployment.md`](phone-deployment.md#separate-focus--atlas-trial).
+The deployment regression test exercises a trial branch held by another worktree, verifies that the live checkout deploys its exact commit without moving the worktree or main, and then returns the synthetic deployment to main. It uses fake Docker/health commands and a disposable Git repository, not production data.
+
+Exact production-trial and rollback instructions are in [`phone-deployment.md`](phone-deployment.md#focus--atlas-on-the-normal-production-url).
 
 ## Trial notes
 

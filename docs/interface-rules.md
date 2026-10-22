@@ -1,6 +1,6 @@
 # Interface Rules
 
-These rules describe the Focus + Atlas trial branch while preserving the existing theme and workflow constraints. The stable main deployment remains separate until owner approval; see [`focus-atlas-trial.md`](focus-atlas-trial.md).
+These rules describe the Focus + Atlas trial branch while preserving the existing theme and workflow constraints. The owner has authorized using it as the normal production UI while keeping main unmerged as the rollback source; see [`focus-atlas-trial.md`](focus-atlas-trial.md).
 
 The guiding principle is:
 

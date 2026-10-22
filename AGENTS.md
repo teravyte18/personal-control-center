@@ -31,7 +31,8 @@
 ### Active Focus + Atlas trial
 
 - `agent/focus-atlas-trial` / draft PR #102 is in owner usage trial as of 22 October 2026; feedback and merge approval are pending.
-- Keep fixes on that branch. Do not merge, mark the trial approved, or replace the stable main deployment because time has elapsed or checks have passed. Wait for explicit owner approval.
+- The owner has explicitly authorized deploying this unmerged branch as the normal production UI on HTTPS 443, replacing the earlier separate 8443 preview. Use `scripts/deploy-production.sh agent/focus-atlas-trial`; redeploy `main` to restore the previous UI. Preserve canonical data and backups.
+- Keep fixes on the trial branch. Production deployment for usage testing is authorized; merging and marking the design approved are not. Wait for explicit owner merge approval regardless of elapsed time or green checks.
 - Read `docs/focus-atlas-trial.md` for preservation coverage, known limitations, shared real-data preview semantics and rollback. Use `DESIGN.md` for the implemented visual system and the revised Figma references named in the trial guide.
 - Keep private trial records, screenshots and identifying feedback out of this public repository; use sanitized fictional reproductions.
 

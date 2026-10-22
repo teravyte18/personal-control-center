@@ -16,7 +16,7 @@ A separate native application should only be introduced if an important workflow
 
 ### Focus + Atlas trial status
 
-The responsive UI on `agent/focus-atlas-trial` / draft PR #102 is in owner usage trial as of 22 October 2026. It does not change the domain, provider, API, database, crypto or authentication implementations. Main remains the stable deployment; merge approval is pending. The interface details below describe this branch. See [`focus-atlas-trial.md`](focus-atlas-trial.md) and [`../DESIGN.md`](../DESIGN.md) for coverage and visual tokens.
+The responsive UI on `agent/focus-atlas-trial` / draft PR #102 is in owner usage trial as of 22 October 2026. It does not change the domain, provider, API, database, crypto or authentication implementations. The owner has authorized replacing the normal production UI with this unmerged branch; main remains the rollback source and merge approval is pending. The interface details below describe this branch. See [`focus-atlas-trial.md`](focus-atlas-trial.md) and [`../DESIGN.md`](../DESIGN.md) for coverage and visual tokens.
 
 ## Current stack
 
@@ -79,7 +79,7 @@ graph TD
 
 The host publishes the app only on `127.0.0.1:3000`. PostgreSQL is not published outside the Compose network. The Tailscale container uses the app container's network namespace and is the only intended public ingress path.
 
-During this trial, `compose.trial.yaml` adds only `app-trial`, which shares `app`'s network namespace and listens internally on 3002 without publishing a new host port. Funnel HTTPS 8443 targets that process; 443 continues to target main on 3000. The trial uses the existing authenticated accounts, canonical PostgreSQL data and private upload tree, so edits in either UI are visible in both. It starts no migration or duplicate workers. Existing backups run before deployment. Recreating main's network namespace can require recreating the trial service as well. See [`phone-deployment.md`](phone-deployment.md#separate-focus--atlas-trial) for the separate-service deployment and rollback commands.
+The current trial uses the normal topology above: the unmerged branch replaces `app` on 3000, served by the usual HTTPS origin on 443. Existing accounts, PostgreSQL, private uploads and workers are retained. Normal pre-deployment backups apply; the UI branch introduces no schema change. Non-main refs deploy at their fetched commit in detached HEAD so a branch held by a separate worktree is not moved. Redeploying main restores its UI without undoing ordinary data edits. The earlier `compose.trial.yaml` / `app-trial` / 8443 setup is retired. See [`phone-deployment.md`](phone-deployment.md#focus--atlas-on-the-normal-production-url) for deployment and rollback.
 
 See:
 

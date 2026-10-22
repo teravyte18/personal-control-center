@@ -27,7 +27,7 @@ The repository is public. Code, documentation, fixtures, examples, issues, and c
 
 ### Current interface trial
 
-The selected revised Focus phone and Atlas desktop direction is implemented on `agent/focus-atlas-trial` in draft PR #102. As of 22 October 2026, the owner is using it for a few days before feedback. The preview and stable main deployment are separate application services sharing the existing account data and uploads; preview edits are real. The trial is not merged or approved for promotion.
+The selected revised Focus phone and Atlas desktop direction is implemented on `agent/focus-atlas-trial` in draft PR #102. As of 22 October 2026, the owner is using it for a few days before feedback and has authorized replacing the normal production UI with this branch. It uses the usual authenticated HTTPS URL, real account data and private uploads. The separate 8443 preview is retired. Main remains unmerged and can be redeployed to restore the earlier UI; production usage testing does not constitute merge approval.
 
 Use [`focus-atlas-trial.md`](focus-atlas-trial.md) for acceptance coverage, limitations, feedback and merge gates, and [`../DESIGN.md`](../DESIGN.md) for the implemented responsive visual system. Figma determines visual/interaction direction; existing application capability and data semantics remain the preservation baseline. The capture-centred graph Home is deferred.
 

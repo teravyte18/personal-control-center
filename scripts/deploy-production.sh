@@ -56,8 +56,15 @@ tar -tzf "$uploads_backup_path" >/dev/null
 
 echo "Deploying origin/$DEPLOY_REF (previous commit: $previous_commit)"
 git fetch origin "$DEPLOY_REF"
-git checkout "$DEPLOY_REF"
-git pull --ff-only origin "$DEPLOY_REF"
+if [ "$DEPLOY_REF" = main ]; then
+  git checkout main
+  git pull --ff-only origin main
+else
+  # A trial branch may already belong to a separate worktree. Deploy the
+  # fetched commit without claiming that branch or moving its worktree.
+  deploy_commit="$(git rev-parse --verify 'FETCH_HEAD^{commit}')"
+  git checkout --detach "$deploy_commit"
+fi
 
 profile_args=""
 if grep -Eq '^PCC_FUNNEL_ENABLED=1$' .env; then

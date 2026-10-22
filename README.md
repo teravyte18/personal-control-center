@@ -4,7 +4,7 @@ A phone-first private planning, reflection, reading, cooking, and personal-spend
 
 This repository targets a small personal deployment rather than a commercial product. Multiple invite-only accounts may use one application and PostgreSQL database, but each account has completely separate personal data.
 
-The revised Focus phone and Atlas desktop implementation is in an active personal usage trial on `agent/focus-atlas-trial`. On 22 October 2026, the owner chose to use it for a few days before giving feedback. See the [personal trial guide](docs/focus-atlas-trial.md) for preservation coverage, validation, limitations, feedback format and rollback. Keep [PR #102](https://github.com/teravyte18/personal-control-center/pull/102) in draft; feedback and explicit merge approval are still pending. Main remains the separate stable deployment.
+The revised Focus phone and Atlas desktop implementation is in an active personal usage trial on `agent/focus-atlas-trial`. The owner has authorized using this unmerged branch as the normal production UI on the usual HTTPS URL, replacing the separate 8443 preview. Redeploy `main` to restore the previous UI. See the [personal trial guide](docs/focus-atlas-trial.md) for preservation coverage, validation, limitations, feedback format and rollback. Keep [PR #102](https://github.com/teravyte18/personal-control-center/pull/102) in draft; feedback and explicit merge approval are still pending.
 
 ## System principles
 

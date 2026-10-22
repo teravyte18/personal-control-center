@@ -2,7 +2,7 @@
 
 **Status: broad consolidation delivered. Future UI changes are usage-led rather than a selected generic redesign slice.**
 
-**Superseding direction, 22 October 2026:** the owner selected the latest revised Focus phone and Atlas desktop designs. Their implementation is now in personal trial on `agent/focus-atlas-trial` / draft PR #102, with feedback and merge approval pending. This document retains the earlier consolidation rationale; its exploratory composition and typography guidance does not override the selected Figma frames or [`../DESIGN.md`](../DESIGN.md). See [`focus-atlas-trial.md`](focus-atlas-trial.md) for current status and boundaries. Main remains separately deployed, and the graph Home remains deferred.
+**Superseding direction, 22 October 2026:** the owner selected the latest revised Focus phone and Atlas desktop designs. Their implementation is now in personal trial on `agent/focus-atlas-trial` / draft PR #102, with feedback and merge approval pending. This document retains the earlier consolidation rationale; its exploratory composition and typography guidance does not override the selected Figma frames or [`../DESIGN.md`](../DESIGN.md). See [`focus-atlas-trial.md`](focus-atlas-trial.md) for current status and boundaries. The owner authorized the trial as the normal production UI, with unmerged main available for rollback; the graph Home remains deferred.
 
 This document records the interface consolidation work completed after the application grew from a small planner into a broader personal control center.
 

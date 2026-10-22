@@ -2,13 +2,38 @@
 
 This is the current production procedure for exposing the authenticated application through a stable Tailscale HTTPS hostname without buying a domain, opening inbound router ports, or publishing PostgreSQL.
 
-The Focus + Atlas branch is in a separate owner usage trial, with feedback and merge approval pending. Follow the trial section below for that service. The normal production procedure remains for stable main; do not promote the trial branch through it before approval.
+The owner has authorized using the unmerged Focus + Atlas branch as the normal production UI. Merge approval is still pending. The deployment method and rollback are below.
 
-**Use `scripts/deploy-trial.sh` from the separate trial checkout. Do not run `scripts/deploy-production.sh agent/focus-atlas-trial` from the live main checkout.** The production script replaces the main application; it is not a preview deployment command.
+## Focus + Atlas on the normal production URL
 
-## Separate Focus + Atlas trial
+The current trial replaces `app` on the usual HTTPS URL on 443. There is no need to use port 8443 or keep the old UI running. The branch stays `agent/focus-atlas-trial` and PR #102 stays draft. Deploying it for usage testing is authorized; merging is not.
 
-As of 22 October 2026, `agent/focus-atlas-trial` / draft PR #102 is available for a few days of owner use before feedback. Keep main on its stable deployment and keep the PR draft. No trial end date or automatic merge is agreed. See [`focus-atlas-trial.md`](focus-atlas-trial.md) for coverage, known limitations and the feedback format.
+From the clean live deployment checkout:
+
+```bash
+cd /opt/personal-control-center
+sh scripts/deploy-production.sh agent/focus-atlas-trial
+```
+
+The script validates database/upload backups, fetches the requested ref, and deploys non-main refs in detached HEAD. This avoids Git's branch-in-another-worktree restriction without moving or removing that worktree. Subsequent trial updates use the same command. Existing `.env`, HTTPS origin, authentication, database, uploads and workers are retained. Do not copy secrets into the trial checkout or reset unrelated local work.
+
+To restore the prior UI, use the same live checkout:
+
+```bash
+sh scripts/deploy-production.sh main
+```
+
+This returns the checkout and deployed UI to main. It does not undo ordinary trial data edits. Do not remove volumes or restore a database backup for a UI rollback. The main branch itself remains unchanged by either deployment command.
+
+When transitioning from the earlier preview, disable only its 8443 Funnel ingress before the normal production deployment. The normal script's orphan cleanup removes the obsolete `app-trial` container; do not delete its shared uploads or PostgreSQL data. Keep HTTPS 443 routed to the normal `app` on 3000.
+
+If the live checkout still contains the older deployment script that fails on a branch held by another worktree, run the updated script by its absolute path in the clean trial worktree while keeping the live checkout as the current directory. After the first successful deployment, the usual relative command above works. Do not force checkout or remove a worktree to bypass the error.
+
+See [`focus-atlas-trial.md`](focus-atlas-trial.md) for coverage, known limitations, feedback and the pending merge gate.
+
+## Earlier separate Focus + Atlas preview — retired
+
+The following procedure records the original separate-service setup. It was superseded by the owner's request to use the normal production URL. It is not the current trial deployment procedure.
 
 ### Boundaries
 

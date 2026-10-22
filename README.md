@@ -4,6 +4,8 @@ A phone-first private planning, reflection, reading, cooking, and personal-spend
 
 This repository targets a small personal deployment rather than a commercial product. Multiple invite-only accounts may use one application and PostgreSQL database, but each account has completely separate personal data.
 
+The `agent/focus-atlas-trial` branch implements the revised Focus phone and Atlas desktop direction. See the [personal trial guide](docs/focus-atlas-trial.md) for preservation coverage, validation, limitations and rollback. Keep [PR #102](https://github.com/teravyte18/personal-control-center/pull/102) in draft until the owner has used the authenticated preview and explicitly approved merging.
+
 ## System principles
 
 - Capture first; organise later.

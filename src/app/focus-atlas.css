@@ -136,7 +136,7 @@ input, textarea { caret-color: var(--theme-accent); }
 .pcc-note-preview { display: none; }
 .pcc-task-layout { margin-top: 24px; }
 .pcc-task-list { display: grid; gap: 16px; align-content: start; }
-.pcc-task-detail { display: none; }
+.pcc-task-detail { display: none; min-width: 0; overflow-wrap: anywhere; }
 .pcc-task-layout[data-detail-open="true"] .pcc-task-list { display: none; }
 .pcc-task-layout[data-detail-open="true"] .pcc-task-detail { display: block; }
 .pcc-space-groups { display: grid; gap: 24px; margin-top: 24px; }

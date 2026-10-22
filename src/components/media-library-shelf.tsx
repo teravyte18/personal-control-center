@@ -130,7 +130,6 @@ export function MediaLibraryShelf({ type }: { type: MediaType }) {
 
       {media.length === 0 ? (
         <div className="mt-8 rounded-[2rem] border border-dashed border-slate-300 bg-white p-8 text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-slate-300 bg-slate-50 text-2xl">{type === "film" ? "🎬" : "📺"}</div>
           <h3 className="mt-5 text-lg font-semibold">No {label.toLocaleLowerCase()} yet.</h3>
           <p className="mt-2 text-sm leading-6 text-slate-500">Add something you want to watch, are watching, finished, or dropped.</p>
           <button type="button" onClick={() => setCreating(true)} className="mt-5 min-h-11 rounded-xl bg-slate-950 px-5 text-sm font-semibold text-white">Add first {singular}</button>

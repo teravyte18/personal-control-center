@@ -157,6 +157,7 @@ export default function AgendaPage() {
   const [working, setWorking] = useState(false);
   const [error, setError] = useState("");
   const [formOpen, setFormOpen] = useState(false);
+  const [view, setView] = useState<"day" | "week" | "upcoming">("week");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<EventFormState>(() => initialFormState());
 
@@ -185,12 +186,17 @@ export default function AgendaPage() {
     const grouped = new Map<string, AgendaEvent[]>();
     for (const event of agenda?.events ?? []) {
       const key = eventDateKey(event);
+      const today = localDateInput();
+      const end = new Date(`${today}T12:00:00`);
+      end.setDate(end.getDate() + 6);
+      if (view === "day" && key !== today) continue;
+      if (view === "week" && (key < today || key > localDateInput(end))) continue;
       const current = grouped.get(key) ?? [];
       current.push(event);
       grouped.set(key, current);
     }
     return [...grouped.entries()].sort(([left], [right]) => left.localeCompare(right));
-  }, [agenda]);
+  }, [agenda, view]);
 
   function openNewEvent() {
     setEditingId(null);
@@ -282,9 +288,7 @@ export default function AgendaPage() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-3xl font-semibold tracking-tight">Agenda</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-            Your upcoming Google Calendar events together with dated Tasks and Project Actions.
-          </p>
+          <p className="pcc-context">Calendar commitments &amp; dated PCC work</p>
         </div>
         <div className="flex gap-2">
           <button
@@ -305,6 +309,7 @@ export default function AgendaPage() {
           </button>
         </div>
       </div>
+      <div className="pcc-view-controls">{(["day","week","upcoming"] as const).map(value => <button key={value} className={`pcc-control ${view === value ? "is-selected" : ""}`} aria-pressed={view === value} onClick={() => setView(value)}>{value === "day" ? "Day" : value === "week" ? "Next 7 days" : "Upcoming · 90 days"}</button>)}</div>
 
       {error ? <p className="mt-5 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p> : null}
 
@@ -436,13 +441,13 @@ export default function AgendaPage() {
       ) : null}
 
       {!loading && agenda?.connected && !agenda.needsReconnect ? (
-        <div className="mt-7 space-y-7">
+        <div className="pcc-agenda-days">
           {groups.length ? groups.map(([date, events]) => (
             <section key={date}>
               <h3 className="mb-3 text-sm font-semibold uppercase tracking-[0.1em] text-slate-400">{dateHeading(date)}</h3>
               <div className="space-y-2">
                 {events.map((event) => (
-                  <article key={`${event.calendarId}:${event.id}`} className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm sm:px-5">
+                  <article key={`${event.calendarId}:${event.id}`} className="pcc-agenda-event">
                     <div className="flex gap-4">
                       <div className="w-[5.5rem] shrink-0 pt-0.5 text-sm font-semibold text-slate-600">{eventTimeLabel(event)}</div>
                       <div className="min-w-0 flex-1">
@@ -480,7 +485,7 @@ export default function AgendaPage() {
             </section>
           )) : (
             <div className="rounded-3xl border border-dashed border-slate-200 bg-white/60 px-5 py-10 text-center text-sm text-slate-500">
-              Nothing scheduled in the next 90 days.
+              Nothing scheduled in this view.
             </div>
           )}
         </div>

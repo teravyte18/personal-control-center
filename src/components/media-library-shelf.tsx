@@ -21,6 +21,9 @@ import {
   type MediaType,
 } from "@/domain/media";
 import { usePersonalData } from "@/lib/personal-data";
+import { LibrarySectionTabs } from "@/components/library-section-tabs";
+import { useDialogFocus } from "@/hooks/use-dialog-focus";
+import { PrivateArtwork } from "@/components/private-artwork";
 
 const ratingValues = Array.from({ length: 21 }, (_, index) => index / 2);
 const statusLabels: Record<MediaStatus, string> = {
@@ -40,6 +43,7 @@ export function MediaLibraryShelf({ type }: { type: MediaType }) {
   const [view, setView] = useState<ShelfView>(type === "series" ? "watching" : "library");
   const [creating, setCreating] = useState(false);
   const [openMediaId, setOpenMediaId] = useState<string | null>(null);
+  const [previewId, setPreviewId] = useState("");
   const openMedia = media.find((entry) => entry.item.id === openMediaId);
 
   const visibleMedia = useMemo(() => sortMediaItems(media).filter((entry) => {
@@ -50,6 +54,7 @@ export function MediaLibraryShelf({ type }: { type: MediaType }) {
 
   const label = type === "film" ? "Movies" : "Series";
   const singular = type === "film" ? "movie" : "series";
+  const preview = visibleMedia.find(entry => entry.item.id === previewId) ?? visibleMedia[0];
   const viewOptions: { value: ShelfView; label: string }[] = type === "film"
     ? [
         { value: "library", label: "My movies" },
@@ -92,16 +97,17 @@ export function MediaLibraryShelf({ type }: { type: MediaType }) {
   }
 
   return (
-    <section className="mx-auto max-w-6xl">
-      <div className="flex items-end justify-between gap-4">
+    <section className="pcc-library">
+      <div className="pcc-heading">
         <div>
-          <p className="text-sm text-slate-500">{media.length} {media.length === 1 ? singular : label.toLocaleLowerCase()}</p>
-          <h2 className="mt-1 text-3xl font-semibold tracking-tight">{label}</h2>
+          <h2>Library</h2>
+          <p className="pcc-context">{media.length} {media.length === 1 ? singular : label.toLocaleLowerCase()}</p>
         </div>
-        <button type="button" onClick={() => setCreating(true)} className="min-h-11 shrink-0 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white active:scale-[0.99]">
-          New {singular}
+        <button type="button" onClick={() => setCreating(true)} className="pcc-control">
+          Add {singular}
         </button>
       </div>
+      <LibrarySectionTabs />
 
       <div className="mt-5 grid gap-2 sm:grid-cols-[minmax(0,1fr)_14rem]">
         <label>
@@ -124,7 +130,6 @@ export function MediaLibraryShelf({ type }: { type: MediaType }) {
 
       {media.length === 0 ? (
         <div className="mt-8 rounded-[2rem] border border-dashed border-slate-300 bg-white p-8 text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-slate-300 bg-slate-50 text-2xl">{type === "film" ? "🎬" : "📺"}</div>
           <h3 className="mt-5 text-lg font-semibold">No {label.toLocaleLowerCase()} yet.</h3>
           <p className="mt-2 text-sm leading-6 text-slate-500">Add something you want to watch, are watching, finished, or dropped.</p>
           <button type="button" onClick={() => setCreating(true)} className="mt-5 min-h-11 rounded-xl bg-slate-950 px-5 text-sm font-semibold text-white">Add first {singular}</button>
@@ -135,10 +140,22 @@ export function MediaLibraryShelf({ type }: { type: MediaType }) {
           <p className="mt-2 text-sm leading-6 text-slate-500">Change the search or selected view.</p>
         </div>
       ) : (
-        <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="pcc-collection-layout">
+        <div className="pcc-media-grid">
           {visibleMedia.map((entry) => (
-            <MediaCard key={entry.item.id} media={entry} onOpen={() => setOpenMediaId(entry.item.id)} />
+            <MediaCard key={entry.item.id} media={entry} onOpen={() => {
+              setPreviewId(entry.item.id);
+              if (!window.matchMedia("(min-width: 1200px)").matches) setOpenMediaId(entry.item.id);
+            }} />
           ))}
+        </div>
+        {preview ? <aside className="pcc-collection-detail" aria-label="Selected media">
+          <div className="pcc-detail-cover"><MediaPoster posterId={preview.details.posterId} title={preview.item.title} /></div>
+          <h3 className="pcc-section-title">{preview.item.title}</h3>
+          <p className="pcc-record-title">{statusLabels[preview.details.status]}{mediaProgressLabel(preview.details) ? ` · ${mediaProgressLabel(preview.details)}` : ""}</p>
+          {preview.details.rating !== undefined ? <p className="pcc-record-meta">{preview.details.rating.toFixed(1)} / 10</p> : null}
+          <button className="pcc-control theme-home-button" onClick={() => setOpenMediaId(preview.item.id)}>Open details</button>
+        </aside> : null}
         </div>
       )}
 
@@ -169,10 +186,10 @@ function MediaCard({ media, onOpen }: { media: MediaItem; onOpen: () => void }) 
   const progress = mediaProgressLabel(media.details);
   const showResume = media.details.type === "series" && media.details.status === "watching" && progress;
   return (
-    <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:border-slate-400">
+    <article className="pcc-media-card">
       <button type="button" onClick={onOpen} className="block w-full text-left active:bg-slate-50">
         <MediaPoster posterId={media.details.posterId} title={media.item.title} />
-        <div className="p-3">
+        <div className="pcc-media-caption">
           <div className="flex items-start justify-between gap-2">
             <p className="line-clamp-2 text-sm font-semibold leading-5 text-slate-900">{media.item.title}</p>
             {media.details.rating !== undefined ? (
@@ -189,18 +206,7 @@ function MediaCard({ media, onOpen }: { media: MediaItem; onOpen: () => void }) 
 
 function MediaPoster({ posterId, title, previewUrl = "" }: { posterId: string; title: string; previewUrl?: string }) {
   const imageUrl = previewUrl || (posterId ? `/api/media-posters/${encodeURIComponent(posterId)}` : "");
-  return imageUrl ? (
-    <div
-      role="img"
-      aria-label={`Poster for ${title}`}
-      className="aspect-[2/3] w-full bg-slate-100 bg-cover bg-center"
-      style={{ backgroundImage: `url(${JSON.stringify(imageUrl)})` }}
-    />
-  ) : (
-    <div className="flex aspect-[2/3] w-full items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 p-5 text-center">
-      <span className="line-clamp-4 text-sm font-semibold leading-5 text-slate-500">{title || "Untitled"}</span>
-    </div>
-  );
+  return <PrivateArtwork src={imageUrl} alt={`Poster for ${title}`} fallback="No poster added" />;
 }
 
 function MediaEditor({
@@ -219,6 +225,7 @@ function MediaEditor({
   onDelete?: () => Promise<void>;
 }) {
   const initialDetails = media?.details ?? normalizeMediaDetails({ ...createMediaDetails(), type, status: initialStatus });
+  const dialogRef = useDialogFocus<HTMLDivElement>();
   const [title, setTitle] = useState(media?.item.title ?? "");
   const [details, setDetails] = useState<MediaDetails>({ ...initialDetails, type });
   const [posterFile, setPosterFile] = useState<File | null>(null);
@@ -292,7 +299,7 @@ function MediaEditor({
   const noun = type === "film" ? "movie" : "series";
 
   return (
-    <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-50">
+    <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={media ? `Edit ${media.item.title}` : `New ${type === "film" ? "movie" : "series"}`} tabIndex={-1} className="pcc-editor pcc-media-editor fixed inset-0 z-[100] overflow-y-auto bg-slate-50">
       <form className="min-h-screen" onSubmit={submit}>
         <header className="sticky top-0 z-20 border-b border-slate-200 bg-slate-50/95 px-4 py-3 backdrop-blur sm:px-6">
           <div className="mx-auto flex max-w-5xl items-center justify-between gap-3">
@@ -303,6 +310,7 @@ function MediaEditor({
         </header>
 
         <main className="mx-auto grid w-full max-w-5xl gap-6 px-4 pb-28 pt-6 sm:px-6 md:grid-cols-[16rem_1fr]">
+          <h2>{media ? media.item.title : `New ${type === "film" ? "movie" : "series"}`}</h2>
           <aside>
             <div className="mx-auto max-w-[16rem] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"><MediaPoster posterId={shownPosterId} title={title} previewUrl={previewUrl} /></div>
             <label className="mt-4 flex min-h-11 cursor-pointer items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700">
@@ -345,7 +353,7 @@ function MediaEditor({
             <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
               <h3 className="text-sm font-semibold text-slate-900">Thoughts</h3>
               <p className="mt-1 text-xs leading-5 text-slate-500">Optional. Keep what you liked, disliked, or would want a future recommendation to understand.</p>
-              <textarea className="input mt-4 min-h-52 resize-y text-sm leading-6" value={details.thoughts} onChange={(event) => setDetails((current) => ({ ...current, thoughts: event.target.value }))} placeholder="What stood out, and why?" />
+              <textarea aria-label="Thoughts" className="input mt-4 min-h-52 resize-y text-sm leading-6" value={details.thoughts} onChange={(event) => setDetails((current) => ({ ...current, thoughts: event.target.value }))} placeholder="What stood out, and why?" />
             </section>
 
             {error ? <p className="rounded-xl bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700" aria-live="polite">{error}</p> : null}

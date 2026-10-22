@@ -9,6 +9,15 @@ import { ThemeCaptureIcon } from "@/components/theme-capture-icon";
 import { isDestinationActive, type Destination } from "@/lib/navigation";
 import { useDesktopQuickAccess, useMobileQuickAccess } from "@/lib/navigation-preferences";
 import { useThemePreference } from "@/lib/theme-preferences";
+import { usePersonalData } from "@/lib/personal-data";
+
+const designIcons = new Set(["projects", "tasks", "rhythm", "review"]);
+
+function NavigationIcon({ destination }: { destination: Destination }) {
+  return designIcons.has(destination.id)
+    ? <span aria-hidden="true" className="pcc-navigation-icon" style={{ maskImage: `url(/focus-atlas/${destination.id}.svg)` }} />
+    : <Icon name={destination.icon} className="h-5 w-5" />;
+}
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -16,94 +25,61 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { destinations: desktopDestinations } = useDesktopQuickAccess();
   const { destinations: mobileDestinations } = useMobileQuickAccess();
   const { theme } = useThemePreference();
+  const { loaded } = usePersonalData();
 
   return (
-    <div className="theme-shell min-h-screen bg-slate-50 text-slate-950">
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-24 flex-col items-center border-r border-slate-200 bg-white px-3 py-4 md:flex">
-        <Link href="/" className="theme-home-button flex h-12 w-12 items-center justify-center rounded-2xl shadow-lg" aria-label="Capture a thought">
-          <ThemeCaptureIcon theme={theme} className="h-8 w-8" />
-        </Link>
-
-        <nav className="mt-6 flex w-full flex-1 flex-col gap-1" aria-label="Pinned navigation">
+    <div className="theme-shell pcc-shell" data-space={pathname.split("/")[1] || "home"}>
+      <a className="pcc-skip-link" href="#working-surface">Skip to content</a>
+      <aside className="pcc-rail" aria-label="Desktop navigation">
+        <Link href="/" className="pcc-brand" aria-label="Personal Control Center">PCC</Link>
+        <p className="pcc-brand-context">Personal Control Center</p>
+        <nav className="pcc-pins" aria-label="Pinned navigation">
           {desktopDestinations.map((destination) => (
-            <RailLink key={destination.id} destination={destination} active={isDestinationActive(pathname, destination.href)} />
+            <Link key={destination.id} href={destination.href} className={isDestinationActive(pathname, destination.href) ? "pcc-nav-link theme-nav-active" : "pcc-nav-link"} aria-current={isDestinationActive(pathname, destination.href) ? "page" : undefined}>
+              {destination.id === "rhythm" ? "Week" : destination.label}
+            </Link>
           ))}
         </nav>
-
-        <Link
-          href="/spaces"
-          className={`mt-3 flex min-h-14 w-full flex-col items-center justify-center gap-1 rounded-2xl text-xs font-medium transition ${spacesActive ? "theme-nav-active" : "text-slate-500 hover:bg-slate-100 hover:text-slate-950"}`}
-          aria-current={spacesActive ? "page" : undefined}
-        >
-          <Icon name="spaces" />
-          Spaces
-        </Link>
+        <nav className="pcc-permanent" aria-label="Permanent navigation">
+          <Link href="/" className="pcc-control theme-home-button" aria-label="Capture a thought">
+            <ThemeCaptureIcon theme={theme} className="h-5 w-5" /><span>Capture</span>
+          </Link>
+          <Link href="/spaces" className="pcc-control" aria-current={spacesActive ? "page" : undefined}>All Spaces</Link>
+          <Link href="/account" className="pcc-control" aria-current={pathname === "/account" ? "page" : undefined}>Account &amp; access</Link>
+        </nav>
       </aside>
 
-      <div className="md:pl-24">
-        <main className="mx-auto min-h-screen max-w-6xl px-4 pb-[calc(env(safe-area-inset-bottom)+7.5rem)] pt-[calc(env(safe-area-inset-top)+1.5rem)] sm:px-6 md:px-8 md:pb-10 md:pt-8">
+      <header className="pcc-phone-header">
+        <Link href="/" className="pcc-brand" aria-label="Personal Control Center">PCC</Link>
+        <Link href="/account" className="pcc-control">Account</Link>
+      </header>
+      <div className="pcc-workspace">
+        <main id="working-surface" tabIndex={-1} className="pcc-main">
           <DataStatusBanner />
           <ReviewPeriodController />
-          {children}
+          {loaded ? children : <div role="status" aria-live="polite" className="pcc-loading"><p>Loading your space…</p><div /><div /><div /></div>}
         </main>
       </div>
 
-      <nav className="mobile-dock theme-dock fixed z-30 grid grid-cols-5 items-end rounded-[1.35rem] border border-slate-200 bg-white/95 px-1.5 pb-1.5 pt-1 shadow-lg shadow-slate-900/10 backdrop-blur md:hidden" aria-label="Primary navigation">
-        <DockLink destination={mobileDestinations[0]} active={isDestinationActive(pathname, mobileDestinations[0].href)} />
-        <DockLink destination={mobileDestinations[1]} active={isDestinationActive(pathname, mobileDestinations[1].href)} />
-
-        <div className="relative mx-auto flex min-h-12 w-14 items-end justify-center">
-          <Link
-            href="/"
-            className="theme-home-button absolute -top-4 left-1/2 flex h-13 w-13 -translate-x-1/2 items-center justify-center rounded-full shadow-lg"
-            aria-label="Capture a thought"
-            aria-current={pathname === "/" ? "page" : undefined}
-          >
-            <ThemeCaptureIcon theme={theme} className="h-8 w-8" />
+      <nav className="pcc-phone-dock" aria-label="Primary navigation">
+        <div className="pcc-dock-pins">
+          {mobileDestinations.slice(0, 2).map(destination => <DockLink key={destination.id} destination={destination} active={isDestinationActive(pathname, destination.href)} />)}
+          <Link href="/" className="pcc-dock-link theme-home-button" aria-label="Capture a thought" aria-current={pathname === "/" ? "page" : undefined}>
+            <ThemeCaptureIcon theme={theme} className="h-5 w-5" /><span>Capture</span>
           </Link>
-          <Link
-            href="/spaces"
-            className={`absolute -bottom-1 left-1/2 flex h-3 w-8 -translate-x-1/2 items-center justify-center text-slate-400 transition hover:text-slate-600 ${spacesActive ? "text-slate-950" : ""}`}
-            aria-label="Open all spaces"
-            aria-current={spacesActive ? "page" : undefined}
-          >
-            <svg aria-hidden="true" viewBox="0 0 16 8" className="h-2 w-4 fill-none stroke-current" strokeWidth="1.8">
-              <path d="m2 6 6-4 6 4" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </Link>
+          {mobileDestinations.slice(2).map(destination => <DockLink key={destination.id} destination={destination} active={isDestinationActive(pathname, destination.href)} />)}
         </div>
-
-        <DockLink destination={mobileDestinations[2]} active={isDestinationActive(pathname, mobileDestinations[2].href)} />
-        <DockLink destination={mobileDestinations[3]} active={isDestinationActive(pathname, mobileDestinations[3].href)} />
+        <Link href="/spaces" className="pcc-all-spaces" aria-current={spacesActive ? "page" : undefined}>All Spaces</Link>
       </nav>
     </div>
   );
 }
 
-function RailLink({ destination, active }: { destination: Destination; active: boolean }) {
-  return (
-    <Link
-      href={destination.href}
-      className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-2xl text-xs font-medium transition ${active ? "theme-nav-active" : "text-slate-500 hover:bg-slate-100 hover:text-slate-950"}`}
-      aria-current={active ? "page" : undefined}
-    >
-      <Icon name={destination.icon} />
-      {destination.label}
-    </Link>
-  );
-}
-
 function DockLink({ destination, active }: { destination: Destination; active: boolean }) {
   return (
-    <Link
-      href={destination.href}
-      className={`flex min-h-12 flex-col items-center justify-end gap-0.5 rounded-xl pb-0.5 text-[0.64rem] font-medium transition ${active ? "text-slate-950" : "text-slate-400"}`}
-      aria-current={active ? "page" : undefined}
-    >
-      <span className={`flex h-7 w-10 items-center justify-center rounded-xl ${active ? "theme-nav-active" : ""}`}>
-        <Icon name={destination.icon} className="h-[1.15rem] w-[1.15rem]" />
-      </span>
-      {destination.label}
+    <Link href={destination.href} className={`pcc-dock-link ${active ? "theme-nav-active" : ""}`} aria-current={active ? "page" : undefined}>
+      <NavigationIcon destination={destination} />
+      <span>{destination.id === "rhythm" ? "Week" : destination.label}</span>
     </Link>
   );
 }

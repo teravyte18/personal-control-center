@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
+import { useDialogFocus } from "@/hooks/use-dialog-focus";
 import { isProjectActionPastCheckIn } from "@/domain/project-dates";
 import { focusMatches, getRhythmPeriod } from "@/domain/weekly-rhythm";
 import {
@@ -37,6 +38,7 @@ export function ExpandButton({ label, onClick }: { label: string; onClick: () =>
 }
 
 export function ProjectDetail({ project, onClose, accomplishment = false, archived = false }: { project: Item; onClose: () => void; accomplishment?: boolean; archived?: boolean }) {
+  const dialogRef = useDialogFocus<HTMLDivElement>();
   const { updateItem, addProjectAction, updateProjectAction, completeProjectAction, toggleCompleted, archiveItem, restoreArchivedItem } = usePersonalData();
   const { weeklyFocuses, addWeeklyFocus, removeWeeklyFocus } = useRhythmData();
   const rhythmPeriod = getRhythmPeriod();
@@ -66,7 +68,7 @@ export function ProjectDetail({ project, onClose, accomplishment = false, archiv
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-50">
+    <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={project.title} tabIndex={-1} className="pcc-project-detail fixed inset-0 z-[100] overflow-y-auto bg-slate-50">
       <header className="sticky top-0 z-10 border-b border-slate-200 bg-slate-50/95 px-4 py-3 backdrop-blur sm:px-6">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
           <button type="button" onClick={onClose} className="flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700" aria-label="Close project">

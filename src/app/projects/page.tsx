@@ -1,151 +1,102 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { ExpandButton, ProjectDetail, formatDateOnly } from "@/components/project-detail";
-import { isProjectActionPastCheckIn, isProjectPastCheckIn } from "@/domain/project-dates";
-import {
-  areaLabels,
-  getOpenProjectActions,
-  type AreaId,
-  type Item,
-  type ItemStatus,
-  usePersonalData,
-} from "@/lib/personal-data";
+import { useMemo, useState, type FormEvent } from "react";
+import { ProjectDetail, formatDateOnly } from "@/components/project-detail";
+import { isProjectActionPastCheckIn } from "@/domain/project-dates";
+import { focusMatches, getRhythmPeriod } from "@/domain/weekly-rhythm";
+import { areaLabels, getOpenProjectActions, type AreaId, usePersonalData, useRhythmData } from "@/lib/personal-data";
+import { useSourceRecord } from "@/hooks/use-source-record";
 
-type Filter = "all" | AreaId | "incubating";
-
-const filters: Array<{ id: Filter; label: string }> = [
-  { id: "all", label: "All" },
-  { id: "work", label: "Work" },
-  { id: "education", label: "Education" },
-  { id: "personal", label: "Personal" },
-  { id: "incubating", label: "Incubating" },
-];
-
-const projectStatuses: Array<{ value: ItemStatus; label: string }> = [
-  { value: "active", label: "Active" },
-  { value: "in-progress", label: "In progress" },
-  { value: "waiting", label: "Waiting" },
-  { value: "incubating", label: "Incubating" },
-  { value: "archived", label: "Archived" },
-];
+type View = "active" | "waiting" | "all";
+type AreaFilter = "all" | AreaId | "incubating";
 
 export default function ProjectsPage() {
-  const { items } = usePersonalData();
-  const [filter, setFilter] = useState<Filter>("all");
-
-  const activeProjects = useMemo(
-    () => items.filter((item) => item.kind === "project" && !["completed", "archived"].includes(item.status)),
-    [items],
-  );
-  const visibleProjects = activeProjects.filter((project) => {
-    if (filter === "all") return true;
-    if (filter === "incubating") return project.status === "incubating";
-    return project.area === filter;
+  const { items, addItem, addProjectAction } = usePersonalData();
+  const { weeklyFocuses } = useRhythmData();
+  const period = getRhythmPeriod();
+  const [view, setView] = useState<View>("active");
+  const [area, setArea] = useState<AreaFilter>("all");
+  const [query, setQuery] = useState("");
+  const [selectedId, setSelectedId] = useState("");
+  const sourceId = useSourceRecord("project");
+  const [detailOverride, setDetailId] = useState<string | null>(null);
+  const detailId = detailOverride ?? sourceId;
+  const [creating, setCreating] = useState(false);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [newArea, setNewArea] = useState<AreaId>("uncategorized");
+  const [action, setAction] = useState("");
+  const [date, setDate] = useState("");
+  const projects = useMemo(() => items.filter(item => item.kind === "project" && !["completed", "archived"].includes(item.status)), [items]);
+  const visible = projects.filter(project => {
+    if (view === "active" && project.status === "waiting") return false;
+    if (view === "waiting" && project.status !== "waiting") return false;
+    if (area === "incubating" ? project.status !== "incubating" : area !== "all" && project.area !== area) return false;
+    return !query.trim() || `${project.title} ${project.description}`.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase());
   });
+  const selected = visible.find(project => project.id === selectedId) ?? visible[0];
+  const detail = projects.find(project => project.id === detailId);
+  const actions = selected ? getOpenProjectActions(selected) : [];
+
+  function createProject(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!title.trim()) return;
+    const project = addItem(title, { kind: "project", description, status: "waiting", area: newArea });
+    if (!project) return;
+    if (action.trim()) addProjectAction(project.id, action, date);
+    setCreating(false); setTitle(""); setDescription(""); setAction(""); setDate("");
+    setView(action.trim() ? "active" : "waiting"); setArea("all"); setQuery(""); setSelectedId(project.id); setDetailId(project.id);
+  }
+
+  const areaSelect = <label><span className="sr-only">Project view and area</span><select className="input" value={area} onChange={event => setArea(event.target.value as AreaFilter)}><option value="all">All areas</option>{Object.entries(areaLabels).map(([id, label]) => <option key={id} value={id}>{label}</option>)}<option value="incubating">Incubating</option></select></label>;
+  const actionMeta = (projectId: string, actionId: string, targetDate: string) => [
+    targetDate ? `Check-in ${formatDateOnly(targetDate)}` : "No check-in date",
+    weeklyFocuses.some(focus => focus.weekStart === period.start && focusMatches(focus, "project-action", projectId, actionId)) ? "Selected for Week" : "",
+  ].filter(Boolean).join(" · ");
 
   return (
     <section>
-      <h2 className="text-3xl font-semibold tracking-tight">Projects</h2>
-
-      <div className="-mx-4 mt-5 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">
-        <div className="flex w-max gap-2">
-          {filters.map((option) => (
-            <button
-              key={option.id}
-              type="button"
-              onClick={() => setFilter(option.id)}
-              className={`min-h-11 rounded-full px-4 text-sm font-semibold transition ${
-                filter === option.id
-                  ? "bg-slate-950 text-white"
-                  : "border border-slate-200 bg-white text-slate-600"
-              }`}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
+      <div className="pcc-heading"><h2>Projects</h2><button className="pcc-control" onClick={() => setCreating(value => !value)}>{creating ? "Cancel" : "New"}</button></div>
+      {creating ? <form className="pcc-project-create" onSubmit={createProject}>
+        <h3 className="pcc-section-title">New project</h3>
+        <label>Title<input className="input" value={title} onChange={event => setTitle(event.target.value)} required autoFocus /></label>
+        <label>Outcome<textarea className="input" value={description} onChange={event => setDescription(event.target.value)} /></label>
+        <label>Area<select className="input" value={newArea} onChange={event => setNewArea(event.target.value as AreaId)}>{Object.entries(areaLabels).map(([id,label]) => <option key={id} value={id}>{label}</option>)}</select></label>
+        <label>First action (optional)<input className="input" value={action} onChange={event => setAction(event.target.value)} /></label>
+        <label>Check-in date (optional)<input type="date" className="input" value={date} onChange={event => setDate(event.target.value)} /></label>
+        <button className="pcc-control theme-home-button" type="submit">Create project</button>
+      </form> : null}
+      <div className="pcc-view-controls">
+        <button className={`pcc-control ${view === "active" ? "is-selected" : ""}`} aria-pressed={view === "active"} onClick={() => setView("active")}>Active · {projects.filter(project => project.status !== "waiting").length}</button>
+        <button className={`pcc-control ${view === "waiting" ? "is-selected" : ""}`} aria-pressed={view === "waiting"} onClick={() => setView("waiting")}>Waiting · {projects.filter(project => project.status === "waiting").length}</button>
+        <Link className="pcc-control" href="/spaces/accomplishments">Completed</Link>
       </div>
-
-      {activeProjects.length === 0 ? <EmptyProjects /> : null}
-
-      <div className="mt-6 grid gap-4 lg:grid-cols-2">
-        {visibleProjects.map((project) => <ProjectCard key={project.id} project={project} />)}
+      <div className="pcc-project-search">
+        <label><span className="sr-only">Find projects</span><input className="input" type="search" placeholder="Find projects" value={query} onChange={event => setQuery(event.target.value)} /></label>{areaSelect}
       </div>
-
-      {activeProjects.length > 0 && visibleProjects.length === 0 ? (
-        <p className="mt-8 text-sm text-slate-500">No projects match this area yet.</p>
-      ) : null}
+      <div className="pcc-focus-project">
+        <div className="pcc-project-selector"><label><span className="sr-only">Switch project</span><select className="input" value={selected?.id ?? ""} onChange={event => setSelectedId(event.target.value)}>{visible.length ? visible.map(project => <option key={project.id} value={project.id}>{project.title} · Switch project</option>) : <option value="">No projects</option>}</select></label><details><summary className="pcc-control">Views</summary><div className="pcc-project-views">{areaSelect}<label><span className="sr-only">Search projects</span><input className="input" placeholder="Find projects" value={query} onChange={event => setQuery(event.target.value)} /></label></div></details></div>
+        {selected ? <>
+          <article className="pcc-focus-action">
+            <h3>{actions[0]?.title ?? selected.title}</h3>
+            <p className="pcc-record-meta">{areaLabels[selected.area]} · {actions[0]?.targetDate ? formatDateOnly(actions[0].targetDate) : "No check-in date"}</p>
+            {actions[0]?.details || selected.description ? <p className="pcc-focus-description">{actions[0]?.details || selected.description}</p> : null}
+            <button className="pcc-control theme-home-button" onClick={() => setDetailId(selected.id)}>{actions.length ? "Open action" : "Open project"}</button>
+          </article>
+          {actions.length > 1 ? <div className="mt-4"><h3 className="pcc-section-title">Other open actions</h3>{actions.slice(1).map(entry => <button key={entry.id} className="pcc-record w-full" onClick={() => setDetailId(selected.id)}><span className="pcc-record-title">{entry.title}</span><p className="pcc-record-meta">{actionMeta(selected.id,entry.id,entry.targetDate)}</p></button>)}</div> : null}
+          <details className="mt-4"><summary className="pcc-control w-full">All {view} projects · {visible.length}</summary>{visible.map(project => <button key={project.id} className="pcc-record w-full" onClick={() => setSelectedId(project.id)}><span className="pcc-record-title">{project.title}</span><p className="pcc-record-meta">{getOpenProjectActions(project).length} open actions</p></button>)}</details>
+        </> : <p className="pcc-empty">No projects match this view. Change the view or create a project.</p>}
+      </div>
+      <div className="pcc-atlas-projects">
+        {visible.map(project => <article key={project.id} className="pcc-project-ownership">
+          <div><h3 className="pcc-section-title">{project.title}</h3><p className="pcc-record-meta">{areaLabels[project.area]} · {project.description || `${getOpenProjectActions(project).length} open actions`}</p><button className="pcc-control mt-2" onClick={() => setDetailId(project.id)}>Open project</button></div>
+          <div className="pcc-independent-actions">{getOpenProjectActions(project).map(entry => <div key={entry.id} className="pcc-ownership-branch"><span aria-hidden="true" /><button className="pcc-record" onClick={() => setDetailId(project.id)}><p className="pcc-record-title">{entry.title}</p><p className={`pcc-record-meta ${isProjectActionPastCheckIn(entry) ? "text-rose-700" : ""}`}>{actionMeta(project.id,entry.id,entry.targetDate)}</p></button></div>)}{!getOpenProjectActions(project).length ? <p className="pcc-record pcc-record-meta">Waiting · No open actions</p> : null}</div>
+        </article>)}
+        {!visible.length ? <p className="pcc-empty">No projects match this view. Change the view or create a project.</p> : null}
+        <button className="pcc-control mt-4" aria-pressed={view === "all"} onClick={() => setView("all")}>All open projects</button>
+      </div>
+      {detail ? <ProjectDetail project={detail} onClose={() => setDetailId("")} /> : null}
     </section>
-  );
-}
-
-function EmptyProjects() {
-  return (
-    <div className="mt-6 rounded-[2rem] border border-dashed border-slate-300 bg-white p-8 text-center">
-      <h3 className="text-lg font-semibold">No active projects yet.</h3>
-      <p className="mt-2 text-sm leading-6 text-slate-500">
-        Capture an idea, classify it as a project, and add actions whenever they become clear.
-      </p>
-      <Link href="/inbox" className="mt-5 inline-flex min-h-11 items-center rounded-xl bg-slate-950 px-5 text-sm font-semibold text-white">
-        Open inbox
-      </Link>
-    </div>
-  );
-}
-
-function ProjectCard({ project }: { project: Item }) {
-  const [expanded, setExpanded] = useState(false);
-  const openActions = getOpenProjectActions(project);
-  const primaryAction = openActions[0];
-  const additionalActions = Math.max(0, openActions.length - 1);
-  const overdue = isProjectPastCheckIn(project);
-  const primaryOverdue = Boolean(primaryAction && isProjectActionPastCheckIn(primaryAction));
-  const waiting = project.status === "waiting";
-  const statusLabel = projectStatuses.find((option) => option.value === project.status)?.label ?? project.status;
-  const cardTone = overdue
-    ? "border-slate-200 border-l-4 border-l-rose-500 bg-white"
-    : waiting
-      ? "border-slate-200 border-l-4 border-l-amber-400 bg-white"
-      : "border-slate-200 bg-white";
-  const attentionTone = "surface-subtle border";
-  const labelTone = overdue ? "text-rose-700" : waiting ? "text-amber-700" : "text-slate-400";
-
-  return (
-    <>
-      <article className={`rounded-[1.5rem] border p-4 shadow-sm ${cardTone}`}>
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
-              <span>{areaLabels[project.area]}</span><span aria-hidden="true">·</span><span className={waiting ? "text-amber-700" : ""}>{statusLabel}</span>
-            </div>
-            <h3 className="mt-2 text-xl font-semibold tracking-tight text-slate-950">{project.title}</h3>
-          </div>
-          <ExpandButton label={`Open ${project.title}`} onClick={() => setExpanded(true)} />
-        </div>
-
-        <div className={`mt-4 rounded-xl p-3.5 ${attentionTone}`}>
-          <p className={`text-xs font-semibold uppercase tracking-[0.14em] ${labelTone}`}>
-            {overdue ? "Open action overdue" : waiting ? "Waiting" : "Next open action"}
-          </p>
-          {primaryAction ? (
-            <>
-              <p className="mt-2 text-sm font-medium leading-6 text-slate-900">{primaryAction.title}</p>
-              <p className={`mt-2 text-xs ${primaryOverdue ? "font-semibold text-rose-700" : "text-slate-500"}`}>
-                {primaryAction.targetDate ? `${primaryOverdue ? "Check-in passed" : "Check in"} ${formatDateOnly(primaryAction.targetDate)}` : "No check-in date"}
-              </p>
-              {additionalActions > 0 ? <p className="mt-2 text-xs font-semibold text-slate-500">+{additionalActions} other open {additionalActions === 1 ? "action" : "actions"}</p> : null}
-            </>
-          ) : (
-            <p className="mt-2 text-sm font-medium leading-6 text-slate-600">
-              No open action.
-            </p>
-          )}
-        </div>
-      </article>
-
-      {expanded ? <ProjectDetail project={project} onClose={() => setExpanded(false)} /> : null}
-    </>
   );
 }

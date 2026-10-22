@@ -33,6 +33,9 @@ import {
   type BookShelfId,
 } from "@/domain/library";
 import { usePersonalData } from "@/lib/personal-data";
+import { LibrarySectionTabs } from "@/components/library-section-tabs";
+import { useDialogFocus } from "@/hooks/use-dialog-focus";
+import { PrivateArtwork } from "@/components/private-artwork";
 
 const readingLabels: Record<BookReadingState, string> = {
   unread: "Unread",
@@ -94,6 +97,8 @@ export default function LibraryPage() {
   const [minimumRating, setMinimumRating] = useState("");
   const [creating, setCreating] = useState(false);
   const [openBookId, setOpenBookId] = useState<string | null>(null);
+  const [previewId, setPreviewId] = useState("");
+  const [listView, setListView] = useState(false);
   const openBook = books.find((book) => book.item.id === openBookId);
 
   const visibleBooks = useMemo(() => {
@@ -168,21 +173,23 @@ export default function LibraryPage() {
 
   const filterCount = [readingFilter, ownershipFilter, priorityFilter, contentTypeFilter, formatFilter, minimumRating].filter(Boolean).length;
   const currentShelf = shelves.find((candidate) => candidate.id === shelf) ?? shelves[0];
+  const previewBook = visibleBooks.find(book => book.item.id === previewId) ?? visibleBooks[0];
 
   return (
-    <section className="mx-auto max-w-6xl">
-      <div className="flex items-end justify-between gap-4">
+    <section className="pcc-library">
+      <div className="pcc-heading">
         <div>
-          <p className="text-sm text-slate-500">{books.length} {books.length === 1 ? "book" : "books"}</p>
-          <h2 className="mt-1 text-3xl font-semibold tracking-tight">Library</h2>
+          <h2>Library</h2>
+          <p className="pcc-context">{books.length} {books.length === 1 ? "book" : "books"}</p>
         </div>
-        <button type="button" onClick={() => setCreating(true)} className="min-h-11 shrink-0 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white active:scale-[0.99]">
-          New book
+        <button type="button" onClick={() => setCreating(true)} className="pcc-control">
+          Add book
         </button>
       </div>
+      <LibrarySectionTabs />
 
-      <div className="mt-5 grid grid-cols-[minmax(0,1fr)_auto] gap-2 sm:grid-cols-[minmax(0,1fr)_13rem_auto]">
-        <label className="col-span-2 sm:col-span-1">
+      <div className="pcc-library-controls">
+        <label className="pcc-library-search">
           <span className="sr-only">Search books</span>
           <input
             type="search"
@@ -192,12 +199,12 @@ export default function LibraryPage() {
             placeholder="Search title or author"
           />
         </label>
-        <label>
+        <label className="pcc-library-shelf">
           <span className="sr-only">Library view</span>
           <select className="input" value={shelf} onChange={(event) => setShelf(event.target.value as BookShelfId)}>
             {shelves.map((candidate) => (
               <option key={candidate.id} value={candidate.id}>
-                {candidate.label} ({sortBooksForShelf(books, candidate.id).length})
+                {candidate.label} · {sortBooksForShelf(books, candidate.id).length}
               </option>
             ))}
           </select>
@@ -207,7 +214,7 @@ export default function LibraryPage() {
           onClick={() => setFiltersOpen((current) => !current)}
           aria-expanded={filtersOpen}
           aria-controls="library-filters"
-          className={`min-h-11 rounded-xl border px-4 text-sm font-semibold transition ${
+          className={`pcc-library-filter min-h-11 rounded-xl border px-4 text-sm font-semibold transition ${
             filtersOpen || filterCount > 0
               ? "border-slate-950 bg-slate-950 text-white"
               : "border-slate-300 bg-white text-slate-700"
@@ -215,6 +222,7 @@ export default function LibraryPage() {
         >
           Filters{filterCount > 0 ? ` · ${filterCount}` : ""}
         </button>
+        <button type="button" className="pcc-control pcc-library-view" onClick={() => setListView(value => !value)} aria-pressed={listView}>{listView ? "Gallery" : "List"}</button>
       </div>
 
       {filtersOpen ? (
@@ -236,7 +244,7 @@ export default function LibraryPage() {
               {bookPriorities.map((value) => <option key={value} value={value}>{priorityLabels[value]}</option>)}
             </FilterSelect>
             <FilterSelect label="Minimum score" value={minimumRating} onChange={setMinimumRating}>
-              {[1, 2, 3, 4, 5].map((value) => <option key={value} value={value}>{value}+</option>)}
+              {ratingValues.map((value) => <option key={value} value={value}>{value}+</option>)}
             </FilterSelect>
           </div>
           <div className="mt-3 flex items-center justify-between gap-3">
@@ -266,11 +274,9 @@ export default function LibraryPage() {
         </div>
       ) : (
         <>
-          <div className="mt-5 flex items-center justify-between gap-3">
-            <h3 className="text-sm font-semibold text-slate-700">{currentShelf.label}</h3>
-            <p className="text-xs text-slate-500">{visibleBooks.length} shown</p>
-          </div>
-          <div className="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+          <p className="sr-only" aria-live="polite">{currentShelf.label}: {visibleBooks.length} shown</p>
+          <div className="pcc-collection-layout">
+          <div className={`pcc-media-grid ${listView ? "pcc-media-list" : ""}`}>
             {visibleBooks.map((book, index) => (
               <BookCard
                 key={book.item.id}
@@ -278,10 +284,26 @@ export default function LibraryPage() {
                 showQueueControls={shelf === "up-next"}
                 canMoveUp={index > 0}
                 canMoveDown={index < visibleBooks.length - 1}
-                onOpen={() => setOpenBookId(book.item.id)}
+                onOpen={() => {
+                  setPreviewId(book.item.id);
+                  if (!window.matchMedia("(min-width: 1200px)").matches) setOpenBookId(book.item.id);
+                }}
                 onMove={(direction) => moveBook(book.item.id, direction)}
               />
             ))}
+          </div>
+          {previewBook ? <aside className="pcc-collection-detail" aria-label="Selected book">
+            <h3 className="pcc-section-title">{previewBook.item.title}</h3>
+            <p className="pcc-record-meta">{previewBook.details.author || "Unknown author"}</p>
+            <div className="pcc-detail-cover"><Cover coverId={previewBook.details.coverId} title={previewBook.item.title} /></div>
+            <p className="pcc-record-title">{ownershipLabels[previewBook.details.ownership]} · {readingLabels[previewBook.details.readingState]}</p>
+            <p className="pcc-record-meta">{previewBook.details.startDate ? `Started ${previewBook.details.startDate}` : "No start date"} · {previewBook.details.finishDate ? `Finished ${previewBook.details.finishDate}` : "No finish date"}</p>
+            {previewBook.details.currentIssue ? <p className="pcc-record-meta">Resume: {previewBook.details.currentIssue}</p> : null}
+            <p className="pcc-record-meta">{formatBookScore(previewBook.details) ? `${formatBookScore(previewBook.details)} / 10` : "Unrated"}</p>
+            <button className="pcc-control theme-home-button" onClick={() => setOpenBookId(previewBook.item.id)}>Open book</button>
+            <button className="pcc-control" onClick={() => setOpenBookId(previewBook.item.id)}>Edit book</button>
+            <p className="pcc-record-meta">Enjoyment, impact and execution remain independent ratings.</p>
+          </aside> : null}
           </div>
         </>
       )}
@@ -317,20 +339,20 @@ function BookCard({
 }) {
   const score = formatBookScore(book.details);
   return (
-    <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:border-slate-400">
+    <article className="pcc-media-card">
       <button type="button" onClick={onOpen} className="block w-full text-left active:bg-slate-50">
         <Cover coverId={book.details.coverId} title={book.item.title} />
-        <div className="p-3">
+        <div className="pcc-media-caption">
           <div className="flex items-start justify-between gap-2">
             <p className="line-clamp-2 text-sm font-semibold leading-5 text-slate-900">{book.item.title}</p>
-            {score ? <span className="shrink-0 rounded-full bg-slate-950 px-2 py-1 text-[0.65rem] font-bold text-white">{score}</span> : null}
           </div>
           <p className="mt-1 truncate text-xs text-slate-500">{book.details.author || "Unknown author"}</p>
-          <div className="mt-3 flex flex-wrap gap-1.5">
+          <div className="mt-2 flex flex-wrap gap-1.5">
             {book.details.contentType === "comic" ? <Badge>Comic</Badge> : null}
             <Badge>{readingLabels[book.details.readingState]}</Badge>
             {book.details.contentType === "comic" && book.details.currentIssue ? <Badge>{book.details.currentIssue}</Badge> : null}
             {book.details.priority !== "none" ? <Badge>{priorityLabels[book.details.priority]}</Badge> : null}
+            {score ? <span className="text-xs">{score} / 10</span> : null}
           </div>
         </div>
       </button>
@@ -346,18 +368,7 @@ function BookCard({
 
 function Cover({ coverId, title, previewUrl = "" }: { coverId: string; title: string; previewUrl?: string }) {
   const imageUrl = previewUrl || (coverId ? `/api/book-covers/${encodeURIComponent(coverId)}` : "");
-  return imageUrl ? (
-    <div
-      role="img"
-      aria-label={`Cover of ${title}`}
-      className="aspect-[2/3] w-full bg-slate-100 bg-cover bg-center"
-      style={{ backgroundImage: `url(${JSON.stringify(imageUrl)})` }}
-    />
-  ) : (
-    <div className="flex aspect-[2/3] w-full items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 p-5 text-center">
-      <span className="line-clamp-4 text-sm font-semibold leading-5 text-slate-500">{title || "Untitled book"}</span>
-    </div>
-  );
+  return <PrivateArtwork src={imageUrl} alt={`Cover of ${title}`} fallback="No cover added" />;
 }
 
 function BookEditor({
@@ -372,6 +383,7 @@ function BookEditor({
   onDelete?: () => Promise<void>;
 }) {
   const initialDetails = book?.details ?? createBookDetails();
+  const dialogRef = useDialogFocus<HTMLDivElement>();
   const [title, setTitle] = useState(book?.item.title ?? "");
   const [details, setDetails] = useState<BookDetails>(initialDetails);
   const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -522,7 +534,7 @@ function BookEditor({
   const shownCoverId = removeExistingCover ? "" : details.coverId;
 
   return (
-    <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-50">
+    <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={book ? `Edit ${book.item.title}` : "New book"} tabIndex={-1} className="pcc-editor pcc-book-editor fixed inset-0 z-[100] overflow-y-auto bg-slate-50">
       <form className="min-h-screen" onSubmit={submit}>
         <header className="sticky top-0 z-20 border-b border-slate-200 bg-slate-50/95 px-4 py-3 backdrop-blur sm:px-6">
           <div className="mx-auto flex max-w-4xl items-center justify-between gap-3">
@@ -533,6 +545,8 @@ function BookEditor({
         </header>
 
         <main className="mx-auto grid w-full max-w-4xl gap-6 px-4 pb-28 pt-6 sm:px-6 md:grid-cols-[15rem_1fr]">
+          <h2>{book ? book.item.title : "New book"}</h2>
+          <nav className="pcc-editor-shortcuts" aria-label="Book form sections"><a href="#book-identity" className="pcc-control">Book</a><a href="#book-shelf" className="pcc-control">Shelf</a><a href="#book-rating" className="pcc-control">Rating</a><a href="#book-notes" className="pcc-control">Notes</a></nav>
           <aside>
             <div className="mx-auto max-w-[15rem] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
               <Cover coverId={shownCoverId} title={title} previewUrl={previewUrl} />
@@ -615,7 +629,7 @@ function BookEditor({
           </aside>
 
           <div className="space-y-6">
-            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <section id="book-identity" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <h3 className="text-sm font-semibold text-slate-900">Book</h3>
@@ -644,7 +658,7 @@ function BookEditor({
               </div>
             </section>
 
-            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <section id="book-shelf" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
               <h3 className="text-sm font-semibold text-slate-900">Shelf placement</h3>
               <div className="mt-4 grid gap-4 sm:grid-cols-3">
                 <Field label="Reading state">
@@ -703,7 +717,7 @@ function BookEditor({
               </section>
             ) : null}
 
-            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <section id="book-rating" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <h3 className="text-sm font-semibold text-slate-900">Rating</h3>
@@ -725,7 +739,7 @@ function BookEditor({
 
             <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
               <label className="block text-sm font-semibold text-slate-900">
-                Thoughts and takeaways
+                <span id="book-notes">Thoughts and takeaways</span>
                 <textarea className="input mt-3 min-h-48 resize-y text-sm leading-6" value={details.thoughts} onChange={(event) => setDetails((current) => ({ ...current, thoughts: event.target.value }))} placeholder="What stayed with you, what worked, what did not, or why you would recommend it…" />
               </label>
             </section>

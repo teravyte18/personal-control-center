@@ -12,6 +12,7 @@ import {
   rhythmDayparts,
   type RhythmDaypart,
   type RhythmTemplate,
+  type RhythmCompletion,
   type WeeklyFocusSourceType,
 } from "@/domain/weekly-rhythm";
 import {
@@ -118,6 +119,7 @@ export default function RhythmPage() {
   const [selectedWork, setSelectedWork] = useState("");
   const [calendar, setCalendar] = useState<AgendaResponse | null>(null);
   const [calendarError, setCalendarError] = useState("");
+  const [calendarAttempt, setCalendarAttempt] = useState(0);
 
   const datedWork = useMemo(() => getDatedRhythmWork(items, period), [items, period]);
   const focused = useMemo(
@@ -203,7 +205,7 @@ export default function RhythmPage() {
         if (!response.ok || !("events" in body)) {
           throw new Error("Calendar commitments could not be loaded.");
         }
-        if (!cancelled) setCalendar(body);
+        if (!cancelled) { setCalendar(body); setCalendarError(""); }
       })
       .catch((error) => {
         if (!cancelled) setCalendarError(error instanceof Error ? error.message : "Calendar commitments could not be loaded.");
@@ -212,7 +214,7 @@ export default function RhythmPage() {
     return () => {
       cancelled = true;
     };
-  }, [period.end, period.start]);
+  }, [period.end, period.start, calendarAttempt]);
 
   const commitments = useMemo(
     () => (calendar?.events ?? []).filter((event) => ["google", "agenda"].includes(event.source)),
@@ -228,12 +230,11 @@ export default function RhythmPage() {
   }
 
   return (
-    <section className="mx-auto min-w-0 max-w-5xl">
+    <section className="pcc-week">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Saturday → Friday</p>
           <h2 className="mt-1 text-3xl font-semibold tracking-tight">This week</h2>
-          <p className="mt-2 text-sm text-slate-500">{formatPeriod(period.start, period.end)}</p>
+          <p className="pcc-context">{formatPeriod(period.start, period.end)} · Saturday–Friday</p>
         </div>
         <button
           type="button"
@@ -254,7 +255,8 @@ export default function RhythmPage() {
         />
       ) : null}
 
-      <div className="mt-6 grid min-w-0 gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(18rem,0.85fr)]">
+      <nav className="pcc-week-shortcuts" aria-label="Week sections">{["Rhythm", "Weekly focus", "Dated work", "Fixed commitments"].map(title => <a key={title} href={`#week-${title.toLowerCase().replaceAll(" ", "-")}`} className="pcc-control">{title === "Weekly focus" ? "Focus" : title === "Fixed commitments" ? "Calendar" : title === "Dated work" ? "Dated" : title}</a>)}</nav>
+      <div className="pcc-week-columns">
         <div className="min-w-0 space-y-5">
           <WeekSection title="Rhythm" count={activeRhythms.length}>
             {activeRhythms.length ? (
@@ -266,6 +268,7 @@ export default function RhythmPage() {
                       key={template.id}
                       template={template}
                       count={progress.count}
+                      history={rhythmCompletions.filter(entry => entry.templateId === template.id)}
                       mostRecentCompletionId={progress.completions[0]?.id}
                       onComplete={() => addRhythmCompletion(template.id)}
                       onUndo={() => {
@@ -327,7 +330,7 @@ export default function RhythmPage() {
                   <div key={entry.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
                     <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-slate-400" />
                     <Link
-                      href={entry.sourceType === "task" ? "/tasks" : "/projects"}
+                      href={entry.sourceType === "task" ? `/tasks?task=${encodeURIComponent(entry.sourceItemId)}` : `/projects?project=${encodeURIComponent(entry.sourceItemId)}`}
                       className="min-w-0 flex-1"
                     >
                       <p className="truncate text-sm font-semibold text-slate-900">{entry.title}</p>
@@ -371,7 +374,7 @@ export default function RhythmPage() {
 
         <div className="min-w-0 space-y-5">
           <WeekSection title="Fixed commitments" count={commitments.length}>
-            {calendarError ? <p className="text-sm text-amber-700">{calendarError}</p> : null}
+            {calendarError ? <div role="alert"><p className="text-sm text-amber-700">{calendarError}</p><button className="pcc-control mt-2" onClick={() => setCalendarAttempt(value => value + 1)}>Retry Calendar</button></div> : null}
             {!calendarError && calendar && !calendar.connected ? (
               <p className="text-sm leading-6 text-slate-500">
                 Google Calendar is not connected. Rhythm still works with PCC work and intentions.
@@ -401,7 +404,7 @@ export default function RhythmPage() {
                 {datedWork.map((entry) => (
                   <Link
                     key={entry.id}
-                    href={entry.sourceType === "task" ? "/tasks" : "/projects"}
+                    href={entry.sourceType === "task" ? `/tasks?task=${encodeURIComponent(entry.sourceItemId)}` : `/projects?project=${encodeURIComponent(entry.sourceItemId)}`}
                     className="flex items-center gap-3 py-3 first:pt-0 last:pb-0"
                   >
                     <div className="min-w-0 flex-1">
@@ -450,10 +453,10 @@ function WeekSection({
   children: React.ReactNode;
 }) {
   return (
-    <section className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+    <section id={`week-${title.toLowerCase().replaceAll(" ", "-")}`} className="pcc-week-section">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div className="flex items-baseline gap-2">
-          <h3 className="font-semibold text-slate-950">{title}</h3>
+          <h3 className="pcc-section-title">{title}</h3>
           <span className="text-xs tabular-nums text-slate-400">{count}</span>
         </div>
         {action}
@@ -470,6 +473,7 @@ function EmptyText({ children }: { children: React.ReactNode }) {
 function RhythmCard({
   template,
   count,
+  history,
   mostRecentCompletionId,
   onComplete,
   onUndo,
@@ -478,6 +482,7 @@ function RhythmCard({
 }: {
   template: RhythmTemplate;
   count: number;
+  history: RhythmCompletion[];
   mostRecentCompletionId?: string;
   onComplete: () => void;
   onUndo: () => void;
@@ -489,42 +494,41 @@ function RhythmCard({
   const exceeded = Math.max(0, count - template.targetPerWeek);
 
   return (
-    <article className="rounded-2xl border border-slate-200 bg-slate-50/60 p-3.5">
+    <article className="pcc-rhythm-card">
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <p className="font-semibold text-slate-900">{template.title}</p>
           {metadata(template) ? <p className="mt-1 text-xs text-slate-500">{metadata(template)}</p> : null}
-          <div className="mt-3 flex flex-wrap items-center gap-1.5" aria-label={`${count} of ${template.targetPerWeek} completed`}>
+          <div className="pcc-rhythm-progress" aria-label={`${count} of ${template.targetPerWeek} completed`}>
             {Array.from({ length: template.targetPerWeek }, (_, index) => (
               <span
                 key={index}
-                className={`h-2.5 min-w-5 flex-1 rounded-full ${index < completed ? "bg-slate-900" : "bg-slate-200"}`}
+                className={`h-1.5 min-w-0 flex-1 ${index < completed ? "bg-slate-900" : "bg-slate-200"}`}
               />
             ))}
-            <span className="ml-2 shrink-0 text-xs font-semibold tabular-nums text-slate-600">
+            <span className="ml-2 shrink-0 text-xs font-semibold tabular-nums text-slate-600" aria-live="polite">
               {count} / {template.targetPerWeek}{exceeded ? ` +${exceeded}` : ""}
             </span>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={onComplete}
-          className="min-h-10 shrink-0 rounded-xl bg-slate-950 px-3 text-xs font-semibold text-white"
-        >
-          + Done
-        </button>
       </div>
 
       {template.note ? <p className="mt-3 whitespace-pre-wrap text-xs leading-5 text-slate-500">{template.note}</p> : null}
 
-      <div className="mt-3 flex flex-wrap gap-1 border-t border-slate-200 pt-2">
-        {mostRecentCompletionId ? <button type="button" onClick={onUndo} className="min-h-9 rounded-xl px-2 text-xs font-semibold text-slate-500">Undo last</button> : null}
-        <button type="button" onClick={() => setEditing((value) => !value)} className="min-h-9 rounded-xl px-2 text-xs font-semibold text-slate-500">{editing ? "Close" : "Edit"}</button>
-        <button type="button" onClick={() => onUpdate({ state: "paused" })} className="min-h-9 rounded-xl px-2 text-xs font-semibold text-slate-500">Pause</button>
+      <div className="pcc-rhythm-commands">
+        <button type="button" onClick={onComplete} className="pcc-control theme-home-button">Log</button>
+        <button type="button" disabled={!mostRecentCompletionId} onClick={onUndo} className="pcc-control disabled:opacity-40">Undo</button>
+        <button type="button" onClick={() => setEditing((value) => !value)} className="pcc-control" aria-expanded={editing}>{editing ? "Close" : "Manage"}</button>
       </div>
 
       {editing ? (
+        <div>
+        <button type="button" onClick={() => onUpdate({ state: "paused" })} className="pcc-control mt-3">Pause rhythm</button>
         <EditRhythmForm template={template} onUpdate={onUpdate} onDelete={onDelete} onClose={() => setEditing(false)} />
+        <details className="mt-3"><summary className="pcc-control">Completion history · {history.length}</summary>
+          {history.length ? <ul className="mt-3 space-y-2">{[...history].sort((a,b) => b.completedAt.localeCompare(a.completedAt)).map(entry => <li key={entry.id} className="pcc-record-meta">{new Date(entry.completedAt).toLocaleString(undefined,{dateStyle:"medium",timeStyle:"short"})}</li>)}</ul> : <p className="pcc-record-meta">No completions recorded.</p>}
+        </details>
+        </div>
       ) : null}
     </article>
   );

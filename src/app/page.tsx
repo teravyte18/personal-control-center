@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { FormEvent, useMemo, useState, useSyncExternalStore } from "react";
 import { buildHomeNearTermEntries, type HomeNearTermEntry } from "@/domain/home-today";
-import { usePersonalData } from "@/lib/personal-data";
+import { usePersonalData, useRhythmData } from "@/lib/personal-data";
+import { getRhythmPeriod, getRhythmProgress } from "@/domain/weekly-rhythm";
 import { useOfflineCapture } from "@/providers/offline-capture-provider";
 
 const HOME_GREETINGS = [
@@ -49,6 +50,8 @@ function getBrowserHomeGreeting(): HomeGreeting {
 
 export default function CapturePage() {
   const { items } = usePersonalData();
+  const { rhythmTemplates, rhythmCompletions } = useRhythmData();
+  const period = getRhythmPeriod();
   const {
     online,
     pending,
@@ -95,9 +98,9 @@ export default function CapturePage() {
   }
 
   return (
-    <section className="mx-auto w-full min-w-0 max-w-5xl overflow-x-hidden lg:flex lg:min-h-[72vh] lg:items-center">
-      <div className="grid w-full min-w-0 grid-cols-1 gap-4 sm:gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(20rem,0.8fr)]">
-        <div className="min-w-0 rounded-[1.6rem] border border-slate-200 bg-white p-4 shadow-sm sm:rounded-[2rem] sm:p-7">
+    <section className="pcc-home">
+      <div className="pcc-home-columns">
+        <div className="pcc-capture-column">
           <div className="flex items-start justify-between gap-4">
             <h1 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-4xl">{greeting}</h1>
             {!online ? (
@@ -107,7 +110,7 @@ export default function CapturePage() {
             ) : null}
           </div>
 
-          <form onSubmit={submitCapture} className="mt-4 sm:mt-5">
+          <form onSubmit={submitCapture} className="pcc-capture-form">
             <textarea
               value={capture}
               onChange={(event) => setCapture(event.target.value)}
@@ -156,18 +159,13 @@ export default function CapturePage() {
             </p>
           ) : null}
 
-          <Link
-            href="/inbox"
-            className="mt-4 flex min-h-12 items-center justify-between rounded-2xl bg-slate-50 px-4 transition active:scale-[0.99] sm:mt-5 sm:min-h-14"
-          >
-            <span className="text-sm font-semibold text-slate-800">Inbox</span>
-            <span className="flex h-9 min-w-9 items-center justify-center rounded-full bg-white px-3 text-sm font-semibold text-slate-700 shadow-sm">
-              {inboxCount}
-            </span>
-          </Link>
+          <NearTermPanel entries={todayEntries} />
         </div>
 
-        <NearTermPanel entries={todayEntries} />
+        <aside className="pcc-home-context">
+          <div><div className="pcc-heading"><h3 className="pcc-section-title">Inbox</h3><Link href="/inbox" className="pcc-control">Open</Link></div><p className="pcc-record-title">{inboxCount} captures to organise</p></div>
+          <div><h3 className="pcc-section-title">This week</h3><p className="pcc-record-title">{rhythmTemplates.filter(template => template.state === "active").map(template => `${template.title} ${getRhythmProgress(template.id,rhythmCompletions,period).count} / ${template.targetPerWeek}`).join(" · ") || "No weekly intentions selected."}</p><p className="pcc-record-meta">{formatDate(period.start)}–{formatDate(period.end)} · Saturday–Friday</p><Link href="/rhythm" className="pcc-control mt-3 w-full">Review the week</Link></div>
+        </aside>
       </div>
     </section>
   );
@@ -180,11 +178,10 @@ function NearTermPanel({ entries }: { entries: HomeNearTermEntry[] }) {
   const visible = entries.slice(0, 7);
 
   return (
-    <aside className="min-w-0 max-w-full self-start overflow-hidden rounded-[1.6rem] border border-slate-200 bg-white p-4 shadow-sm sm:rounded-[2rem] sm:p-6 lg:self-stretch">
+    <aside className="pcc-home-near">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Near term</p>
-          <h2 className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">This week</h2>
+          <h3 className="pcc-section-title">Near term</h3>
         </div>
         {entries.length ? (
           <p className="pt-1 text-right text-xs font-medium text-slate-500">
@@ -211,8 +208,8 @@ function NearTermPanel({ entries }: { entries: HomeNearTermEntry[] }) {
         {entries.length > visible.length ? (
           <p className="text-xs font-medium text-slate-500">+{entries.length - visible.length} more dated {entries.length - visible.length === 1 ? "item" : "items"}</p>
         ) : <span />}
-        <Link href="/rhythm" className="shrink-0 text-xs font-semibold text-slate-600 hover:underline">
-          Open full week →
+        <Link href="/rhythm" className="pcc-control flex-1">
+          Open Week
         </Link>
       </div>
     </aside>
@@ -222,7 +219,7 @@ function NearTermPanel({ entries }: { entries: HomeNearTermEntry[] }) {
 function TodayRow({ entry }: { entry: HomeNearTermEntry }) {
   const overdue = entry.state === "overdue";
   const upcoming = entry.state === "upcoming";
-  const href = entry.kind === "task" ? "/tasks" : "/projects";
+  const href = entry.kind === "task" ? `/tasks?task=${encodeURIComponent(entry.sourceId)}` : `/projects?project=${encodeURIComponent(entry.sourceId)}`;
 
   return (
     <Link href={href} className="group flex min-w-0 max-w-full gap-3 overflow-hidden py-3 first:pt-0 last:pb-0">

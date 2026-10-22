@@ -25,6 +25,12 @@ One deployment may host a small invite-only set of independent accounts, but eac
 
 The repository is public. Code, documentation, fixtures, examples, issues, and commit messages must not contain private or identifying personal information.
 
+### Current interface trial
+
+The selected revised Focus phone and Atlas desktop direction is implemented on `agent/focus-atlas-trial` in draft PR #102. As of 22 October 2026, the owner is using it for a few days before feedback and has authorized replacing the normal production UI with this branch. It uses the usual authenticated HTTPS URL, real account data and private uploads. The separate 8443 preview is retired. Main remains unmerged and can be redeployed to restore the earlier UI; production usage testing does not constitute merge approval.
+
+Use [`focus-atlas-trial.md`](focus-atlas-trial.md) for acceptance coverage, limitations, feedback and merge gates, and [`../DESIGN.md`](../DESIGN.md) for the implemented responsive visual system. Figma determines visual/interaction direction; existing application capability and data semantics remain the preservation baseline. The capture-centred graph Home is deferred.
+
 ## System principles
 
 - Capture quickly; organise only when needed. Direct placement into the right space is preferred when the destination is already obvious; Inbox remains a fallback for ambiguous or time-critical capture.
@@ -290,7 +296,7 @@ The usable system now includes:
 
 The module-building sequence through Media is complete, the broad UI/UX consolidation has shipped, the Personal Context Layer plus Context Inspector are implemented, the real-use audit is documented, and the **Weekly Rhythm MVP is implemented in PR #79**.
 
-The current direction is:
+The immediate next step is owner feedback on Focus + Atlas, followed by targeted branch adjustments and explicit owner approval before merging. The following broader product candidates are not an automatic expansion of the usage trial:
 
 1. **Combined Context + Rhythm real-use test** — continue testing before expanding the planning surface;
 2. **Home / Agenda integration** — if Rhythm proves useful, use its weekly horizon plus Calendar context to improve visibility while leaving detailed calendar browsing to Google Calendar;

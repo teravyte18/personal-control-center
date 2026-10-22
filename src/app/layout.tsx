@@ -4,6 +4,7 @@ import { ServiceWorkerRegistration } from "@/components/service-worker-registrat
 import { themeIds } from "@/lib/theme";
 import "./globals.css";
 import "./semantic-status.css";
+import "./focus-atlas.css";
 
 export const metadata: Metadata = {
   title: "Personal Control Center",
@@ -33,6 +34,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+  interactiveWidget: "resizes-content",
   themeColor: "#f8fafc",
 };
 

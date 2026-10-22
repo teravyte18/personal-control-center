@@ -1,0 +1,21 @@
+# Used only with scripts/deploy-trial.sh. No migration or worker is started.
+services:
+  app-trial:
+    extends:
+      file: compose.yaml
+      service: app
+    build:
+      context: ${PCC_TRIAL_SOURCE_ROOT:?Set PCC_TRIAL_SOURCE_ROOT}
+      target: runner
+    environment:
+      PORT: "3002"
+      PCC_PUBLIC_URL: ${PCC_TRIAL_PUBLIC_URL:?Set PCC_TRIAL_PUBLIC_URL}
+      PCC_COOKIE_SECURE: "1"
+      PCC_ALLOW_INSECURE_USER_HEADER: "0"
+      PCC_OWNER_BOOTSTRAP_PASSWORD: ""
+    ports: !reset []
+    network_mode: service:app
+    volumes:
+      - ${PCC_TRIAL_LIVE_ROOT:?Set PCC_TRIAL_LIVE_ROOT}/data/uploads:/data/uploads
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3002/api/health"]

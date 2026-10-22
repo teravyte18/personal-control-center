@@ -18,7 +18,7 @@ const themeSpritePositions: Partial<Record<ThemeId, string>> = {
 };
 
 export function ThemeCaptureIcon({ theme, className = "h-7 w-7" }: ThemeCaptureIconProps) {
-  if (theme === "default") return <Icon name="capture" className={className} />;
+  if (theme === "default") return <span aria-hidden="true" className={`${className} pcc-capture-glyph`} />;
 
   if (theme === "pokemon") {
     return (

@@ -4,13 +4,14 @@ This directory contains current product/operations documentation plus a small am
 
 ## Current product direction
 
+- [`focus-atlas-trial.md`](focus-atlas-trial.md) — active owner usage trial on `agent/focus-atlas-trial` / draft PR #102; selected Figma references, preservation checklist, validation, deviations, feedback and rollback; merge approval pending
 - [`product-spec.md`](product-spec.md) — current product model, workflows, boundaries, integration principle, and success criteria
 - [`roadmap.md`](roadmap.md) — delivered modules, current priorities after Music verification, Weekly Rhythm/Agenda real-use decisions, and retrieval-first AI direction
 - [`usage-audit-2026-10.md`](usage-audit-2026-10.md) — real-use evidence: validated workflows, low-use experiments, planning friction, and resulting product priorities
 - [`weekly-rhythm.md`](weekly-rhythm.md) — implemented Weekly Rhythm MVP: weekly focus, recurring intentions, progress, Calendar commitments, Review integration, and follow-up boundaries
 - [`architecture.md`](architecture.md) — deployed stack, persistence, navigation, PWA, themes, integrations, and security boundaries
-- [`interface-rules.md`](interface-rules.md) — current UI, copy, navigation, theme, and semantic-colour rules
-- [`ux-refresh-2026.md`](ux-refresh-2026.md) — selected navigation, Home/Today, density, copy, and Calendar/Agenda refresh direction
+- [`interface-rules.md`](interface-rules.md) — current Focus/Atlas UI, copy, navigation, theme and semantic-colour rules, with the main/trial distinction
+- [`ux-refresh-2026.md`](ux-refresh-2026.md) — earlier consolidation rationale; the selected Focus/Atlas trial supersedes its visual direction
 
 ## Feature and design guides
 
@@ -48,4 +49,6 @@ Historical documents must say that they are historical. Do not follow old branch
 
 - [`../README.md`](../README.md) — project overview and common commands
 - [`../AGENTS.md`](../AGENTS.md) — instructions for coding agents
+- [`../PRODUCT.md`](../PRODUCT.md) — durable product constraints and feature-preservation commitments
+- [`../DESIGN.md`](../DESIGN.md) — implemented Focus + Atlas tokens, responsive composition and component rules; machine-readable companion: [`../.impeccable/design.json`](../.impeccable/design.json)
 - [`../CONTRIBUTING.md`](../CONTRIBUTING.md) — branch, validation, documentation, and safety workflow

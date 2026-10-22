@@ -14,6 +14,10 @@ Desktop remains supported, but the primary interaction assumptions are:
 
 A separate native application should only be introduced if an important workflow cannot be delivered reliably through the PWA.
 
+### Focus + Atlas trial status
+
+The responsive UI on `agent/focus-atlas-trial` / draft PR #102 is in owner usage trial as of 22 October 2026. It does not change the domain, provider, API, database, crypto or authentication implementations. Main remains the stable deployment; merge approval is pending. The interface details below describe this branch. See [`focus-atlas-trial.md`](focus-atlas-trial.md) and [`../DESIGN.md`](../DESIGN.md) for coverage and visual tokens.
+
 ## Current stack
 
 The deployed stack is:
@@ -75,6 +79,8 @@ graph TD
 
 The host publishes the app only on `127.0.0.1:3000`. PostgreSQL is not published outside the Compose network. The Tailscale container uses the app container's network namespace and is the only intended public ingress path.
 
+During this trial, `compose.trial.yaml` adds only `app-trial`, which shares `app`'s network namespace and listens internally on 3002 without publishing a new host port. Funnel HTTPS 8443 targets that process; 443 continues to target main on 3000. The trial uses the existing authenticated accounts, canonical PostgreSQL data and private upload tree, so edits in either UI are visible in both. It starts no migration or duplicate workers. Existing backups run before deployment. Recreating main's network namespace can require recreating the trial service as well. See [`phone-deployment.md`](phone-deployment.md#separate-focus--atlas-trial) for the separate-service deployment and rollback commands.
+
 See:
 
 - `docs/phone-deployment.md` for Funnel and production deployment;
@@ -128,17 +134,17 @@ Navigation is driven by `src/lib/navigation.ts` rather than page-specific hard-c
 
 - one permanent central Capture action;
 - four configurable pinned destinations;
-- a floating bottom dock;
-- a tappable upward handle beneath Capture that opens All Spaces;
+- a PCC/Account header and fixed bottom dock with safe-area clearance;
+- a visible All Spaces text link beneath the dock pins;
 - an All Spaces directory for every available working module, account access, mobile-pin configuration, and future destinations.
 
-The default pins are Inbox, Projects, Tasks, and Review. Thoughts, Notes, Library, and Expenses are also pinnable. Pin configuration is stored per browser/device.
+The default phone pins are Projects, Tasks, Week (destination ID `rhythm`, route `/rhythm`), and Review. Other available pinnable destinations can replace them through All Spaces. Saved pin configuration remains per browser/device.
 
 Accomplishments and Archive remain available through All Spaces without crowding the dock.
 
 ### Wider screens
 
-The desktop rail shows all available pinnable destinations rather than being limited to the four mobile pins. Capture and All Spaces remain permanent navigation paths.
+Wider screens use independently configurable desktop pins rather than every destination. The labelled rail is 112px from 768px and 200px from 1200px. Capture, All Spaces and Account remain permanent paths. Working layouts add context columns as space permits; Library's selected detail panel appears from 1200px. Existing records and mutations remain shared across all layouts.
 
 ### Future modules
 

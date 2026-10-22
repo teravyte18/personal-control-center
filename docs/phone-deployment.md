@@ -2,6 +2,62 @@
 
 This is the current production procedure for exposing the authenticated application through a stable Tailscale HTTPS hostname without buying a domain, opening inbound router ports, or publishing PostgreSQL.
 
+The Focus + Atlas branch is in a separate owner usage trial, with feedback and merge approval pending. Follow the trial section below for that service. The normal production procedure remains for stable main; do not promote the trial branch through it before approval.
+
+## Separate Focus + Atlas trial
+
+As of 22 October 2026, `agent/focus-atlas-trial` / draft PR #102 is available for a few days of owner use before feedback. Keep main on its stable deployment and keep the PR draft. No trial end date or automatic merge is agreed. See [`focus-atlas-trial.md`](focus-atlas-trial.md) for coverage, known limitations and the feedback format.
+
+### Boundaries
+
+- Funnel HTTPS 443 continues to serve main; 8443 serves the authenticated trial. The actual hostname is supplied privately and is not committed here.
+- `app-trial` listens internally on 3002 in the existing app network namespace, with no additional published host port. PostgreSQL stays private.
+- The trial uses the real existing accounts, canonical database and private uploads. Ordinary edits are visible in both UIs and survive an ordinary UI rollback.
+- Existing backups run before trial deployment. The UI trial introduces no schema migration, import, duplicate workers, new identity override or public registration.
+- A documentation-only update does not require rebuilding or restarting either application. Continue normal use while documentation is updated.
+
+### Deploy a reviewed trial update
+
+Run on the existing host from the separate, clean trial checkout, never from the live main checkout. Keep these variables available for the withdrawal commands too; replace the hostname placeholder with the existing hostname.
+
+```bash
+cd /path/to/separate-trial-checkout
+git status --short
+test "$(git branch --show-current)" = agent/focus-atlas-trial
+git pull --ff-only
+
+export PCC_TRIAL_SOURCE_ROOT="$(pwd -P)"
+export PCC_TRIAL_LIVE_ROOT=/opt/personal-control-center
+export PCC_TRIAL_PUBLIC_URL="https://<existing-tailnet-host>:8443"
+
+sh scripts/deploy-trial.sh
+```
+
+Resolve local changes before deploying; do not reset unrelated work. The script rejects main, the live checkout, tracked uncommitted changes, and differences in persistence/authentication boundaries. It validates Compose, runs the existing backup, builds and starts only `app-trial`, checks trial health, enables Funnel 8443, and checks that main's revision and health remain intact. It does not recreate main or its workers.
+
+### Withdraw only the trial UI when requested
+
+With the same variables set, disable only the trial ingress, then stop only the trial service:
+
+```bash
+docker compose \
+  --project-directory "$PCC_TRIAL_LIVE_ROOT" \
+  --env-file "$PCC_TRIAL_LIVE_ROOT/.env" \
+  -f "$PCC_TRIAL_LIVE_ROOT/compose.yaml" --profile funnel \
+  exec -T tailscale tailscale funnel --https=8443 off
+
+docker compose -p personal-control-center \
+  --project-directory "$PCC_TRIAL_LIVE_ROOT" \
+  --env-file "$PCC_TRIAL_LIVE_ROOT/.env" \
+  -f "$PCC_TRIAL_SOURCE_ROOT/compose.yaml" \
+  -f "$PCC_TRIAL_SOURCE_ROOT/compose.trial.yaml" \
+  stop app-trial
+```
+
+Confirm the normal main URL and health still work. Do not disable 443, stop main, run `down`, delete volumes, or restore a backup for an ordinary UI rollback. Data recovery is a separate operation requiring the established restore procedure. If main's app network namespace is recreated during unrelated maintenance, recreate `app-trial` through its trial deployment procedure before expecting 8443 to recover.
+
+After owner feedback, apply targeted fixes to the trial branch and validate the affected workflows. Merge and the normal main deployment remain a separate step requiring explicit owner approval; elapsed trial time or green CI is insufficient.
+
 ## Topology
 
 ```text

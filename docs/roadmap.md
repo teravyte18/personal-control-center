@@ -6,7 +6,11 @@ The project has now moved out of its module-building phase. The default question
 
 The broad UI/UX consolidation work is complete enough to return to a usage-led approach: future interface changes should respond to concrete friction rather than modernisation for its own sake. The **Personal Context Layer and Context Inspector are now implemented** as the cross-space foundation.
 
-The real-use audit is documented, **Weekly Rhythm and the Personal Context Layer are implemented**, and Home already displays dated work through the current Saturday–Friday week (PR #83). The Spotify Music space is also deployed and its automatic collection and genre-enrichment worker passed a live Pi smoke test on 20 October 2026. The next technical candidate is **context retrieval Phases 1–3** (deterministic document projection, search, and a question-driven Inspector), without an LLM dependency. In parallel, keep testing Weekly Rhythm and decide Agenda's remaining role in issue #72. AI remains exploratory, not a committed next slice.
+The real-use audit is documented, **Weekly Rhythm and the Personal Context Layer are implemented**, and Home already displays dated work through the current Saturday–Friday week (PR #83). The Spotify Music space is also deployed and its automatic collection and genre-enrichment worker passed a live Pi smoke test on 20 October 2026.
+
+**Current priority: the Focus + Atlas personal usage trial.** On 22 October 2026, the owner chose to use `agent/focus-atlas-trial` for a few days before giving feedback. [PR #102](https://github.com/teravyte18/personal-control-center/pull/102) stays draft, with adjustments and explicit merge approval pending. Main remains the stable deployment. See [`focus-atlas-trial.md`](focus-atlas-trial.md) for the checklist, known limitations and feedback format. Elapsed time and passing CI do not authorize merging.
+
+The retrieval and AI sections below remain broader candidates, not instructions to expand this trial. The capture-centred graph Home is deferred. Continue observing Rhythm and Agenda during ordinary use; choose subsequent work from owner feedback. AI remains exploratory, not a committed next slice.
 
 See [`usage-audit-2026-10.md`](usage-audit-2026-10.md) and [`weekly-rhythm.md`](weekly-rhythm.md).
 
@@ -20,8 +24,8 @@ graph LR
     AUDIT["Real-use audit<br/>✅"]
     RHY["Weekly Rhythm MVP<br/>✅"]
     HOME["Home through week-end<br/>+ Music live sync<br/>✅"]
-    TEST["Current<br/>Real-use feedback"]
-    RET["Next technical candidate<br/>Retrieval phases 1–3<br/>No LLM"]
+    TEST["Current<br/>Focus + Atlas usage trial<br/>Feedback and merge approval pending"]
+    RET["Later technical candidate<br/>Retrieval phases 1–3<br/>No LLM"]
     CAL["Parallel product decision<br/>Agenda / Calendar #72"]
     LAB["Later experiment<br/>LLM Planner / Advisor<br/>only if useful"]
 
@@ -121,11 +125,11 @@ See [`media-library.md`](media-library.md).
 
 ## UI/UX consolidation — delivered, now usage-led
 
-**Status: broad refresh complete; no new generic redesign is selected.**
+**Status: earlier consolidation delivered; selected Focus + Atlas implementation is now in personal trial, not merged.**
 
 Navigation, Home/Today, density, visual hierarchy, and shared interface rules have already received the main consolidation pass recorded in [`ux-refresh-2026.md`](ux-refresh-2026.md).
 
-Further UI work should now come from actual friction, screenshots, or a clearly better interaction pattern. Agenda remains a product/integration question rather than a page that should be cosmetically redesigned in isolation.
+The latest revised Focus phone and Atlas desktop Figma direction is implemented across the app in draft PR #102. Retain existing capabilities when the frames omit them, all ten themes and canonical data semantics. The next changes should address trial friction on the same branch. Agenda keeps its existing capability inside the selected layout; the wider Calendar ownership question remains separate.
 
 ## Personal Context Layer — implemented
 

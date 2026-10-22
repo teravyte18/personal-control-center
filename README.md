@@ -4,7 +4,7 @@ A phone-first private planning, reflection, reading, cooking, and personal-spend
 
 This repository targets a small personal deployment rather than a commercial product. Multiple invite-only accounts may use one application and PostgreSQL database, but each account has completely separate personal data.
 
-The `agent/focus-atlas-trial` branch implements the revised Focus phone and Atlas desktop direction. See the [personal trial guide](docs/focus-atlas-trial.md) for preservation coverage, validation, limitations and rollback. Keep [PR #102](https://github.com/teravyte18/personal-control-center/pull/102) in draft until the owner has used the authenticated preview and explicitly approved merging.
+The revised Focus phone and Atlas desktop implementation is in an active personal usage trial on `agent/focus-atlas-trial`. On 22 October 2026, the owner chose to use it for a few days before giving feedback. See the [personal trial guide](docs/focus-atlas-trial.md) for preservation coverage, validation, limitations, feedback format and rollback. Keep [PR #102](https://github.com/teravyte18/personal-control-center/pull/102) in draft; feedback and explicit merge approval are still pending. Main remains the separate stable deployment.
 
 ## System principles
 
@@ -29,7 +29,7 @@ The `agent/focus-atlas-trial` branch implements the revised Focus phone and Atla
 - A books-first Library whose default My library view contains Owned books only, with explicit Wishlist access, search, generated views, 0–10 ratings, manual Up next ordering, private covers, and review context
 - A Food recipe book with title/tag search, copyable Markdown-style ingredient lists, steps, source links, optional timings/servings/tags/rating/make-again notes, and private recipe photos
 - Personal Expenses with fast manual expense/income entry, fixed 50/30/20 reference amounts, outflow-share cards, a rolling Fun Fund, editable transaction history, and filtered Insights analytics
-- Four configurable mobile quick-access slots, a dock-attached Spaces handle, a compact All Spaces directory, and an expanded desktop rail
+- Four configurable mobile quick-access slots around Capture, an explicit All Spaces link, a grouped Spaces directory, and independently configurable laptop/desktop pins
 - A neutral Default appearance plus Pokémon, Hades, Hades II, Hollow Knight, Silksong, Elden Ring, Cyberpunk 2077, The Witcher 3, and Stardew Valley themes
 - One-way Google Calendar projection for dated open Tasks and every dated open project action
 - PostgreSQL-backed canonical state shared across each user's browsers and devices
@@ -48,7 +48,7 @@ Capture (/)
 Inbox (/inbox)
 Projects (/projects)
 Tasks (/tasks)
-Rhythm (/rhythm)
+Week / Rhythm (/rhythm)
 Thoughts (/thoughts)
 Notes (/notes)
 Review (/review)
@@ -69,7 +69,7 @@ All Spaces (/spaces)
 
 ## Current direction
 
-The module-building phase and broad UI consolidation are complete. PR #79 now combines a deterministic **Personal Context Layer**, Context Inspector, and the first **Weekly Rhythm** implementation. The current step is real-use testing of that combined slice before deciding how Home/Agenda should change; a polished AI Advisor is not currently the next committed feature.
+The current step is the owner’s Focus + Atlas usage trial in draft PR #102. Collect concrete friction, adjust the same branch after feedback, and merge only after explicit owner approval. The existing Context/Rhythm capabilities remain part of normal use. The capture-centred graph Home is deferred; a polished AI Advisor is not a committed next feature.
 
 ## Documentation map
 

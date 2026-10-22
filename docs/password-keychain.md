@@ -14,6 +14,10 @@ Stages 1, 2, and the implementation-side Stage 3 hardening are complete in PRs #
 
 CI covers cryptographic wrong-key/tamper/swap failures, source-level plaintext/storage boundaries, live PostgreSQL/API user isolation, same-origin write enforcement, production dependency auditing, security headers, and restoring synthetic Keychain ciphertext from the normal PostgreSQL backup. The remaining independent professional review is external assurance, not unfinished implementation work.
 
+### Browser validation limitation observed during the UI trial
+
+During Focus + Atlas validation on 22 October 2026, the in-app browser reported WebAssembly compilation blocked by the existing Keychain CSP in `next.config.ts`. The locked form renders, but successful browser unlock and recovery were not certified. Keychain source, crypto dependencies, security headers and permissions were unchanged from main. Passing server/crypto CI is not proof that this browser path succeeds. Track this limitation during the usage trial; do not weaken security policy or change credentials as an incidental visual adjustment. See [`focus-atlas-trial.md`](focus-atlas-trial.md) for the full validation scope.
+
 ## Intended value
 
 The Keychain should make a small number of personal secrets easy to find from the same phone-first application while keeping the server, PostgreSQL database, local backups, and R2 snapshots unable to read their contents.

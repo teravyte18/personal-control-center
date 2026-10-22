@@ -2,6 +2,21 @@
 
 Status: implemented and deployed for personal trial on `agent/focus-atlas-trial`, based on main `271ce08`. Draft PR: [#102](https://github.com/teravyte18/personal-control-center/pull/102). **Do not merge before owner trial and explicit approval.**
 
+## Active usage trial — 22 October 2026
+
+The owner has chosen to use the branch for a few days before returning feedback. The trial is underway; no finish date or automatic merge date is agreed. Passing validation and the visual review do not replace the owner's usage feedback or merge approval.
+
+| Gate | State |
+| --- | --- |
+| Implementation and authenticated preview | Available |
+| Automated checks and browser/visual review | Completed at the scope documented below |
+| Owner usage trial | In progress |
+| Owner feedback and follow-up adjustments | Pending |
+| Explicit approval to merge | Pending |
+| Merge and replacement of stable main deployment | Not authorized |
+
+Keep PR #102 in draft and make subsequent feedback-driven changes on the same branch. Keep the stable main deployment and preview available during the trial. Do not withdraw the preview or promote it to main merely because several days have passed.
+
 ## Direction
 
 Figma file `rtPqrxzyCazl5XIIaorQ7Y`, start board `60:996`, revised Focus page `40:997` and Atlas page `40:998`. Library anchors: `45:1349` and `45:1818`. Archived alternatives and the graph Home are excluded.
@@ -40,6 +55,7 @@ Checked means the implementation retains the capability and its existing domain/
 
 - ESLint with zero warnings; TypeScript; production Next build; 188 domain/security tests pass. Local Node 24 needed the equivalent `node --experimental-strip-types --test tests/*.test.ts`; CI uses the repository's supported Node 22 and original `npm test`.
 - GitHub CI run [732](https://github.com/teravyte18/personal-control-center/actions/runs/39758554688) passes for application commit `43ae934`, including Quality and Production stack (persistence, authentication, private artwork, Keychain server boundaries, PWA and backup checks).
+- The documentation handoff commit `847abcc` also passed [CI run 733](https://github.com/teravyte18/personal-control-center/actions/runs/39759447155); its previously pending rerun is complete. These are recorded validation points, not claims about later commits.
 - Production ARM64 image built on the existing Pi. Base, Funnel and trial Compose configuration and trial shell syntax validated. Both main and trial report healthy; unauthenticated trial page returns 307 to login and personal-data API returns 401.
 - Main remains on `271ce085195c826e147cd5d7285ec6bc9d910bc8`; its container was not replaced. Trial uses a second application process. No domain, provider, API, database, crypto or authentication implementation changed.
 
@@ -69,6 +85,8 @@ Deploy from the separate clean branch checkout with `PCC_TRIAL_PUBLIC_URL=https:
 
 To withdraw the UI trial, run the existing live Compose command's `exec -T tailscale tailscale funnel --https=8443 off`, then the trial Compose command's `stop app-trial`. Do not stop main, disable port 443, run `down`, remove volumes or restore backups for an ordinary UI rollback. UI rollback does not undo ordinary personal data edits. A future recreation of main's application network namespace may require recreating `app-trial` too.
 
+Exact preview deployment and withdrawal commands are in [`phone-deployment.md`](phone-deployment.md#separate-focus--atlas-trial).
+
 ## Trial notes
 
 For each friction report record: space, device/width, theme, action attempted, expected result, actual result, and whether it blocks work. Try capture, two independent project actions, weekly log/undo, note autosave, a comic with ratings, Series progress, expense entry and Review before approving merge.
@@ -82,3 +100,19 @@ For each friction report record: space, device/width, theme, action attempted, e
 | Your usual theme + installed app | Contrast, keyboard reach, bottom safe area, reload/persistence and any Keychain issue |
 
 Approval remains a later owner decision. Keep this PR draft until trial feedback has been incorporated and the owner explicitly approves merging.
+
+### Feedback format
+
+Send feedback privately using this compact format. A short description is enough; screenshots are optional.
+
+```text
+Space / screen:
+Phone, laptop or desktop / browser / theme:
+Action attempted:
+Expected:
+Actual:
+Frequency: once / sometimes / every time
+Impact: blocks work / slows me down / visual preference
+```
+
+Keep original screenshots, personal records, credentials and identifying examples out of Git and public PR comments. A fix should use a sanitized fictional reproduction, document the relevant validation, and remain on this branch. Feedback can be accumulated during normal use; there is no requirement to backfill history or complete every optional integration test before reporting friction.

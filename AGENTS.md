@@ -28,6 +28,15 @@
 
 ## Development
 
+### Active Focus + Atlas trial
+
+- `agent/focus-atlas-trial` / draft PR #102 is in owner usage trial as of 22 October 2026; feedback and merge approval are pending.
+- Keep fixes on that branch. Do not merge, mark the trial approved, or replace the stable main deployment because time has elapsed or checks have passed. Wait for explicit owner approval.
+- Read `docs/focus-atlas-trial.md` for preservation coverage, known limitations, shared real-data preview semantics and rollback. Use `DESIGN.md` for the implemented visual system and the revised Figma references named in the trial guide.
+- Keep private trial records, screenshots and identifying feedback out of this public repository; use sanitized fictional reproductions.
+
+### Implementation rules
+
 - Keep changes focused and reviewable.
 - Use `agent/<description>` branches rather than committing directly to `main`.
 - Keep item transitions in shared domain actions rather than page-specific handlers.

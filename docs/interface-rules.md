@@ -1,6 +1,6 @@
 # Interface Rules
 
-These rules define the current structural and visual baseline after the UI simplification and game-theme slice.
+These rules describe the Focus + Atlas trial branch while preserving the existing theme and workflow constraints. The stable main deployment remains separate until owner approval; see [`focus-atlas-trial.md`](focus-atlas-trial.md).
 
 The guiding principle is:
 
@@ -8,16 +8,24 @@ The guiding principle is:
 
 The application is a personal tool used repeatedly by someone who already understands its spaces. Permanent explanations should not consume screen space after the workflow is known.
 
-## 0. 2026 refresh direction
+## 0. Selected Focus + Atlas direction
 
-The current interface refresh is governed by [`ux-refresh-2026.md`](ux-refresh-2026.md). Until that stack lands, existing screens remain valid, but new interface work should follow these additional constraints:
+The latest revised Figma Focus phone and Atlas desktop direction is implemented in draft PR #102 and is in owner usage trial. [`../DESIGN.md`](../DESIGN.md), its [machine-readable companion](../.impeccable/design.json), and `src/app/focus-atlas.css` describe the implemented system. [`ux-refresh-2026.md`](ux-refresh-2026.md) records earlier consolidation rationale; it does not override the selected frames.
+
+- phone: PCC/Account header, a single working surface, four configurable pins around Capture, and an explicitly labelled All Spaces link;
+- laptop: compact 112px labelled rail from 768px; desktop: 200px rail from 1200px, with contextual details where space permits;
+- DM Sans, shared controls and flat rows/grouping; preserve all existing palette and Capture-art themes;
+- Figma omissions retain existing functionality, fields, history, permissions and data meaning;
+- keep the capture-centred graph Home deferred; refine the selected direction from trial feedback.
+
+These existing constraints continue to apply:
 
 - do not add another permanent desktop rail destination without revisiting pinning;
 - theme accent indicates identity/selection, while semantic danger/waiting/success colours retain meaning;
 - prefer plain rows or light grouping when a strong card adds no hierarchy;
 - permanent helper copy must identify, disambiguate, communicate a limitation, or explain an action;
 - Home should evolve toward concrete near-term items rather than additional generic attention banners;
-- do not visually polish Agenda as a standalone destination until its product role is resolved.
+- preserve Agenda's current Calendar and event capabilities in the shared layout; keep a broader Calendar ownership change separate.
 
 
 ## 1. Mobile navigation and All Spaces
@@ -29,9 +37,9 @@ The mobile floating Spaces button and its reserved top area were removed in PR #
 Current rules:
 
 - Keep the centre Capture action permanent.
-- Place a small tappable upward handle beneath it.
-- The handle opens the existing All Spaces directory.
-- The handle must remain as visible as other unselected dock controls.
+- Keep four configurable working-space pins around Capture, preserving saved device preferences.
+- Place the visible, labelled All Spaces link beneath the dock pins.
+- All Spaces opens the complete existing directory and must remain as discoverable as other dock controls.
 - A gesture may be added as a secondary shortcut, but Spaces must never depend on a hidden gesture.
 - Respect the phone safe area without creating a decorative blank header bar.
 
@@ -41,10 +49,11 @@ Desktop keeps a permanent Capture action and All Spaces entry in the side rail.
 
 - Present each working destination as a compact icon-and-name row/card.
 - Do not display permanent descriptive sentences for familiar spaces.
-- Preserve comfortable phone touch targets; the normal row is approximately 64 px tall.
+- Preserve comfortable phone touch targets; space links have a minimum 56px height and can grow with content.
 - Use one shared icon-container size and consistent perceived icon weight.
 - Keep Mobile quick access as an expandable configuration block rather than a working space.
 - Keep Account & access after the working spaces.
+- Group destinations by purpose, using two columns on phone and three groups on wider screens where space permits.
 - Future unavailable spaces may appear separately as subdued placeholders.
 
 A normal entry contains only:

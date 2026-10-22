@@ -4,6 +4,8 @@ This is the current production procedure for exposing the authenticated applicat
 
 The Focus + Atlas branch is in a separate owner usage trial, with feedback and merge approval pending. Follow the trial section below for that service. The normal production procedure remains for stable main; do not promote the trial branch through it before approval.
 
+**Use `scripts/deploy-trial.sh` from the separate trial checkout. Do not run `scripts/deploy-production.sh agent/focus-atlas-trial` from the live main checkout.** The production script replaces the main application; it is not a preview deployment command.
+
 ## Separate Focus + Atlas trial
 
 As of 22 October 2026, `agent/focus-atlas-trial` / draft PR #102 is available for a few days of owner use before feedback. Keep main on its stable deployment and keep the PR draft. No trial end date or automatic merge is agreed. See [`focus-atlas-trial.md`](focus-atlas-trial.md) for coverage, known limitations and the feedback format.
@@ -34,6 +36,14 @@ sh scripts/deploy-trial.sh
 ```
 
 Resolve local changes before deploying; do not reset unrelated work. The script rejects main, the live checkout, tracked uncommitted changes, and differences in persistence/authentication boundaries. It validates Compose, runs the existing backup, builds and starts only `app-trial`, checks trial health, enables Funnel 8443, and checks that main's revision and health remain intact. It does not recreate main or its workers.
+
+### Troubleshooting: branch already used by a worktree
+
+If Git reports that `agent/focus-atlas-trial` is already used by another worktree after running the production script, stop using that command. The branch belongs in the separate trial checkout. Do not remove the worktree, force checkout the branch into the main deployment, or remove the trial container as an orphan to bypass the error.
+
+Change into the worktree path printed by Git, confirm its branch and local changes, pull with `--ff-only`, and use `deploy-trial.sh` with the existing HTTPS hostname on port 8443 as shown above. Use the preview URL including `:8443` to see the trial UI; the normal URL on 443 intentionally keeps main. A healthy trial does not need redeployment just to open it.
+
+The production Compose file does not include `app-trial`, so it may report that service as an orphan. That warning does not mean the trial is broken. Do not run orphan cleanup during the personal trial. Check both services and their health after a failed attempt; the checkout error alone is not evidence that main was replaced.
 
 ### Withdraw only the trial UI when requested
 

@@ -15,7 +15,11 @@ First pass, 29 October 2026. Stacked on the unmerged Focus + Atlas usage trial. 
 - Project groups have a shared desktop boundary; phone project outcome and next-action details are separated. Other open actions are grouped and overdue dates are explicit.
 - Desktop Agenda uses one chronological column rather than alternating dates across columns.
 
-No authentication, API, persistence, integration, schema, dependency, Keychain or deployment configuration changes are included. Existing shared actions still own completion and record mutations.
+No authentication, API, persistence, integration, schema, Keychain or deployment configuration changes are included. A separate validation follow-up pins Next.js and eslint-config-next to 16.4.3 because the initial CI dependency audit blocked the existing framework version. Existing shared actions still own completion and record mutations.
+
+## Dependency audit follow-up
+
+The initial PR CI audit reports critical Next.js advisories affecting the existing 16.3.8 pin. The framework and matching lint configuration are updated to 16.4.3, the same-major fixed release recommended by that audit. No audit suppression or security-policy relaxation is introduced. References: [image optimisation](https://github.com/advisories/GHSA-2464-fhr4-w9xw), [typed-array cache](https://github.com/advisories/GHSA-673q-mjm6-r5xr), [Server Actions denial of service](https://github.com/advisories/GHSA-p3m5-59mp-jv5r). Re-run dependency audit, lint, domain/security tests, build and production-stack CI for this dependency revision.
 
 ## Deferred
 

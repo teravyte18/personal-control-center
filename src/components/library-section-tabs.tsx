@@ -18,8 +18,8 @@ export function LibrarySectionTabs() {
       : "books";
 
   return (
-    <nav aria-label="Library sections" className="mx-auto mb-5 max-w-6xl">
-      <div className="grid grid-cols-3 rounded-2xl border border-slate-200 bg-white p-1 shadow-sm">
+    <nav aria-label="Library sections" className="pcc-library-tabs">
+      <div className="grid grid-cols-3 gap-2">
         {sections.map((section) => {
           const selected = section.id === active;
           return (
@@ -27,9 +27,9 @@ export function LibrarySectionTabs() {
               key={section.id}
               href={section.href}
               aria-current={selected ? "page" : undefined}
-              className={`flex min-h-11 items-center justify-center rounded-xl px-3 text-sm font-semibold transition ${
+              className={`pcc-control ${
                 selected
-                  ? "bg-slate-950 text-white"
+                  ? "is-selected"
                   : "text-slate-600 hover:bg-slate-50 hover:text-slate-950"
               }`}
             >

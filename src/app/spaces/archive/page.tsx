@@ -14,7 +14,8 @@ const statusLabels: Record<string, string> = {
 };
 
 export default function ArchivePage() {
-  const { items } = usePersonalData();
+  const { items, restoreArchivedItem } = usePersonalData();
+  const otherRecords = items.filter(item => item.kind !== "project" && item.status === "archived" && item.statusBeforeArchive);
   const projects = useMemo(
     () => items
       .filter((item) => item.kind === "project" && item.status === "archived")
@@ -26,7 +27,7 @@ export default function ArchivePage() {
     <section className="mx-auto max-w-4xl">
       <h2 className="text-3xl font-semibold tracking-tight">Archive</h2>
 
-      {projects.length === 0 ? (
+      {projects.length === 0 && otherRecords.length === 0 ? (
         <div className="mt-7 rounded-[2rem] border border-dashed border-slate-300 bg-white p-8 text-center">
           <h3 className="text-lg font-semibold">Nothing archived.</h3>
           <p className="mt-2 text-sm leading-6 text-slate-500">Projects you archive will remain recoverable here.</p>
@@ -36,6 +37,7 @@ export default function ArchivePage() {
           {projects.map((project) => <ArchivedProjectCard key={project.id} project={project} />)}
         </div>
       )}
+      {otherRecords.length ? <section className="mt-7"><h3 className="pcc-section-title">Archived captures &amp; thoughts</h3>{otherRecords.map(item => <article key={item.id} className="pcc-record flex items-start justify-between gap-4"><div><p className="pcc-record-title">{item.title}</p><p className="pcc-record-meta">{item.kind} · Returns to {item.statusBeforeArchive}</p></div><button className="pcc-control" onClick={() => restoreArchivedItem(item.id)}>Restore</button></article>)}</section> : null}
     </section>
   );
 }

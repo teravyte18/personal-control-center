@@ -2,6 +2,97 @@
 
 This is the current production procedure for exposing the authenticated application through a stable Tailscale HTTPS hostname without buying a domain, opening inbound router ports, or publishing PostgreSQL.
 
+The owner has authorized using the unmerged Focus + Atlas branch as the normal production UI. Merge approval is still pending. The deployment method and rollback are below.
+
+## Focus + Atlas on the normal production URL
+
+The current trial replaces `app` on the usual HTTPS URL on 443. There is no need to use port 8443 or keep the old UI running. The branch stays `agent/focus-atlas-trial` and PR #102 stays draft. Deploying it for usage testing is authorized; merging is not.
+
+From the clean live deployment checkout:
+
+```bash
+cd /opt/personal-control-center
+sh scripts/deploy-production.sh agent/focus-atlas-trial
+```
+
+The script validates database/upload backups, fetches the requested ref, and deploys non-main refs in detached HEAD. This avoids Git's branch-in-another-worktree restriction without moving or removing that worktree. Subsequent trial updates use the same command. Existing `.env`, HTTPS origin, authentication, database, uploads and workers are retained. Do not copy secrets into the trial checkout or reset unrelated local work.
+
+To restore the prior UI, use the same live checkout:
+
+```bash
+sh scripts/deploy-production.sh main
+```
+
+This returns the checkout and deployed UI to main. It does not undo ordinary trial data edits. Do not remove volumes or restore a database backup for a UI rollback. The main branch itself remains unchanged by either deployment command.
+
+When transitioning from the earlier preview, disable only its 8443 Funnel ingress before the normal production deployment. The normal script's orphan cleanup removes the obsolete `app-trial` container; do not delete its shared uploads or PostgreSQL data. Keep HTTPS 443 routed to the normal `app` on 3000.
+
+If the live checkout still contains the older deployment script that fails on a branch held by another worktree, run the updated script by its absolute path in the clean trial worktree while keeping the live checkout as the current directory. After the first successful deployment, the usual relative command above works. Do not force checkout or remove a worktree to bypass the error.
+
+See [`focus-atlas-trial.md`](focus-atlas-trial.md) for coverage, known limitations, feedback and the pending merge gate.
+
+## Earlier separate Focus + Atlas preview — retired
+
+The following procedure records the original separate-service setup. It was superseded by the owner's request to use the normal production URL. It is not the current trial deployment procedure.
+
+### Boundaries
+
+- Funnel HTTPS 443 continues to serve main; 8443 serves the authenticated trial. The actual hostname is supplied privately and is not committed here.
+- `app-trial` listens internally on 3002 in the existing app network namespace, with no additional published host port. PostgreSQL stays private.
+- The trial uses the real existing accounts, canonical database and private uploads. Ordinary edits are visible in both UIs and survive an ordinary UI rollback.
+- Existing backups run before trial deployment. The UI trial introduces no schema migration, import, duplicate workers, new identity override or public registration.
+- A documentation-only update does not require rebuilding or restarting either application. Continue normal use while documentation is updated.
+
+### Deploy a reviewed trial update
+
+Run on the existing host from the separate, clean trial checkout, never from the live main checkout. Keep these variables available for the withdrawal commands too; replace the hostname placeholder with the existing hostname.
+
+```bash
+cd /path/to/separate-trial-checkout
+git status --short
+test "$(git branch --show-current)" = agent/focus-atlas-trial
+git pull --ff-only
+
+export PCC_TRIAL_SOURCE_ROOT="$(pwd -P)"
+export PCC_TRIAL_LIVE_ROOT=/opt/personal-control-center
+export PCC_TRIAL_PUBLIC_URL="https://<existing-tailnet-host>:8443"
+
+sh scripts/deploy-trial.sh
+```
+
+Resolve local changes before deploying; do not reset unrelated work. The script rejects main, the live checkout, tracked uncommitted changes, and differences in persistence/authentication boundaries. It validates Compose, runs the existing backup, builds and starts only `app-trial`, checks trial health, enables Funnel 8443, and checks that main's revision and health remain intact. It does not recreate main or its workers.
+
+### Troubleshooting: branch already used by a worktree
+
+If Git reports that `agent/focus-atlas-trial` is already used by another worktree after running the production script, stop using that command. The branch belongs in the separate trial checkout. Do not remove the worktree, force checkout the branch into the main deployment, or remove the trial container as an orphan to bypass the error.
+
+Change into the worktree path printed by Git, confirm its branch and local changes, pull with `--ff-only`, and use `deploy-trial.sh` with the existing HTTPS hostname on port 8443 as shown above. Use the preview URL including `:8443` to see the trial UI; the normal URL on 443 intentionally keeps main. A healthy trial does not need redeployment just to open it.
+
+The production Compose file does not include `app-trial`, so it may report that service as an orphan. That warning does not mean the trial is broken. Do not run orphan cleanup during the personal trial. Check both services and their health after a failed attempt; the checkout error alone is not evidence that main was replaced.
+
+### Withdraw only the trial UI when requested
+
+With the same variables set, disable only the trial ingress, then stop only the trial service:
+
+```bash
+docker compose \
+  --project-directory "$PCC_TRIAL_LIVE_ROOT" \
+  --env-file "$PCC_TRIAL_LIVE_ROOT/.env" \
+  -f "$PCC_TRIAL_LIVE_ROOT/compose.yaml" --profile funnel \
+  exec -T tailscale tailscale funnel --https=8443 off
+
+docker compose -p personal-control-center \
+  --project-directory "$PCC_TRIAL_LIVE_ROOT" \
+  --env-file "$PCC_TRIAL_LIVE_ROOT/.env" \
+  -f "$PCC_TRIAL_SOURCE_ROOT/compose.yaml" \
+  -f "$PCC_TRIAL_SOURCE_ROOT/compose.trial.yaml" \
+  stop app-trial
+```
+
+Confirm the normal main URL and health still work. Do not disable 443, stop main, run `down`, delete volumes, or restore a backup for an ordinary UI rollback. Data recovery is a separate operation requiring the established restore procedure. If main's app network namespace is recreated during unrelated maintenance, recreate `app-trial` through its trial deployment procedure before expecting 8443 to recover.
+
+After owner feedback, apply targeted fixes to the trial branch and validate the affected workflows. Merge and the normal main deployment remain a separate step requiring explicit owner approval; elapsed trial time or green CI is insufficient.
+
 ## Topology
 
 ```text

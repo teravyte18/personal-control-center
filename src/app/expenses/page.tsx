@@ -90,7 +90,7 @@ export default function ExpensesPage() {
           aria-label={entryOpen ? "Close transaction form" : "Add transaction"}
           className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-xl bg-slate-950 px-3 text-2xl font-light leading-none text-white active:scale-[0.98]"
         >
-          {entryOpen ? "−" : "+"}
+          <span className="text-sm">{entryOpen ? "Cancel" : "Add transaction"}</span>
         </button>
       </div>
 
@@ -109,7 +109,7 @@ export default function ExpensesPage() {
         />
       ) : null}
 
-      <div className="mt-5 grid grid-cols-2 rounded-2xl border border-slate-200 bg-white p-1 shadow-sm">
+      <div className="pcc-view-controls">
         <button
           type="button"
           onClick={() => setView("month")}
@@ -312,21 +312,21 @@ function MonthView({
   }, [monthTransactions]);
 
   return (
-    <div className="mt-5">
+    <div className="pcc-expenses-month mt-5">
       <div className="flex items-center justify-between gap-3">
         <button type="button" onClick={() => onMonthChange(shiftMonth(month, -1))} className="min-h-11 min-w-11 rounded-xl border border-slate-200 bg-white text-lg" aria-label="Previous month">‹</button>
         <h3 className="text-lg font-semibold">{formatMonth(month)}</h3>
         <button type="button" onClick={() => onMonthChange(shiftMonth(month, 1))} className="min-h-11 min-w-11 rounded-xl border border-slate-200 bg-white text-lg" aria-label="Next month">›</button>
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="pcc-expense-metrics">
         <Metric label="Income" value={formatMoney(summary.incomeCents, settings.currency)} />
         <Metric label="Spent" value={formatMoney(summary.spendingCents, settings.currency)} />
         <Metric label="Future You" value={formatMoney(summary.futureCents, settings.currency)} />
         <Metric label="Net cash flow" value={formatMoney(summary.remainingCents, settings.currency)} />
       </div>
 
-      <div className="mt-4 grid gap-3 lg:grid-cols-3">
+      <div className="pcc-expense-buckets">
         {expenseBucketIds.map((bucket) => (
           <BucketProgress
             key={bucket}
@@ -387,7 +387,7 @@ function MonthView({
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="pcc-expense-metric">
       <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
       <p className="mt-2 text-xl font-semibold text-slate-950">{value}</p>
     </div>

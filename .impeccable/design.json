@@ -1,0 +1,363 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-22T09:56:02.119Z",
+  "title": "Design System: Personal Control Center",
+  "extensions": {
+    "colorMeta": {
+      "background": {
+        "role": "neutral",
+        "displayName": "Background",
+        "tonalRamp": [
+          "oklch(15% 0.0034 247.86)",
+          "oklch(26% 0.0034 247.86)",
+          "oklch(38% 0.0034 247.86)",
+          "oklch(49% 0.0034 247.86)",
+          "oklch(61% 0.0034 247.86)",
+          "oklch(72% 0.0034 247.86)",
+          "oklch(84% 0.0034 247.86)",
+          "oklch(95% 0.0034 247.86)"
+        ]
+      },
+      "foreground": {
+        "role": "neutral",
+        "displayName": "Foreground",
+        "tonalRamp": [
+          "oklch(15% 0.0398 265.75)",
+          "oklch(26% 0.0398 265.75)",
+          "oklch(38% 0.0398 265.75)",
+          "oklch(49% 0.0398 265.75)",
+          "oklch(61% 0.0398 265.75)",
+          "oklch(72% 0.0398 265.75)",
+          "oklch(84% 0.0398 265.75)",
+          "oklch(95% 0.0398 265.75)"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Surface",
+        "tonalRamp": [
+          "oklch(15% 0.0000 89.88)",
+          "oklch(26% 0.0000 89.88)",
+          "oklch(38% 0.0000 89.88)",
+          "oklch(49% 0.0000 89.88)",
+          "oklch(61% 0.0000 89.88)",
+          "oklch(72% 0.0000 89.88)",
+          "oklch(84% 0.0000 89.88)",
+          "oklch(95% 0.0000 89.88)"
+        ]
+      },
+      "accent": {
+        "role": "primary",
+        "displayName": "Accent",
+        "tonalRamp": [
+          "oklch(15% 0.0398 265.75)",
+          "oklch(26% 0.0398 265.75)",
+          "oklch(38% 0.0398 265.75)",
+          "oklch(49% 0.0398 265.75)",
+          "oklch(61% 0.0398 265.75)",
+          "oklch(72% 0.0398 265.75)",
+          "oklch(84% 0.0398 265.75)",
+          "oklch(95% 0.0398 265.75)"
+        ]
+      },
+      "accent-hover": {
+        "role": "primary",
+        "displayName": "Accent Hover",
+        "tonalRamp": [
+          "oklch(15% 0.0368 260.03)",
+          "oklch(26% 0.0368 260.03)",
+          "oklch(38% 0.0368 260.03)",
+          "oklch(49% 0.0368 260.03)",
+          "oklch(61% 0.0368 260.03)",
+          "oklch(72% 0.0368 260.03)",
+          "oklch(84% 0.0368 260.03)",
+          "oklch(95% 0.0368 260.03)"
+        ]
+      },
+      "accent-foreground": {
+        "role": "primary",
+        "displayName": "Accent Foreground",
+        "tonalRamp": [
+          "oklch(15% 0.0000 89.88)",
+          "oklch(26% 0.0000 89.88)",
+          "oklch(38% 0.0000 89.88)",
+          "oklch(49% 0.0000 89.88)",
+          "oklch(61% 0.0000 89.88)",
+          "oklch(72% 0.0000 89.88)",
+          "oklch(84% 0.0000 89.88)",
+          "oklch(95% 0.0000 89.88)"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Line",
+        "tonalRamp": [
+          "oklch(15% 0.0126 255.51)",
+          "oklch(26% 0.0126 255.51)",
+          "oklch(38% 0.0126 255.51)",
+          "oklch(49% 0.0126 255.51)",
+          "oklch(61% 0.0126 255.51)",
+          "oklch(72% 0.0126 255.51)",
+          "oklch(84% 0.0126 255.51)",
+          "oklch(95% 0.0126 255.51)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted",
+        "tonalRamp": [
+          "oklch(15% 0.0217 268.86)",
+          "oklch(26% 0.0217 268.86)",
+          "oklch(38% 0.0217 268.86)",
+          "oklch(49% 0.0217 268.86)",
+          "oklch(61% 0.0217 268.86)",
+          "oklch(72% 0.0217 268.86)",
+          "oklch(84% 0.0217 268.86)",
+          "oklch(95% 0.0217 268.86)"
+        ]
+      },
+      "quiet": {
+        "role": "neutral",
+        "displayName": "Quiet",
+        "tonalRamp": [
+          "oklch(15% 0.0011 197.14)",
+          "oklch(26% 0.0011 197.14)",
+          "oklch(38% 0.0011 197.14)",
+          "oklch(49% 0.0011 197.14)",
+          "oklch(61% 0.0011 197.14)",
+          "oklch(72% 0.0011 197.14)",
+          "oklch(84% 0.0011 197.14)",
+          "oklch(95% 0.0011 197.14)"
+        ]
+      },
+      "selected": {
+        "role": "neutral",
+        "displayName": "Selected",
+        "tonalRamp": [
+          "oklch(15% 0.0027 286.35)",
+          "oklch(26% 0.0027 286.35)",
+          "oklch(38% 0.0027 286.35)",
+          "oklch(49% 0.0027 286.35)",
+          "oklch(61% 0.0027 286.35)",
+          "oklch(72% 0.0027 286.35)",
+          "oklch(84% 0.0027 286.35)",
+          "oklch(95% 0.0027 286.35)"
+        ]
+      },
+      "danger": {
+        "role": "neutral",
+        "displayName": "Danger",
+        "tonalRamp": [
+          "oklch(15% 0.1502 10.27)",
+          "oklch(26% 0.1502 10.27)",
+          "oklch(38% 0.1502 10.27)",
+          "oklch(49% 0.1502 10.27)",
+          "oklch(61% 0.1502 10.27)",
+          "oklch(72% 0.1502 10.27)",
+          "oklch(84% 0.1502 10.27)",
+          "oklch(95% 0.1502 10.27)"
+        ]
+      },
+      "waiting": {
+        "role": "neutral",
+        "displayName": "Waiting",
+        "tonalRamp": [
+          "oklch(15% 0.1054 45.90)",
+          "oklch(26% 0.1054 45.90)",
+          "oklch(38% 0.1054 45.90)",
+          "oklch(49% 0.1054 45.90)",
+          "oklch(61% 0.1054 45.90)",
+          "oklch(72% 0.1054 45.90)",
+          "oklch(84% 0.1054 45.90)",
+          "oklch(95% 0.1054 45.90)"
+        ]
+      },
+      "success": {
+        "role": "neutral",
+        "displayName": "Success",
+        "tonalRamp": [
+          "oklch(15% 0.0730 168.94)",
+          "oklch(26% 0.0730 168.94)",
+          "oklch(38% 0.0730 168.94)",
+          "oklch(49% 0.0730 168.94)",
+          "oklch(61% 0.0730 168.94)",
+          "oklch(72% 0.0730 168.94)",
+          "oklch(84% 0.0730 168.94)",
+          "oklch(95% 0.0730 168.94)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "headline-phone": {
+        "displayName": "Phone headline",
+        "purpose": "Main phone and authentication headings."
+      },
+      "headline-wide": {
+        "displayName": "Wide headline",
+        "purpose": "Working headings from 768px and focused selected titles."
+      },
+      "title": {
+        "displayName": "Section title",
+        "purpose": "Working section hierarchy."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Descriptions and textarea content."
+      },
+      "label": {
+        "displayName": "Control and record",
+        "purpose": "Compact control labels and record titles."
+      },
+      "metadata": {
+        "displayName": "Metadata",
+        "purpose": "Counts, dates, secondary context and dock labels."
+      }
+    },
+    "shadows": [
+      {
+        "name": "working-surface",
+        "value": "none",
+        "purpose": "Flat resting working surfaces; inherited small and large shadows are removed."
+      },
+      {
+        "name": "input-focus",
+        "value": "0 0 0 3px color-mix(in srgb, var(--color-slate-400, #94a3b8) 20%, transparent)",
+        "purpose": "Existing native field focus ring."
+      }
+    ],
+    "motion": [
+      {
+        "name": "pressed-opacity",
+        "value": "0.8",
+        "purpose": "Immediate active feedback on buttons and links."
+      },
+      {
+        "name": "reduced-motion-duration",
+        "value": ".01ms",
+        "purpose": "Transition and animation duration under prefers-reduced-motion: reduce."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "labelled-laptop-rail",
+        "value": "768px"
+      },
+      {
+        "name": "desktop-rail-and-collection-detail",
+        "value": "1200px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary working action",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Ink-filled action within the working surface.",
+      "html": "<button class=\"ds-primary\">Save</button>",
+      "css": ".ds-primary{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:11px 16px;font-family:\"DM Sans\",sans-serif;font-size:14px;line-height:20px;border:1px solid var(--foreground,#0f172a);border-radius:12px;background:var(--foreground,#0f172a);color:var(--background,#f8fafc);cursor:pointer}.ds-primary:hover{border-color:var(--pcc-muted,#5c616e)}.ds-primary:focus-visible{outline:2px solid var(--theme-accent,#0f172a);outline-offset:3px}.ds-primary:active{opacity:.8}.ds-primary:disabled{opacity:.5;cursor:not-allowed}"
+    },
+    {
+      "name": "Quiet control",
+      "kind": "button",
+      "refersTo": "button-quiet",
+      "description": "Surface-filled secondary control with a theme line.",
+      "html": "<button class=\"ds-quiet\">New</button>",
+      "css": ".ds-quiet{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:11px 16px;font-family:\"DM Sans\",sans-serif;font-size:14px;line-height:20px;border:1px solid var(--theme-line,#e2e8f0);border-radius:12px;background:var(--theme-surface,#fff);color:var(--foreground,#0f172a);cursor:pointer}.ds-quiet:hover{border-color:var(--pcc-muted,#5c616e)}.ds-quiet:focus-visible{outline:2px solid var(--theme-accent,#0f172a);outline-offset:3px}.ds-quiet:active{opacity:.8}.ds-quiet:disabled{opacity:.5;cursor:not-allowed}"
+    },
+    {
+      "name": "Native text field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Compact native field; coarse pointers receive body-sized text.",
+      "html": "<label class=\"ds-label\">Title<input class=\"ds-field\" type=\"text\" placeholder=\"Title\"></label>",
+      "css": ".ds-label{display:grid;gap:8px;color:var(--foreground,#0f172a);font-family:\"DM Sans\",sans-serif;font-size:14px;line-height:20px;}.ds-field{width:100%;min-height:44px;padding:11px 12px;border:1px solid var(--theme-line,#e2e8f0);border-radius:12px;background:var(--theme-surface,#fff);color:var(--foreground,#0f172a);font-family:\"DM Sans\",sans-serif;font-size:14px;line-height:20px;}.ds-field:focus{border-color:var(--color-slate-500,#64748b);box-shadow:0 0 0 3px color-mix(in srgb,var(--color-slate-400,#94a3b8) 20%,transparent)}.ds-field:focus-visible{outline:2px solid var(--theme-accent,#0f172a);outline-offset:3px}@media(pointer:coarse){.ds-field{font-size:16px}}"
+    },
+    {
+      "name": "Pinned rail navigation",
+      "kind": "nav",
+      "refersTo": "navigation-active",
+      "description": "Visible labels and a quiet selected background.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Pinned navigation\"><a class=\"ds-link ds-current\" href=\"#projects\" aria-current=\"page\">Projects</a><a class=\"ds-link\" href=\"#tasks\">Tasks</a></nav>",
+      "css": ".ds-nav{display:grid;gap:4px}.ds-link{display:flex;align-items:center;justify-content:center;min-height:48px;padding:12px 8px;font-family:\"DM Sans\",sans-serif;font-size:14px;line-height:20px;text-decoration:none;border-radius:12px;color:var(--foreground,#0f172a);text-align:center}.ds-current{background:var(--pcc-selected,#ececee)}.ds-link:hover{border-color:var(--pcc-muted,#5c616e)}.ds-link:focus-visible{outline:2px solid var(--theme-accent,#0f172a);outline-offset:3px}.ds-link:active{opacity:.8}"
+    },
+    {
+      "name": "Working record",
+      "kind": "custom",
+      "refersTo": "record",
+      "description": "Flat, wrapping title and metadata row.",
+      "html": "<button class=\"ds-record\"><span class=\"ds-record-title\">Record title</span><span class=\"ds-meta\">Supporting context</span></button>",
+      "css": ".ds-record{display:block;width:100%;padding:12px 16px;text-align:left;background:transparent;color:var(--foreground,#0f172a);border:0;font-family:\"DM Sans\",sans-serif;font-size:14px;line-height:20px;cursor:pointer;overflow-wrap:anywhere}.ds-record-title,.ds-meta{display:block}.ds-meta{margin-top:4px;font-size:12px;line-height:18px;color:var(--pcc-muted,#5c616e)}.ds-record:hover{background:var(--pcc-selected,#ececee)}.ds-record:focus-visible{outline:2px solid var(--theme-accent,#0f172a);outline-offset:3px}.ds-record:active{opacity:.8}"
+    },
+    {
+      "name": "Grouped working surface",
+      "kind": "card",
+      "refersTo": "surface",
+      "description": "Flat surface grouping one coherent set of information.",
+      "html": "<section class=\"ds-surface\"><h3 class=\"ds-title\">Section</h3><p class=\"ds-body\">Related information stays together.</p></section>",
+      "css": ".ds-surface{padding:20px;border-radius:16px;background:var(--theme-surface,#fff);color:var(--foreground,#0f172a);font-family:\"DM Sans\",sans-serif}.ds-title{margin:0 0 12px;font-weight:500;font-size:18px;line-height:24px}.ds-body{margin:0;font-size:16px;line-height:24px}"
+    },
+    {
+      "name": "Selected library section",
+      "kind": "nav",
+      "refersTo": "button-primary",
+      "description": "Library section labels with a selected ink-filled control.",
+      "html": "<nav class=\"ds-tabs\" aria-label=\"Library sections\"><a class=\"ds-tab ds-tab-selected\" href=\"#books\" aria-current=\"page\">Books</a><a class=\"ds-tab\" href=\"#movies\">Movies</a><a class=\"ds-tab\" href=\"#series\">Series</a></nav>",
+      "css": ".ds-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;max-width:480px}.ds-tab{display:flex;align-items:center;justify-content:center;min-height:44px;padding:11px 16px;font-family:\"DM Sans\",sans-serif;font-size:14px;line-height:20px;text-decoration:none;border:1px solid var(--theme-line,#e2e8f0);border-radius:12px;background:var(--theme-surface,#fff);color:var(--foreground,#0f172a)}.ds-tab-selected{background:var(--foreground,#0f172a);color:var(--background,#f8fafc);border-color:var(--foreground,#0f172a)}.ds-tab:hover{border-color:var(--pcc-muted,#5c616e)}.ds-tab:focus-visible{outline:2px solid var(--theme-accent,#0f172a);outline-offset:3px}.ds-tab:active{opacity:.8}"
+    },
+    {
+      "name": "Artwork fallback",
+      "kind": "custom",
+      "description": "Neutral placeholder preserves cover geometry without invented art.",
+      "html": "<div class=\"ds-artwork\"><span>No poster added</span></div>",
+      "css": ".ds-artwork{display:flex;align-items:center;justify-content:center;width:160px;aspect-ratio:2/3;border-radius:6px;overflow:hidden;background:var(--pcc-quiet,#f4f5f5);color:var(--pcc-muted,#5c616e);font-family:\"DM Sans\",sans-serif;font-size:12px;line-height:18px;text-align:center}.ds-artwork>span{padding:12px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Focus + Atlas",
+    "overview": "The owner selected Focus for phone and Atlas for desktop. Phone screens give immediate work a clear place; wider screens expose related records and useful context side by side. A compact labelled rail bridges laptop widths. The interface is matter-of-fact, readable and precise, with flat rows, restrained surfaces and direct labels.\n\nThis document describes the implemented application. The latest approved Figma direction in file `rtPqrxzyCazl5XIIaorQ7Y` (start `60:996`, Focus `40:997`, Atlas `40:998`, Library `45:1349` / `45:1818`) establishes visual intent; the running source establishes actual tokens and behavior. Earlier directions and the deferred graph Home are outside this system. Preserve existing theme identities, private artwork and personal-data behavior when extending screens.",
+    "keyCharacteristics": [
+      "One locally served type family with a clear, compact hierarchy.",
+      "Flat working rows; surfaces group work and context.",
+      "Phone focus expands into desktop context without changing record meaning.",
+      "Ten existing palettes and their Capture artwork remain available.",
+      "Native controls, visible keyboard focus and readable loading/error states."
+    ],
+    "rules": [
+      {
+        "name": "The Theme Authority Rule",
+        "body": "Resolve colors through the existing CSS variables. `src/app/globals.css` owns all ten palettes: Default, Pokémon, Hades, Hades II, Hollow Knight, Silksong, Elden Ring, Cyberpunk 2077, The Witcher 3 and Stardew Valley. `src/lib/theme.ts` owns their names, previews and browser color metadata. Do not infer new palette-to-feature mappings from preview swatches.",
+        "section": "colors"
+      },
+      {
+        "name": "The Semantic Status Rule",
+        "body": "Danger, waiting and success retain the shared semantic foreground, muted text and border families in `src/app/semantic-status.css`. Their pale status backgrounds need readable foregrounds even when a theme remaps the slate scale.",
+        "section": "colors"
+      },
+      {
+        "name": "The Readable Control Rule",
+        "body": "Inputs use the compact control role with a minimum touchable height; coarse-pointer inputs increase to the body size. Authentication inputs and textareas already use the body size. Keep browser zoom available and preserve native date, select and file input behavior.",
+        "section": "typography"
+      },
+      {
+        "name": "The Context Follows Space Rule",
+        "body": "Expose additional context when the available width supports it. Keep the phone's selected record and action understandable on their own.",
+        "section": "layout"
+      }
+    ],
+    "dos": [
+      "**Do** use the existing theme variables and semantic status families for every new surface.",
+      "**Do** retain labelled phone navigation, compact laptop navigation and wider desktop context.",
+      "**Do** wrap record titles and supporting content, including long unbroken strings.",
+      "**Do** preserve native controls, keyboard focus, inert modal backgrounds and safe-area clearance.",
+      "**Do** use real private artwork when available and explicit text fallbacks when it is unavailable."
+    ],
+    "donts": [
+      "**Don't** introduce a new visual metaphor or inherit an archived Figma direction.",
+      "**Don't** turn the deferred graph Home into the navigation model.",
+      "**Don't** invent palette mappings, decorative emoji, promotional eyebrows or nested decorative card stacks.",
+      "**Don't** encode private records, screenshots, credentials or trial host details in design documentation.",
+      "**Don't** change record semantics, authentication, permissions or data behavior as part of visual extension."
+    ]
+  }
+}

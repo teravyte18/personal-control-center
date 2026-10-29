@@ -9,6 +9,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import { NoteMarkdown } from "@/components/note-markdown";
+import { useDialogFocus } from "@/hooks/use-dialog-focus";
 import {
   getNoteOrderMetadata,
   getNotes,
@@ -43,11 +44,13 @@ export default function NotesPage() {
   const orderedNotesRef = useRef(notes);
   const [creating, setCreating] = useState(false);
   const [openNoteId, setOpenNoteId] = useState<string | null>(null);
+  const [previewNoteId, setPreviewNoteId] = useState("");
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const draggingIdRef = useRef<string | null>(null);
   const pressRef = useRef<PendingPress | null>(null);
   const pressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const openNote = notes.find((note) => note.id === openNoteId);
+  const previewNote = notes.find(note => note.id === previewNoteId) ?? orderedNotes[0];
 
   const createNote = useCallback((content: string) => {
     const parsed = parseNoteContent(content);
@@ -216,7 +219,8 @@ export default function NotesPage() {
           </button>
         </div>
       ) : (
-        <div className="mt-6 grid grid-cols-2 gap-3 sm:gap-4">
+        <div className="pcc-notes-layout">
+        <div className="pcc-note-list">
           {orderedNotes.map((note) => {
             const dragging = draggingId === note.id;
             return (
@@ -232,7 +236,10 @@ export default function NotesPage() {
               >
                 <button
                   type="button"
-                  onClick={() => setOpenNoteId(note.id)}
+                  onClick={() => {
+                    setPreviewNoteId(note.id);
+                    if (!window.matchMedia("(min-width: 768px)").matches) setOpenNoteId(note.id);
+                  }}
                   className="min-w-0 flex-1 p-3 text-left active:bg-slate-50 sm:p-4"
                 >
                   <span className="line-clamp-2 text-sm font-semibold leading-5 text-slate-900 sm:text-base sm:leading-6">
@@ -244,6 +251,15 @@ export default function NotesPage() {
                   aria-label={`Hold and drag to reorder ${note.title}`}
                   title="Hold and drag to reorder"
                   onPointerDown={(event) => startPress(note.id, event)}
+                  onKeyDown={(event) => {
+                    if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+                    event.preventDefault();
+                    const index = orderedNotes.findIndex(entry => entry.id === note.id);
+                    const target = orderedNotes[index + (event.key === "ArrowUp" ? -1 : 1)];
+                    if (!target) return;
+                    orderedNotesRef.current = reorderNotes(orderedNotes, note.id, target.id);
+                    persistCurrentOrder();
+                  }}
                   onPointerMove={movePress}
                   onPointerUp={finishPress}
                   onPointerCancel={finishPress}
@@ -265,6 +281,8 @@ export default function NotesPage() {
               </article>
             );
           })}
+        </div>
+        {previewNote ? <aside className="pcc-note-preview"><h3 className="pcc-section-title">{previewNote.title}</h3><NoteMarkdown value={previewNote.description} /><button className="pcc-control theme-home-button mt-5" onClick={() => setOpenNoteId(previewNote.id)}>Edit note</button><p className="pcc-record-meta">Use the reorder handle or focus it and press the arrow keys to change order.</p></aside> : null}
         </div>
       )}
 
@@ -306,6 +324,7 @@ function NoteEditor({
   onClose: () => void;
 }) {
   const initialContent = initialNote ? noteContent(initialNote) : "";
+  const dialogRef = useDialogFocus<HTMLDivElement>();
   const [content, setContentState] = useState(initialContent);
   const [mode, setMode] = useState<EditorMode>(initialNote ? "preview" : "edit");
   const [saveState, setSaveState] = useState<SaveState>(initialNote ? "clean" : "needs-title");
@@ -496,7 +515,7 @@ function NoteEditor({
           : "";
 
   return (
-    <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-50">
+    <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={initialNote ? initialNote.title : "New note"} tabIndex={-1} className="pcc-note-editor fixed inset-0 z-[100] overflow-y-auto bg-slate-50">
       <div className="flex min-h-screen flex-col">
         <header className="sticky top-0 z-10 border-b border-slate-200 bg-slate-50/95 px-4 py-3 backdrop-blur sm:px-6">
           <div className="mx-auto max-w-3xl">

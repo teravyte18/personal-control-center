@@ -19,6 +19,7 @@ export default function ReviewPage() {
   const { rhythmTemplates, rhythmCompletions, weeklyFocuses } = useRhythmData();
   const [tab, setTab] = useState<Tab>("current");
   const [saved, setSaved] = useState(false);
+  const [reflectionOpen, setReflectionOpen] = useState(false);
   const period = getCurrentReviewPeriod();
   const ready = isReviewDraftForPeriod(draft, period);
   const completed = isReviewCompletedForPeriod(history, period);
@@ -58,7 +59,7 @@ export default function ReviewPage() {
           <h2 className="text-3xl font-semibold tracking-tight">Review</h2>
           <p className="mt-2 text-sm text-slate-500">Current period: {formatReviewPeriod(period)}</p>
         </div>
-        <div className="flex rounded-2xl bg-slate-200 p-1">
+        <div className="pcc-view-controls">
           <TabButton active={tab === "current"} onClick={() => setTab("current")}>Current</TabButton>
           <TabButton active={tab === "history"} onClick={() => setTab("history")}>History</TabButton>
         </div>
@@ -78,7 +79,12 @@ export default function ReviewPage() {
             </div>
           ) : (
             <>
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {!reflectionOpen ? <div className="pcc-review-overview">
+                <div><h3 className="pcc-section-title">What happened this week?</h3><Prompt label="Reflection" value={happened.value} onChange={happened.setValue} onBlur={happened.flush} /><button className="pcc-control theme-home-button mt-3 w-full" onClick={() => setReflectionOpen(true)}>Continue reflection</button></div>
+                <aside><h3 className="pcc-section-title">Reflection prompts</h3>{[["What went well?",wentWell.value],["What felt difficult?",difficult.value],["What did you learn or notice?",learned.value],["What deserves attention next week?",nextWeek.value]].map(([label,value]) => <button key={label} className="pcc-record w-full" onClick={() => setReflectionOpen(true)}><p className="pcc-record-title">{label}</p><p className="pcc-record-meta">{value ? "Draft response saved" : "Not answered yet"}</p></button>)}<button className="pcc-control mt-3 w-full" onClick={() => setReflectionOpen(true)}>Location &amp; private photo</button></aside>
+              </div> : null}
+              <div className={`pcc-recorded-context ${reflectionOpen ? "pcc-review-context-after" : ""}`}>
+                <h3 className="pcc-section-title">Recorded context</h3>
                 <TextPanel
                   title={`Needs attention (${context.attention.length})`}
                   entries={context.attention}
@@ -97,10 +103,11 @@ export default function ReviewPage() {
                 {context.finishedBooks.length ? <TextPanel title={`Books finished (${context.finishedBooks.length})`} entries={context.finishedBooks} /> : null}
               </div>
 
-              <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+              {reflectionOpen ? <div className="pcc-review-reflection">
+                <button className="pcc-control mb-4" onClick={() => setReflectionOpen(false)}>Back to overview</button>
                 <div className="grid gap-5 md:grid-cols-2">
                   <Field label="Where are you doing this review?">
-                    <input className="input" value={location.value} onChange={(event) => location.setValue(event.target.value)} onBlur={location.flush} placeholder="Café, park, library, home…" />
+                    <input aria-label="Where are you doing this review?" className="input" value={location.value} onChange={(event) => location.setValue(event.target.value)} onBlur={location.flush} placeholder="Café, park, library, home…" />
                   </Field>
                   <Field label="Photo of the place"><ReviewPhotoField photoName={draft.photoName} onChange={(value) => updateDraft("photoName", value)} /></Field>
                 </div>
@@ -117,7 +124,7 @@ export default function ReviewPage() {
                   <p className="text-xs text-slate-500">Draft text saves automatically.</p>
                   <button type="button" onClick={finishReview} className="min-h-12 rounded-xl bg-slate-950 px-5 text-sm font-semibold text-white active:scale-[0.99]">Complete review</button>
                 </div>
-              </div>
+              </div> : null}
             </>
           )}
           <ReviewNotificationControl />

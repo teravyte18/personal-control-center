@@ -69,6 +69,8 @@ The monthly cards use a hybrid model:
 - **actual percentages** are calculated over total monthly outflows, so Essentials + Fun + Future You describe 100% of what actually went out that month;
 - **absolute target amounts** remain percentages of recorded monthly income, preserving the familiar 50/30/20 euro reference.
 
+The card percentage and its meter are explicitly labelled as **share of monthly outflows**; they are not budget-utilisation bars. The income-based comparison is separately labelled **below target** or **above target**, with semantic danger emphasis for Essentials/Fun above target. Future You above target is not treated as overspending. Cards preserve internal padding around labels and meters.
+
 This means low- or zero-income months can still show a meaningful spending mix without pretending that the percentage shares themselves are an income-budget utilization metric. The income-based euro targets may still be exceeded during those months, which is intentional and shown as an absolute over/under amount rather than a percentage above 100%.
 
 For the selected month the page derives:

@@ -109,8 +109,18 @@ export default function TasksPage() {
         </div>
       ) : (
         <div className="pcc-task-layout" data-detail-open={Boolean(selectedId)}>
-          <div className="pcc-task-list">{tasks.map(task => <button key={task.id} className="pcc-record w-full" onClick={() => setSelectedId(task.id)} aria-pressed={selected?.id === task.id}><p className="pcc-record-title">{task.title}</p><p className="pcc-record-meta">{areaLabels[task.area]} · {task.checkInDate ? formatDate(task.checkInDate) : "No date"}</p></button>)}</div>
-          <div className="pcc-task-detail"><button className="pcc-task-back pcc-control mb-4" onClick={() => setSelectedId("")}>Back to tasks</button>
+          <div className="pcc-task-list" role="list" aria-label={`${view === "open" ? "Open" : "Completed"} tasks`}>
+            {tasks.map(task => (
+              <div key={task.id} className="pcc-task-row" role="listitem" data-selected={selected?.id === task.id}>
+                <input type="checkbox" className="pcc-task-check" checked={task.status === "completed"} aria-label={`${task.status === "completed" ? "Reopen" : "Complete"} ${task.title}`} onChange={() => { toggleCompleted(task.id); setSelectedId(""); }} />
+                <button className="pcc-record w-full" onClick={() => setSelectedId(task.id)} aria-label={`Edit ${task.title}`} aria-controls="task-details">
+                  <p className="pcc-record-title">{task.title}</p>
+                  <p className="pcc-record-meta">{areaLabels[task.area]} · <span className={isTaskOverdue(task) ? "pcc-overdue" : ""}>{task.checkInDate ? `${isTaskOverdue(task) ? "Overdue · " : isTaskDueToday(task) ? "Today · " : ""}${formatDate(task.checkInDate)}` : "No date"}</span></p>
+                </button>
+              </div>
+            ))}
+          </div>
+          <div className="pcc-task-detail" id="task-details"><button className="pcc-task-back pcc-control mb-4" onClick={() => setSelectedId("")}>Back to tasks</button>
           {selected ? (
             <TaskCard
               key={selected.id}
@@ -157,18 +167,6 @@ function TaskCard({
   return (
     <details open className={`group rounded-2xl border shadow-sm ${border}`}>
       <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 px-3 py-2.5 sm:px-4">
-        <button
-          type="button"
-          onClick={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            onComplete();
-          }}
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-300 bg-white text-slate-500 transition hover:border-emerald-500 hover:text-emerald-700"
-          aria-label={`${task.status === "completed" ? "Reopen" : "Complete"} ${task.title}`}
-        >
-          ✓
-        </button>
         <div className="min-w-0 flex-1">
           <p className="truncate font-semibold text-slate-900">{task.title}</p>
           <p className={`mt-1 text-xs ${overdue ? "font-semibold text-rose-700" : dueToday ? "font-semibold text-amber-700" : "text-slate-500"}`}>
@@ -185,6 +183,7 @@ function TaskCard({
       </summary>
 
       <div className="border-t border-slate-200/70 px-3 pb-4 pt-3 sm:px-4">
+        <p className="pcc-record-meta mb-4">Text changes save when you leave the field. Dates and area save immediately.</p>
         <label className="block text-sm font-medium text-slate-700">
           Title
           <input className="input mt-2" defaultValue={task.title} onBlur={(event) => {

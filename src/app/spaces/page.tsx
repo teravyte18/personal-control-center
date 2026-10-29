@@ -36,7 +36,6 @@ function swapOrReplace(ids: readonly string[], index: number, destinationId: str
 }
 
 export default function SpacesPage() {
-  const future = destinations.filter((destination) => !destination.available);
   const { ids: mobileQuickAccessIds } = useMobileQuickAccess();
   const { ids: desktopQuickAccessIds } = useDesktopQuickAccess();
 
@@ -56,7 +55,7 @@ export default function SpacesPage() {
             <section key={group.label}>
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">{group.label}</p>
               <div className="pcc-space-links">
-                {group.label === "Plan" ? <Link href="/" className="pcc-record">Capture</Link> : null}
+                {group.label === "Plan" ? <Link href="/" className="pcc-record pcc-space-link"><span className="pcc-space-icon"><Icon name="capture" /></span><span>Home & Capture</span></Link> : null}
                 {groupDestinations.map((destination) => (
                   <DestinationCard key={destination.id} destination={destination} />
                 ))}
@@ -107,21 +106,6 @@ export default function SpacesPage() {
           </div>
         </section>
 
-        {future.length ? (
-          <section>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Later</p>
-            <div className="mt-2 grid grid-cols-2 gap-2">
-              {future.map((destination) => (
-                <div key={destination.id} className="flex min-h-14 items-center gap-3 rounded-2xl border border-dashed border-slate-200 bg-white/60 px-3 py-2.5 text-slate-400 sm:px-4">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-50">
-                    <Icon name={destination.icon} />
-                  </span>
-                  <p className="min-w-0 truncate font-semibold text-slate-500">{destination.label}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-        ) : null}
       </div>
     </section>
   );
@@ -133,6 +117,7 @@ function DestinationCard({ destination }: { destination: Destination }) {
       href={destination.href}
       className="pcc-record pcc-space-link"
     >
+      <span className="pcc-space-icon"><Icon name={destination.icon} /></span>
       <span>{destination.id === "rhythm" ? "Week" : destination.id === "context" ? "Context Inspector" : destination.label}</span>
     </Link>
   );

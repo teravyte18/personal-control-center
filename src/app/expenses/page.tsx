@@ -113,6 +113,7 @@ export default function ExpensesPage() {
         <button
           type="button"
           onClick={() => setView("month")}
+          aria-pressed={view === "month"}
           className={`min-h-11 rounded-xl px-4 text-sm font-semibold ${view === "month" ? "bg-slate-950 text-white" : "text-slate-500"}`}
         >
           Month
@@ -120,6 +121,7 @@ export default function ExpensesPage() {
         <button
           type="button"
           onClick={() => setView("insights")}
+          aria-pressed={view === "insights"}
           className={`min-h-11 rounded-xl px-4 text-sm font-semibold ${view === "insights" ? "bg-slate-950 text-white" : "text-slate-500"}`}
         >
           Insights
@@ -425,20 +427,21 @@ function BucketProgress({
         </div>
         <div className="shrink-0 text-right">
           <p className="text-sm font-semibold text-slate-950">{formatPercent(actualPercent)}</p>
+          <p className="pcc-record-meta">of outflows</p>
           {funFundCents !== undefined ? (
             <p className="mt-1 text-xs font-semibold text-slate-500">Fund {formatMoney(funFundCents, currency)}</p>
           ) : null}
         </div>
       </div>
-      <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-slate-100">
+      <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-slate-100" role="meter" aria-label={`${expenseBucketLabels[bucket]} share of monthly outflows`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Number(actualPercent.toFixed(1))}>
         <div className="h-full rounded-full bg-slate-950" style={{ width: `${progress}%` }} />
       </div>
       <div className="mt-2 flex items-center justify-between gap-3 text-xs text-slate-500">
         <span>{formatMoney(actualCents, currency)} spent</span>
-        <span>
+        <span className={remainingCents < 0 && bucket !== "future" ? "pcc-overdue" : ""}>
           {remainingCents >= 0
-            ? `${formatMoney(remainingCents, currency)} left`
-            : `${formatMoney(Math.abs(remainingCents), currency)} over`}
+            ? `${formatMoney(remainingCents, currency)} below target`
+            : `${formatMoney(Math.abs(remainingCents), currency)} above target`}
         </span>
       </div>
     </div>

@@ -12,7 +12,7 @@ The application is a personal tool used repeatedly by someone who already unders
 
 The latest revised Figma Focus phone and Atlas desktop direction is implemented in draft PR #102 and is in owner usage trial. [`../DESIGN.md`](../DESIGN.md), its [machine-readable companion](../.impeccable/design.json), and `src/app/focus-atlas.css` describe the implemented system. [`ux-refresh-2026.md`](ux-refresh-2026.md) records earlier consolidation rationale; it does not override the selected frames.
 
-- phone: PCC/Account header, a single working surface, four configurable pins around Capture, and an explicitly labelled All Spaces link;
+- phone: compact Home/Account header, a single working surface, and one dock row containing four configurable pins, Capture and Spaces;
 - laptop: compact 112px labelled rail from 768px; desktop: 200px rail from 1200px, with contextual details where space permits;
 - DM Sans, shared controls and flat rows/grouping; preserve all existing palette and Capture-art themes;
 - Figma omissions retain existing functionality, fields, history, permissions and data meaning;
@@ -36,9 +36,10 @@ The mobile floating Spaces button and its reserved top area were removed in PR #
 
 Current rules:
 
-- Keep the centre Capture action permanent.
-- Keep four configurable working-space pins around Capture, preserving saved device preferences.
-- Place the visible, labelled All Spaces link beneath the dock pins.
+- Keep Capture and four configurable working-space pins, preserving saved device preferences.
+- Place the visible, labelled Spaces link in the same dock row.
+- Hide the dock when viewport geometry indicates a software keyboard during editing; restore it on dismissal.
+- Keep Home explicit in the compact header and desktop brand link.
 - All Spaces opens the complete existing directory and must remain as discoverable as other dock controls.
 - A gesture may be added as a secondary shortcut, but Spaces must never depend on a hidden gesture.
 - Respect the phone safe area without creating a decorative blank header bar.
@@ -49,12 +50,12 @@ Desktop keeps a permanent Capture action and All Spaces entry in the side rail.
 
 - Present each working destination as a compact icon-and-name row/card.
 - Do not display permanent descriptive sentences for familiar spaces.
-- Preserve comfortable phone touch targets; space links have a minimum 56px height and can grow with content.
+- Preserve comfortable phone touch targets; space links have a minimum 64px height and can grow with content.
 - Use one shared icon-container size and consistent perceived icon weight.
 - Keep Mobile quick access as an expandable configuration block rather than a working space.
 - Keep Account & access after the working spaces.
 - Group destinations by purpose, using two columns on phone and three groups on wider screens where space permits.
-- Future unavailable spaces may appear separately as subdued placeholders.
+- Do not show unavailable destinations in the working directory.
 
 A normal entry contains only:
 
@@ -156,3 +157,7 @@ This later tier must preserve layout, navigation meaning, hit areas, workflows, 
 - Theme selection persists on the current device and applies before first paint.
 - Alternate themes change shared tokens and centre artwork without changing workflows.
 - Semantic status meaning remains understandable in every theme.
+
+## Feedback-driven grouping
+
+Use visibly bounded sections on Home and Week; rows inside a group share a surface and dividers. Directory links include icons and bounded touch areas. Expense cards have at least 16px internal padding on phone and 20px on wider screens. Neutral control/divider tokens are separate from theme identity linework. See [`ui-polish-2026.md`](ui-polish-2026.md) for implemented scope, remaining work and validation limits.

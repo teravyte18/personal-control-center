@@ -163,8 +163,8 @@ export default function CapturePage() {
         </div>
 
         <aside className="pcc-home-context">
-          <div><div className="pcc-heading"><h3 className="pcc-section-title">Inbox</h3><Link href="/inbox" className="pcc-control">Open</Link></div><p className="pcc-record-title">{inboxCount} captures to organise</p></div>
-          <div><h3 className="pcc-section-title">This week</h3><p className="pcc-record-title">{rhythmTemplates.filter(template => template.state === "active").map(template => `${template.title} ${getRhythmProgress(template.id,rhythmCompletions,period).count} / ${template.targetPerWeek}`).join(" · ") || "No weekly intentions selected."}</p><p className="pcc-record-meta">{formatDate(period.start)}–{formatDate(period.end)} · Saturday–Friday</p><Link href="/rhythm" className="pcc-control mt-3 w-full">Review the week</Link></div>
+          <div className="pcc-panel pcc-inbox-summary"><div><h3 className="pcc-section-title">Inbox</h3><p className="pcc-record-meta">{inboxCount ? `${inboxCount} captures to organise` : "Inbox is clear"}</p></div><Link href="/inbox" className="pcc-control">Open Inbox</Link></div>
+          <div className="pcc-panel"><h3 className="pcc-section-title">This week</h3><p className="pcc-record-title">{rhythmTemplates.filter(template => template.state === "active").map(template => `${template.title} ${getRhythmProgress(template.id,rhythmCompletions,period).count} / ${template.targetPerWeek}`).join(" · ") || "No weekly intentions selected."}</p><p className="pcc-record-meta">{formatDate(period.start)}–{formatDate(period.end)} · Saturday–Friday</p><Link href="/rhythm" className="pcc-control mt-3 w-full">Open Week</Link></div>
         </aside>
       </div>
     </section>
@@ -178,7 +178,7 @@ function NearTermPanel({ entries }: { entries: HomeNearTermEntry[] }) {
   const visible = entries.slice(0, 7);
 
   return (
-    <aside className="pcc-home-near">
+    <aside className="pcc-home-near pcc-panel">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h3 className="pcc-section-title">Near term</h3>

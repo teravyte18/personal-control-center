@@ -16,6 +16,8 @@ This directory contains current product/operations documentation plus a small am
 - [`ui-ux-audit-2026-10-evidence.md`](ui-ux-audit-2026-10-evidence.md) — 23 fresh captures from the reassessment and a fictional reproduction recipe; private screenshots excluded
 - [`ui-ux-audit-2026-10-backlog.csv`](ui-ux-audit-2026-10-backlog.csv) — ranked audit recommendations with impact, effort, and acceptance checks
 
+- [`ui-polish-2026.md`](ui-polish-2026.md) — feedback-driven first polish pass, deferred work, and phone/desktop validation checklist
+
 ## Feature and design guides
 
 - [`ui-design-directions-2026-10.md`](ui-design-directions-2026-10.md) — editable Figma concepts, separate phone/desktop Projects layouts, skill provenance and review limits

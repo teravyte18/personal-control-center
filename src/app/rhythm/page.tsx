@@ -255,7 +255,7 @@ export default function RhythmPage() {
         />
       ) : null}
 
-      <nav className="pcc-week-shortcuts" aria-label="Week sections">{["Rhythm", "Weekly focus", "Dated work", "Fixed commitments"].map(title => <a key={title} href={`#week-${title.toLowerCase().replaceAll(" ", "-")}`} className="pcc-control">{title === "Weekly focus" ? "Focus" : title === "Fixed commitments" ? "Calendar" : title === "Dated work" ? "Dated" : title}</a>)}</nav>
+      <nav className="pcc-week-shortcuts" aria-label="Jump to Week section">{["Rhythm", "Weekly focus", "Dated work", "Fixed commitments"].map(title => <a key={title} href={`#week-${title.toLowerCase().replaceAll(" ", "-")}`}>{title} <span aria-hidden="true">↓</span></a>)}</nav>
       <div className="pcc-week-columns">
         <div className="min-w-0 space-y-5">
           <WeekSection title="Rhythm" count={activeRhythms.length}>
@@ -333,16 +333,13 @@ export default function RhythmPage() {
                       href={entry.sourceType === "task" ? `/tasks?task=${encodeURIComponent(entry.sourceItemId)}` : `/projects?project=${encodeURIComponent(entry.sourceItemId)}`}
                       className="min-w-0 flex-1"
                     >
-                      <p className="truncate text-sm font-semibold text-slate-900">{entry.title}</p>
+                      <p className="pcc-record-title">{entry.title}</p>
                       <p className="mt-0.5 truncate text-xs text-slate-500">{entry.context}</p>
                     </Link>
-                    <button
-                      type="button"
-                      onClick={() => removeWeeklyFocus(entry.id)}
-                      className="min-h-9 rounded-xl px-3 text-xs font-semibold text-slate-500"
-                    >
-                      Remove
-                    </button>
+                    <details className="pcc-row-menu">
+                      <summary aria-label={`Options for ${entry.title}`}>⋯</summary>
+                      <button type="button" onClick={() => removeWeeklyFocus(entry.id)}>Remove from this week</button>
+                    </details>
                   </div>
                 ))}
               </div>
@@ -355,7 +352,7 @@ export default function RhythmPage() {
                 {previousFocus.map((entry) => (
                   <div key={entry.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-slate-900">{entry.title}</p>
+                      <p className="pcc-record-title">{entry.title}</p>
                       <p className="mt-0.5 truncate text-xs text-slate-500">{entry.context}</p>
                     </div>
                     <button
@@ -373,6 +370,26 @@ export default function RhythmPage() {
         </div>
 
         <div className="min-w-0 space-y-5">
+          <WeekSection title="Dated work" count={datedWork.length}>
+            {datedWork.length ? (
+              <div className="divide-y divide-slate-100">
+                {datedWork.map((entry) => (
+                  <Link
+                    key={entry.id}
+                    href={entry.sourceType === "task" ? `/tasks?task=${encodeURIComponent(entry.sourceItemId)}` : `/projects?project=${encodeURIComponent(entry.sourceItemId)}`}
+                    className="flex items-center gap-3 py-3 first:pt-0 last:pb-0"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="pcc-record-title">{entry.title}</p>
+                      <p className="mt-0.5 truncate text-xs text-slate-500">{entry.context}</p>
+                    </div>
+                    <span className={`shrink-0 text-xs font-semibold ${entry.date < localDate(new Date()) ? "pcc-overdue" : "text-slate-600"}`}>{entry.date < localDate(new Date()) ? "Overdue · " : ""}{formatDate(entry.date, { weekday: "short", day: "numeric" })}</span>
+                  </Link>
+                ))}
+              </div>
+            ) : <EmptyText>No Tasks or Project Actions dated inside this week.</EmptyText>}
+          </WeekSection>
+
           <WeekSection title="Fixed commitments" count={commitments.length}>
             {calendarError ? <div role="alert"><p className="text-sm text-amber-700">{calendarError}</p><button className="pcc-control mt-2" onClick={() => setCalendarAttempt(value => value + 1)}>Retry Calendar</button></div> : null}
             {!calendarError && calendar && !calendar.connected ? (
@@ -398,25 +415,7 @@ export default function RhythmPage() {
             ) : !calendarError && calendar?.connected ? <EmptyText>No fixed Calendar commitments this week.</EmptyText> : null}
           </WeekSection>
 
-          <WeekSection title="Dated work" count={datedWork.length}>
-            {datedWork.length ? (
-              <div className="divide-y divide-slate-100">
-                {datedWork.map((entry) => (
-                  <Link
-                    key={entry.id}
-                    href={entry.sourceType === "task" ? `/tasks?task=${encodeURIComponent(entry.sourceItemId)}` : `/projects?project=${encodeURIComponent(entry.sourceItemId)}`}
-                    className="flex items-center gap-3 py-3 first:pt-0 last:pb-0"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-slate-900">{entry.title}</p>
-                      <p className="mt-0.5 truncate text-xs text-slate-500">{entry.context}</p>
-                    </div>
-                    <span className="shrink-0 text-xs font-semibold text-slate-600">{formatDate(entry.date, { weekday: "short", day: "numeric" })}</span>
-                  </Link>
-                ))}
-              </div>
-            ) : <EmptyText>No Tasks or Project Actions dated inside this week.</EmptyText>}
-          </WeekSection>
+
 
           {pausedRhythms.length ? (
             <WeekSection title="Paused rhythms" count={pausedRhythms.length}>
@@ -432,9 +431,7 @@ export default function RhythmPage() {
             </WeekSection>
           ) : null}
 
-          <p className="px-1 text-xs leading-5 text-slate-400">
-            Detailed calendar browsing still belongs in <Link href="/agenda" className="font-semibold underline">Agenda / Google Calendar</Link>. This view only keeps the week understandable.
-          </p>
+          <Link href="/agenda" className="pcc-control">Open Agenda</Link>
         </div>
       </div>
     </section>
@@ -453,7 +450,7 @@ function WeekSection({
   children: React.ReactNode;
 }) {
   return (
-    <section id={`week-${title.toLowerCase().replaceAll(" ", "-")}`} className="pcc-week-section">
+    <section id={`week-${title.toLowerCase().replaceAll(" ", "-")}`} className="pcc-week-section" aria-label={title}>
       <div className="mb-4 flex items-center justify-between gap-3">
         <div className="flex items-baseline gap-2">
           <h3 className="pcc-section-title">{title}</h3>
@@ -461,7 +458,7 @@ function WeekSection({
         </div>
         {action}
       </div>
-      {children}
+      <div className="pcc-week-body">{children}</div>
     </section>
   );
 }

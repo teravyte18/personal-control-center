@@ -12,7 +12,7 @@ The application is a personal tool used repeatedly by someone who already unders
 
 The latest revised Figma Focus phone and Atlas desktop direction is implemented in draft PR #102 and is in owner usage trial. [`../DESIGN.md`](../DESIGN.md), its [machine-readable companion](../.impeccable/design.json), and `src/app/focus-atlas.css` describe the implemented system. [`ux-refresh-2026.md`](ux-refresh-2026.md) records earlier consolidation rationale; it does not override the selected frames.
 
-- phone: compact Home/Account header, a single working surface, and one dock row containing four configurable pins, Capture and Spaces;
+- phone: compact Home/All Spaces header, a single working surface, and one five-item dock row with Capture centred between four configurable pins;
 - laptop: compact 112px labelled rail from 768px; desktop: 200px rail from 1200px, with contextual details where space permits;
 - DM Sans, shared controls and flat rows/grouping; preserve all existing palette and Capture-art themes;
 - Figma omissions retain existing functionality, fields, history, permissions and data meaning;
@@ -37,9 +37,9 @@ The mobile floating Spaces button and its reserved top area were removed in PR #
 Current rules:
 
 - Keep Capture and four configurable working-space pins, preserving saved device preferences.
-- Place the visible, labelled Spaces link in the same dock row.
+- Place the visible, labelled All Spaces link in the top-right phone header, replacing the direct Account link. Account remains in All Spaces.
 - Hide the dock when viewport geometry indicates a software keyboard during editing; restore it on dismissal.
-- Keep Home explicit in the compact header and desktop brand link.
+- Keep Home explicit in the compact header and desktop brand link. Capture stays in the middle of the five-item phone dock.
 - All Spaces opens the complete existing directory and must remain as discoverable as other dock controls.
 - A gesture may be added as a secondary shortcut, but Spaces must never depend on a hidden gesture.
 - Respect the phone safe area without creating a decorative blank header bar.

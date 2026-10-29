@@ -9,7 +9,7 @@ First pass, 29 October 2026. Stacked on the unmerged Focus + Atlas usage trial. 
 - Home groups near-term work and weekly context. Empty Inbox is a compact status row. Links to Week use the unambiguous Open Week label.
 - Tasks provides separate real completion checkboxes and Edit buttons. Rows have dividers, overdue text and desktop selection treatment. The detail editor explains its existing save-on-blur/immediate-save behaviour; redundant summary completion is removed.
 - Expense cards regain 16px phone / 20px wide padding and form three columns on wider screens. Percentages and meters explicitly mean share of outflows; the separate income-based comparison reads above/below target. Essentials/Fun above target receive semantic emphasis. Domain calculations, the Fun Fund and stored data are unchanged.
-- Phone navigation keeps all four configured pins, Capture and Spaces in one row. Capture artwork remains, with a quieter background. Home is explicit in the compact header/desktop brand link. Header/dock boundaries are visible.
+- Phone navigation keeps all four configured pins with Capture centred in one five-item row. All Spaces replaces Account in the top-right phone header; Account remains available in All Spaces. Capture artwork remains, with a quieter background. Home is explicit in the compact header/desktop brand link. Header/dock boundaries are visible.
 - Keyboard detection uses visual-viewport geometry and editing focus, restores navigation after dismissal, ignores pinch zoom, and resets its baseline on substantial width changes. The focused control is scrolled into view when the keyboard is detected. This is an enhancement: physical-device validation is still required, including browsers without Visual Viewport support.
 - Shared neutral borders distinguish controls/dividers from theme accents. Phone inputs use 16px text. Existing themes, artwork, semantic status colours and forced-colours checkbox support remain.
 - Project groups have a shared desktop boundary; phone project outcome and next-action details are separated. Other open actions are grouped and overdue dates are explicit.
@@ -44,7 +44,7 @@ The initial PR CI audit reports critical Next.js advisories affecting the existi
 
 Check narrow phone, ordinary phone, laptop and wide desktop, with Default plus a dark theme, before treating this pass as visually accepted:
 
-1. All four saved pins, Capture and Spaces remain usable; labels fit, touch targets are comfortable, the final page row can scroll clear of the dock, and current navigation is visible.
+1. All four saved pins and the centred Capture action remain usable; All Spaces is available in the header, with Account in that directory; labels fit, touch targets are comfortable, the final page row can scroll clear of the dock, and current navigation is visible.
 2. Create/edit a task and project with the software keyboard open; test dismissal, orientation change, date fields, final submission and returning to the list. Check navigation remains available after typing ends.
 3. Complete/reopen a task from its checkbox and detail action; verify Completed/Open views, source links, weekly resolution and persistence.
 4. Inspect Week sections, empty states, habit Log/Undo/Manage, history, menu removal, carry-forward, long titles and overdue dates.

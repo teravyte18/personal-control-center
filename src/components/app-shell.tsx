@@ -53,7 +53,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <header className="pcc-phone-header">
         <Link href="/" className="pcc-brand" aria-label="Home" aria-current={pathname === "/" ? "page" : undefined}>PCC <span className="pcc-home-label">Home</span></Link>
-        <Link href="/account" className="pcc-account-link" aria-label="Account & access" aria-current={pathname === "/account" ? "page" : undefined}><Icon name="settings" /><span>Account</span></Link>
+        <Link href="/spaces" className={`pcc-header-spaces ${spacesActive ? "theme-nav-active" : ""}`} aria-current={spacesActive ? "page" : undefined}><Icon name="spaces" /><span>All Spaces</span></Link>
       </header>
       <div className="pcc-workspace">
         <main id="working-surface" tabIndex={-1} className="pcc-main">
@@ -70,7 +70,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <ThemeCaptureIcon theme={theme} className="h-5 w-5" /><span>Capture</span>
           </Link>
           {mobileDestinations.slice(2).map(destination => <DockLink key={destination.id} destination={destination} active={isDestinationActive(pathname, destination.href)} />)}
-          <Link href="/spaces" className={`pcc-dock-link ${spacesActive ? "theme-nav-active" : ""}`} aria-current={spacesActive ? "page" : undefined}><Icon name="spaces" /><span>Spaces</span></Link>
         </div>
       </nav>
     </div>

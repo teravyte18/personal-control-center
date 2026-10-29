@@ -153,7 +153,7 @@ The variable font is served locally from `public/fonts/dm-sans.ttf`, with swap l
 
 ## Layout
 
-Phone is the base layout below (768px): a compact Home / Account header with a distinct surface, one working column and a fixed single-row dock. The dock preserves four configurable pins plus Capture and Spaces. Header and dock account for safe-area insets. When a focused editing control and the visual viewport indicate a software keyboard, the dock hides until the keyboard is dismissed. Main content includes bottom clearance for the dock, and editors reserve clearance for their fixed action bar.
+Phone is the base layout below (768px): a compact Home / All Spaces header with a distinct surface, one working column and a fixed single-row dock. The five-item dock preserves four configurable pins with Capture centred between them. All Spaces is in the top-right header; Account remains accessible from that directory. Header and dock account for safe-area insets. When a focused editing control and the visual viewport indicate a software keyboard, the dock hides until the keyboard is dismissed. Main content includes bottom clearance for the dock, and editors reserve clearance for their fixed action bar.
 
 From (768px), phone navigation disappears and a labelled rail occupies (112px). The workspace offsets by that width, with (32px) top and (24px) horizontal padding. Context layouts become two columns where implemented: tasks, notes, Week, food, review, music and Capture. Projects switch from one selected focus to ownership rows with associated actions.
 

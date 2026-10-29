@@ -1,7 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { workHref, type WorkSource } from "@/domain/work-links";
+import { weeklyWorkKey } from "@/domain/planning-view";
+import { useCalendarCommitments, type CalendarCommitment } from "@/hooks/use-calendar-commitments";
+import { useMemo, useState, type FormEvent } from "react";
 import {
   currentWeeklyFocus,
   focusMatches,
@@ -24,27 +27,6 @@ import {
   type AreaId,
 } from "@/lib/personal-data";
 
-type AgendaEventSource = "google" | "agenda" | "task" | "project-action" | "pcc";
-
-type AgendaEvent = {
-  id: string;
-  calendarId: string;
-  calendarName: string;
-  title: string;
-  location: string;
-  start: string;
-  end: string;
-  allDay: boolean;
-  source: AgendaEventSource;
-};
-
-type AgendaResponse = {
-  configured: boolean;
-  connected: boolean;
-  needsReconnect: boolean;
-  events: AgendaEvent[];
-};
-
 type WorkCandidate = {
   key: string;
   sourceType: WeeklyFocusSourceType;
@@ -61,12 +43,6 @@ function localDate(value: Date) {
   return `${year}-${month}-${day}`;
 }
 
-function nextDate(value: string) {
-  const date = new Date(`${value}T12:00:00`);
-  date.setDate(date.getDate() + 1);
-  return localDate(date);
-}
-
 function previousWeekStart(value: string) {
   const date = new Date(`${value}T12:00:00`);
   date.setDate(date.getDate() - 7);
@@ -81,11 +57,11 @@ function formatPeriod(start: string, end: string) {
   return `${formatDate(start, { day: "numeric", month: "short" })} – ${formatDate(end, { day: "numeric", month: "short" })}`;
 }
 
-function eventDate(event: AgendaEvent) {
+function eventDate(event: CalendarCommitment) {
   return event.allDay ? event.start.slice(0, 10) : localDate(new Date(event.start));
 }
 
-function eventTime(event: AgendaEvent) {
+function eventTime(event: CalendarCommitment) {
   if (event.allDay) return "All day";
   return new Date(event.start).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
 }
@@ -99,7 +75,7 @@ function metadata(template: RhythmTemplate) {
 }
 
 export default function RhythmPage() {
-  const { items } = usePersonalData();
+  const { items, toggleCompleted } = usePersonalData();
   const {
     rhythmTemplates,
     rhythmCompletions,
@@ -117,15 +93,16 @@ export default function RhythmPage() {
   const [creatingRhythm, setCreatingRhythm] = useState(false);
   const [addingWork, setAddingWork] = useState(false);
   const [selectedWork, setSelectedWork] = useState("");
-  const [calendar, setCalendar] = useState<AgendaResponse | null>(null);
-  const [calendarError, setCalendarError] = useState("");
-  const [calendarAttempt, setCalendarAttempt] = useState(0);
+  const { result: calendar, error: calendarError, retry: retryCalendar } = useCalendarCommitments(period);
 
   const datedWork = useMemo(() => getDatedRhythmWork(items, period), [items, period]);
   const focused = useMemo(
     () => currentWeeklyFocus(items, weeklyFocuses, new Date(`${period.start}T12:00:00`)),
     [items, period.start, weeklyFocuses],
   );
+
+  const datedKeys = new Set(datedWork.map(weeklyWorkKey));
+  const flexibleFocus = focused.filter(entry => !datedKeys.has(weeklyWorkKey(entry)));
 
   const activeRhythms = useMemo(
     () => rhythmTemplates.filter((template) => template.state === "active"),
@@ -189,32 +166,6 @@ export default function RhythmPage() {
         return alreadyCarried ? [] : [resolved];
       });
   }, [items, period.start, weeklyFocuses]);
-
-  useEffect(() => {
-    let cancelled = false;
-    const start = new Date(`${period.start}T00:00:00`);
-    const end = new Date(`${nextDate(period.end)}T00:00:00`);
-    const params = new URLSearchParams({
-      timeMin: start.toISOString(),
-      timeMax: end.toISOString(),
-    });
-
-    void fetch(`/api/integrations/google-calendar/events?${params.toString()}`, { cache: "no-store" })
-      .then(async (response) => {
-        const body = await response.json() as AgendaResponse | { error?: string };
-        if (!response.ok || !("events" in body)) {
-          throw new Error("Calendar commitments could not be loaded.");
-        }
-        if (!cancelled) { setCalendar(body); setCalendarError(""); }
-      })
-      .catch((error) => {
-        if (!cancelled) setCalendarError(error instanceof Error ? error.message : "Calendar commitments could not be loaded.");
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [period.end, period.start, calendarAttempt]);
 
   const commitments = useMemo(
     () => (calendar?.events ?? []).filter((event) => ["google", "agenda"].includes(event.source)),
@@ -288,7 +239,7 @@ export default function RhythmPage() {
 
           <WeekSection
             title="Weekly focus"
-            count={focused.length}
+            count={flexibleFocus.length}
             action={(
               <button
                 type="button"
@@ -324,13 +275,13 @@ export default function RhythmPage() {
               </div>
             ) : null}
 
-            {focused.length ? (
+            {flexibleFocus.length ? (
               <div className="divide-y divide-slate-100">
-                {focused.map((entry) => (
+                {flexibleFocus.map((entry) => (
                   <div key={entry.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-                    <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-slate-400" />
+                    <WorkCompletion source={entry} title={entry.title} onComplete={() => toggleCompleted(entry.sourceItemId)} />
                     <Link
-                      href={entry.sourceType === "task" ? `/tasks?task=${encodeURIComponent(entry.sourceItemId)}` : `/projects?project=${encodeURIComponent(entry.sourceItemId)}`}
+                      href={workHref(entry)}
                       className="min-w-0 flex-1"
                     >
                       <p className="pcc-record-title">{entry.title}</p>
@@ -343,7 +294,7 @@ export default function RhythmPage() {
                   </div>
                 ))}
               </div>
-            ) : <EmptyText>No flexible work selected for this week.</EmptyText>}
+            ) : <EmptyText>{focused.length ? "Selected work with a check-in date is shown in Dated work below." : "No flexible work selected for this week."}</EmptyText>}
           </WeekSection>
 
           {previousFocus.length ? (
@@ -373,25 +324,24 @@ export default function RhythmPage() {
           <WeekSection title="Dated work" count={datedWork.length}>
             {datedWork.length ? (
               <div className="divide-y divide-slate-100">
-                {datedWork.map((entry) => (
-                  <Link
-                    key={entry.id}
-                    href={entry.sourceType === "task" ? `/tasks?task=${encodeURIComponent(entry.sourceItemId)}` : `/projects?project=${encodeURIComponent(entry.sourceItemId)}`}
-                    className="flex items-center gap-3 py-3 first:pt-0 last:pb-0"
-                  >
-                    <div className="min-w-0 flex-1">
+                {datedWork.map((entry) => {
+                  const focus = focused.find(candidate => weeklyWorkKey(candidate) === weeklyWorkKey(entry));
+                  return <div key={entry.id} className="pcc-week-work-row">
+                    <WorkCompletion source={entry} title={entry.title} onComplete={() => toggleCompleted(entry.sourceItemId)} />
+                    <Link href={workHref(entry)} className="min-w-0 flex-1">
                       <p className="pcc-record-title">{entry.title}</p>
-                      <p className="mt-0.5 truncate text-xs text-slate-500">{entry.context}</p>
-                    </div>
-                    <span className={`shrink-0 text-xs font-semibold ${entry.date < localDate(new Date()) ? "pcc-overdue" : "text-slate-600"}`}>{entry.date < localDate(new Date()) ? "Overdue · " : ""}{formatDate(entry.date, { weekday: "short", day: "numeric" })}</span>
-                  </Link>
-                ))}
+                      <p className="pcc-record-meta">{entry.context}{focus ? " · Selected for Week" : ""}</p>
+                      <p className={`pcc-record-meta ${entry.date < localDate(new Date()) ? "pcc-overdue" : ""}`}>{entry.date < localDate(new Date()) ? "Overdue · " : ""}{formatDate(entry.date, { weekday: "short", day: "numeric" })}</p>
+                    </Link>
+                    {focus ? <details className="pcc-row-menu"><summary aria-label={`Options for ${entry.title}`}>⋯</summary><button type="button" onClick={() => removeWeeklyFocus(focus.id)}>Remove from this week</button></details> : null}
+                  </div>;
+                })}
               </div>
             ) : <EmptyText>No Tasks or Project Actions dated inside this week.</EmptyText>}
           </WeekSection>
 
           <WeekSection title="Fixed commitments" count={commitments.length}>
-            {calendarError ? <div role="alert"><p className="text-sm text-amber-700">{calendarError}</p><button className="pcc-control mt-2" onClick={() => setCalendarAttempt(value => value + 1)}>Retry Calendar</button></div> : null}
+            {calendarError ? <div role="alert"><p className="text-sm text-amber-700">{calendarError}</p><button className="pcc-control mt-2" onClick={retryCalendar}>Retry Calendar</button></div> : null}
             {!calendarError && calendar && !calendar.connected ? (
               <p className="text-sm leading-6 text-slate-500">
                 Google Calendar is not connected. Rhythm still works with PCC work and intentions.
@@ -436,6 +386,12 @@ export default function RhythmPage() {
       </div>
     </section>
   );
+}
+
+function WorkCompletion({ source, title, onComplete }: { source: WorkSource; title: string; onComplete: () => void }) {
+  return source.sourceType === "task"
+    ? <input type="checkbox" checked={false} onChange={onComplete} className="pcc-task-check" aria-label={`Complete ${title}`} />
+    : <Link href={workHref(source, true)} className="pcc-complete-action" aria-label={`Complete action: ${title}`} title="Complete action…"><span aria-hidden="true">✓</span></Link>;
 }
 
 function WeekSection({

@@ -1,6 +1,7 @@
 export type HomeNearTermEntry = {
   id: string;
   sourceId: string;
+  sourceActionId?: string;
   kind: "task" | "project-action";
   state: "overdue" | "today" | "upcoming";
   title: string;
@@ -76,6 +77,7 @@ export function buildHomeNearTermEntries(items: readonly HomeItem[], reference =
       entries.push({
         id: `project-action:${item.id}:${action.id}`,
         sourceId: item.id,
+        sourceActionId: action.id,
         kind: "project-action",
         state: action.targetDate < today ? "overdue" : action.targetDate === today ? "today" : "upcoming",
         title: action.title,

@@ -20,8 +20,16 @@ export default function ProjectsPage() {
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState("");
   const sourceId = useSourceRecord("project");
-  const [detailOverride, setDetailId] = useState<string | null>(null);
-  const detailId = detailOverride ?? sourceId;
+  const sourceActionId = useSourceRecord("action");
+  const sourceComplete = useSourceRecord("complete") === "1";
+  const sourceKey = JSON.stringify([sourceId, sourceActionId, sourceComplete]);
+  const [detailOverride, setDetailOverride] = useState<{ sourceKey: string; id: string; actionId: string } | null>(null);
+  const manualDetail = detailOverride?.sourceKey === sourceKey ? detailOverride : null;
+  const detailId = manualDetail ? manualDetail.id : sourceId;
+  const detailActionId = manualDetail ? manualDetail.actionId : sourceActionId;
+  function setDetailId(id: string, actionId = "") {
+    setDetailOverride({ sourceKey, id, actionId });
+  }
   const [creating, setCreating] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -82,21 +90,21 @@ export default function ProjectsPage() {
             <div><h3>{selected.title}</h3><p className="pcc-record-meta">{areaLabels[selected.area]}</p></div>
             {selected.description ? <p className="pcc-focus-description">{selected.description}</p> : null}
             {actions[0] ? <div className="pcc-project-current-action"><p className="pcc-record-meta">Next action</p><h4 className="pcc-section-title">{actions[0].title}</h4><p className={`pcc-record-meta ${isProjectActionPastCheckIn(actions[0]) ? "pcc-overdue" : ""}`}>{actionMeta(selected.id, actions[0].id, actions[0].targetDate)}</p>{actions[0].details ? <p className="pcc-focus-description">{actions[0].details}</p> : null}</div> : null}
-            <button className="pcc-control theme-home-button" onClick={() => setDetailId(selected.id)}>{actions.length ? "Open action" : "Open project"}</button>
+            <button className="pcc-control theme-home-button" onClick={() => setDetailId(selected.id, actions[0]?.id)}>{actions.length ? "Open action" : "Open project"}</button>
           </article>
-          {actions.length > 1 ? <div className="pcc-panel mt-4"><h3 className="pcc-section-title">Other open actions</h3>{actions.slice(1).map(entry => <button key={entry.id} className="pcc-record pcc-action-row w-full" onClick={() => setDetailId(selected.id)}><span className="pcc-record-title">{entry.title}</span><p className={`pcc-record-meta ${isProjectActionPastCheckIn(entry) ? "pcc-overdue" : ""}`}>{actionMeta(selected.id,entry.id,entry.targetDate)}</p></button>)}</div> : null}
+          {actions.length > 1 ? <div className="pcc-panel mt-4"><h3 className="pcc-section-title">Other open actions</h3>{actions.slice(1).map(entry => <button key={entry.id} className="pcc-record pcc-action-row w-full" onClick={() => setDetailId(selected.id, entry.id)}><span className="pcc-record-title">{entry.title}</span><p className={`pcc-record-meta ${isProjectActionPastCheckIn(entry) ? "pcc-overdue" : ""}`}>{actionMeta(selected.id,entry.id,entry.targetDate)}</p></button>)}</div> : null}
           <details className="mt-4"><summary className="pcc-control w-full">All {view} projects · {visible.length}</summary>{visible.map(project => <button key={project.id} className="pcc-record w-full" onClick={() => setSelectedId(project.id)}><span className="pcc-record-title">{project.title}</span><p className="pcc-record-meta">{getOpenProjectActions(project).length} open actions</p></button>)}</details>
         </> : <p className="pcc-empty">No projects match this view. Change the view or create a project.</p>}
       </div>
       <div className="pcc-atlas-projects">
         {visible.map(project => <article key={project.id} className="pcc-project-ownership">
           <div><h3 className="pcc-section-title">{project.title}</h3><p className="pcc-record-meta">{areaLabels[project.area]} · {project.description || `${getOpenProjectActions(project).length} open actions`}</p><button className="pcc-control mt-2" onClick={() => setDetailId(project.id)}>Open project</button></div>
-          <div className="pcc-independent-actions">{getOpenProjectActions(project).map(entry => <div key={entry.id} className="pcc-ownership-branch"><span aria-hidden="true" /><button className="pcc-record" onClick={() => setDetailId(project.id)}><p className="pcc-record-title">{entry.title}</p><p className={`pcc-record-meta ${isProjectActionPastCheckIn(entry) ? "text-rose-700" : ""}`}>{actionMeta(project.id,entry.id,entry.targetDate)}</p></button></div>)}{!getOpenProjectActions(project).length ? <p className="pcc-record pcc-record-meta">Waiting · No open actions</p> : null}</div>
+          <div className="pcc-independent-actions">{getOpenProjectActions(project).map(entry => <div key={entry.id} className="pcc-ownership-branch"><span aria-hidden="true" /><button className="pcc-record" onClick={() => setDetailId(project.id, entry.id)}><p className="pcc-record-title">{entry.title}</p><p className={`pcc-record-meta ${isProjectActionPastCheckIn(entry) ? "text-rose-700" : ""}`}>{actionMeta(project.id,entry.id,entry.targetDate)}</p></button></div>)}{!getOpenProjectActions(project).length ? <p className="pcc-record pcc-record-meta">Waiting · No open actions</p> : null}</div>
         </article>)}
         {!visible.length ? <p className="pcc-empty">No projects match this view. Change the view or create a project.</p> : null}
         <button className="pcc-control mt-4" aria-pressed={view === "all"} onClick={() => setView("all")}>All open projects</button>
       </div>
-      {detail ? <ProjectDetail project={detail} onClose={() => setDetailId("")} /> : null}
+      {detail ? <ProjectDetail key={`${detail.id}:${detailActionId}:${!manualDetail && sourceComplete}`} project={detail} initialActionId={detailActionId} completeAction={!manualDetail && sourceComplete} onClose={() => setDetailId("")} /> : null}
     </section>
   );
 }

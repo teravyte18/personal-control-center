@@ -11,6 +11,7 @@ import {
   reorderUpNext,
   serializeBookDetails,
   sortBooksForShelf,
+  sortBooksForView,
 } from "../src/domain/library.ts";
 import type { Item } from "../src/domain/personal-data.ts";
 
@@ -171,4 +172,15 @@ test("matches optional dates against review periods", () => {
   assert.equal(dateWithinPeriod("2026-07-25", "2026-07-25", "2026-07-31"), true);
   assert.equal(dateWithinPeriod("", "2026-07-25", "2026-07-25"), false);
   assert.equal(dateWithinPeriod("2026-08-01", "2026-07-25", "2026-07-31"), false);
+});
+
+test("view sorting keeps shelf membership and the manual queue while promoting current reading", () => {
+  const entries = getBooks([
+    item("a", serializeBookDetails({ ...createBookDetails(), ownership: "owned", readingState: "unread", priority: "up-next", upNextOrder: 2, ratings: { enjoyment: 0 } })),
+    item("z", serializeBookDetails({ ...createBookDetails(), ownership: "owned", readingState: "reading", priority: "up-next", upNextOrder: 1 })),
+    item("wish", serializeBookDetails({ ...createBookDetails(), ownership: "wishlist", readingState: "unread" })),
+  ]);
+  assert.deepEqual(sortBooksForView(entries, "owned", "reading-first").map(book => book.item.id), ["z", "a"]);
+  assert.deepEqual(sortBooksForView(entries, "owned", "rating").map(book => book.item.id), ["a", "z"]);
+  assert.deepEqual(sortBooksForView(entries, "up-next", "title"), sortBooksForShelf(entries, "up-next"));
 });

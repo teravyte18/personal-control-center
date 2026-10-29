@@ -52,3 +52,7 @@ Before merging changes to Notes, verify on a phone:
 7. Disconnect the server, edit a note, and confirm the visible text is not cleared and the device-save state is shown.
 8. Confirm direct Notes and Inbox-created Notes behave identically.
 9. Delete a temporary note and confirm deletion still requires explicit confirmation.
+
+## P2 presentation follow-up
+
+Notes list rows use compact bounded surfaces. Transient server-saving status appears without shifting the document; errors and offline notices remain persistent in-flow messages.

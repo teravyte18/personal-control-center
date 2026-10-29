@@ -130,3 +130,7 @@ A book appears in generated Review context when its optional start or finish dat
 The delivered Library does not yet include issue-by-issue comic catalogues, automatic issue metadata/number validation, ISBN/barcode scanning, reverse-image cover matching, page progress, reading timers, highlights, ebook ingestion, detailed lending, social activity, AI summaries/recommendations, or automatic metadata saving.
 
 Cover recognition is intentionally best-effort OCR + metadata matching rather than a general visual-recognition system.
+
+## P2 presentation follow-up
+
+Book views offer shelf order, reading first, title and highest score. Up next always preserves the manual queue, and sorting never changes shelf membership. Cards open the same full editor directly on phone and desktop.

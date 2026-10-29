@@ -37,14 +37,14 @@ export function ExpandButton({ label, onClick }: { label: string; onClick: () =>
   );
 }
 
-export function ProjectDetail({ project, onClose, accomplishment = false, archived = false }: { project: Item; onClose: () => void; accomplishment?: boolean; archived?: boolean }) {
+export function ProjectDetail({ project, onClose, accomplishment = false, archived = false, initialActionId = "", completeAction = false }: { project: Item; onClose: () => void; accomplishment?: boolean; archived?: boolean; initialActionId?: string; completeAction?: boolean }) {
   const dialogRef = useDialogFocus<HTMLDivElement>();
   const { updateItem, addProjectAction, updateProjectAction, completeProjectAction, toggleCompleted, archiveItem, restoreArchivedItem } = usePersonalData();
   const { weeklyFocuses, addWeeklyFocus, removeWeeklyFocus } = useRhythmData();
   const rhythmPeriod = getRhythmPeriod();
   const [editingProject, setEditingProject] = useState(false);
   const [addingAction, setAddingAction] = useState(false);
-  const [completingActionId, setCompletingActionId] = useState<string | null>(null);
+  const [completingActionId, setCompletingActionId] = useState<string | null>(() => completeAction && getOpenProjectActions(project).some(action => action.id === initialActionId) ? initialActionId : null);
   const [editingActionId, setEditingActionId] = useState<string | null>(null);
   const [completingProject, setCompletingProject] = useState(false);
   const [showFullHistory, setShowFullHistory] = useState(false);
@@ -53,6 +53,13 @@ export function ProjectDetail({ project, onClose, accomplishment = false, archiv
   const editingAction = openActions.find((action) => action.id === editingActionId);
   const statusLabel = projectStatuses.find((option) => option.value === project.status)?.label ?? project.status;
   const readOnly = archived || accomplishment;
+
+  useEffect(() => {
+    if (!initialActionId) return;
+    const target = dialogRef.current?.querySelector<HTMLElement>(completeAction ? "[data-action-completion]" : "[data-selected-action='true']");
+    target?.scrollIntoView({ block: "center" });
+    target?.focus({ preventScroll: true });
+  }, [initialActionId, completeAction, dialogRef]);
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
@@ -103,6 +110,7 @@ export function ProjectDetail({ project, onClose, accomplishment = false, archiv
           {openActions.length ? (
             <div className="mt-5 space-y-3">
               {openActions.map((action, index) => (
+                <div key={action.id} tabIndex={-1} data-selected-action={action.id === initialActionId} className="pcc-project-action-target">
                 <OpenActionCard
                   key={action.id}
                   action={action}
@@ -119,6 +127,7 @@ export function ProjectDetail({ project, onClose, accomplishment = false, archiv
                   onComplete={() => { setCompletingActionId(action.id); setEditingActionId(null); setCompletingProject(false); }}
                   onEdit={() => { setEditingActionId(action.id); setCompletingActionId(null); setCompletingProject(false); }}
                 />
+                </div>
               ))}
             </div>
           ) : <p className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-500">No open actions.</p>}
@@ -131,7 +140,7 @@ export function ProjectDetail({ project, onClose, accomplishment = false, archiv
 
           {addingAction && !readOnly ? <AddActionForm onCancel={() => setAddingAction(false)} onAdd={(title, date, details) => { addProjectAction(project.id, title, date, details); setAddingAction(false); }} /> : null}
           {editingAction && !readOnly ? <EditActionForm action={editingAction} onCancel={() => setEditingActionId(null)} onSave={(title, date, details, note) => { const updates: ProjectActionEdit = { title, targetDate: date, details, rescheduleNote: note }; updateProjectAction(project.id, editingAction.id, updates); setEditingActionId(null); }} /> : null}
-          {completingAction && !readOnly ? <CompleteActionForm action={completingAction} hasOtherOpenActions={openActions.length > 1} onCancel={() => setCompletingActionId(null)} onComplete={(note, nextTitle, nextDate, nextDetails) => { const resolution = nextTitle.trim() ? "next-action" : openActions.length > 1 ? "keep-active" : "waiting"; completeProjectAction(project.id, completingAction.id, note, resolution, nextTitle, nextDate, nextDetails); setCompletingActionId(null); }} /> : null}
+          {completingAction && !readOnly ? <div tabIndex={-1} data-action-completion><CompleteActionForm action={completingAction} hasOtherOpenActions={openActions.length > 1} onCancel={() => setCompletingActionId(null)} onComplete={(note, nextTitle, nextDate, nextDetails) => { const resolution = nextTitle.trim() ? "next-action" : openActions.length > 1 ? "keep-active" : "waiting"; completeProjectAction(project.id, completingAction.id, note, resolution, nextTitle, nextDate, nextDetails); setCompletingActionId(null); }} /></div> : null}
         </section>
 
         <section className="mt-10 border-t border-slate-200 pt-8">

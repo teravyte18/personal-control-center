@@ -4,7 +4,10 @@ const SESSION_COOKIE = "pcc_session";
 const INSECURE_USER_HEADER = "x-pcc-user-email";
 
 function isPublicPath(pathname: string) {
-  return pathname === "/login"
+  // Only these read handlers admit bearer credentials. Each validates its own
+  // dedicated grant; this never admits bearer tokens on browser/write routes.
+  return /^\/api\/assistant\/(library|search|read|context|planning)$/.test(pathname)
+    || pathname === "/login"
     || pathname === "/activate"
     || pathname === "/api/health"
     || pathname === "/api/auth/login"

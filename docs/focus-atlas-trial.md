@@ -1,5 +1,7 @@
 # Focus + Atlas personal trial
 
+> Current status (2026-10-30): Focus + Atlas #102 and polish #103/#105 are merged into `main`. Trial/merge-pending passages below describe the earlier trial and are historical; use current `main` and the delivery rules in `AGENTS.md` for new work. The read-only assistant connection is documented in [assistant-connection.md](assistant-connection.md).
+
 Status: implemented and deployed for personal trial on `agent/focus-atlas-trial`, based on main `271ce08`. Draft PR: [#102](https://github.com/teravyte18/personal-control-center/pull/102). **Do not merge before owner trial and explicit approval.**
 
 ## Active usage trial — 22 October 2026

@@ -3,6 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { GoogleCalendarSettings } from "@/components/google-calendar-settings";
 import { SpotifySettings } from "@/components/spotify-settings";
+import { AssistantSettings } from "@/components/assistant-settings";
 import { ThemeSettings } from "@/components/theme-settings";
 import Link from "next/link";
 import { useThemePreference } from "@/lib/theme-preferences";
@@ -193,6 +194,7 @@ export default function AccountPage() {
           <Link href="/spaces#quick-access" className="pcc-record"><span className="pcc-record-title">Quick access</span><p className="pcc-record-meta">4 phone pins · 7 desktop pins</p></Link>
         </section>
         <section><h3 className="pcc-section-title">Connections</h3>
+          <details><summary className="pcc-record">Assistant access</summary><AssistantSettings /></details>
           <details><summary className="pcc-record">Google Calendar</summary><GoogleCalendarSettings /></details>
           <details><summary className="pcc-record">Spotify</summary><SpotifySettings /></details>
         </section>

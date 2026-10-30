@@ -12,3 +12,6 @@ data
 npm-debug.log*
 README.md
 docs
+
+# Separately installed stdio adapter is not part of the Next.js image.
+integrations/pcc-mcp

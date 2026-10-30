@@ -4,7 +4,7 @@ This directory contains current product/operations documentation plus a small am
 
 ## Current product direction
 
-- [`focus-atlas-trial.md`](focus-atlas-trial.md) — active owner usage trial on `agent/focus-atlas-trial` / draft PR #102; selected Figma references, preservation checklist, validation, deviations, feedback and rollback; merge approval pending
+- [`focus-atlas-trial.md`](focus-atlas-trial.md) — historical owner usage trial, since merged in PR #102; selected Figma references, preservation checklist, validation, deviations, feedback and rollback; merge approval pending
 - [`product-spec.md`](product-spec.md) — current product model, workflows, boundaries, integration principle, and success criteria
 - [`roadmap.md`](roadmap.md) — delivered modules, current priorities after Music verification, Weekly Rhythm/Agenda real-use decisions, and retrieval-first AI direction
 - [`usage-audit-2026-10.md`](usage-audit-2026-10.md) — real-use evidence: validated workflows, low-use experiments, planning friction, and resulting product priorities
@@ -19,6 +19,8 @@ This directory contains current product/operations documentation plus a small am
 - [`ui-polish-2026.md`](ui-polish-2026.md) — feedback-driven first polish pass, deferred work, and phone/desktop validation checklist
 
 ## Feature and design guides
+
+- [`assistant-connection.md`](assistant-connection.md) — scoped read-only assistant grants, MCP adapter, tool contracts, verification and rollout gates
 
 - [`ui-design-directions-2026-10.md`](ui-design-directions-2026-10.md) — editable Figma concepts, separate phone/desktop Projects layouts, skill provenance and review limits
 

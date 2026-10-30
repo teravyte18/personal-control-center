@@ -1,5 +1,7 @@
 # Personal Control Center
 
+> Current status (2026-10-30): Focus + Atlas #102 and polish #103/#105 are merged into `main`. Trial/merge-pending passages below describe the earlier trial and are historical; use current `main` and the delivery rules in `AGENTS.md` for new work. The read-only assistant connection is documented in [assistant-connection.md](docs/assistant-connection.md).
+
 A phone-first private planning, reflection, reading, cooking, and personal-spending system that combines quick capture, projects, one-off tasks, flexible Weekly Rhythm planning, thoughts, editable notes, weekly reviews, a personal library, a recipe book, and lightweight expense tracking in one self-hosted application.
 
 This repository targets a small personal deployment rather than a commercial product. Multiple invite-only accounts may use one application and PostgreSQL database, but each account has completely separate personal data.

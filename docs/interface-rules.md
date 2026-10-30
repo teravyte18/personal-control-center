@@ -1,5 +1,7 @@
 # Interface Rules
 
+> Current status (2026-10-30): Focus + Atlas #102 and polish #103/#105 are merged into `main`. Trial/merge-pending passages below describe the earlier trial and are historical; use current `main` and the delivery rules in `AGENTS.md` for new work. The read-only assistant connection is documented in [assistant-connection.md](assistant-connection.md).
+
 These rules describe the Focus + Atlas trial branch while preserving the existing theme and workflow constraints. The owner has authorized using it as the normal production UI while keeping main unmerged as the rollback source; see [`focus-atlas-trial.md`](focus-atlas-trial.md).
 
 The guiding principle is:

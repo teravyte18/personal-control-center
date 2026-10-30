@@ -32,6 +32,14 @@ jobs:
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
 
+      - name: Validate read-only MCP adapter
+        working-directory: integrations/pcc-mcp
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm test
+          npm audit --omit=dev --audit-level=high
+          npm pack --dry-run
+
       - name: Verify Keychain crypto dependency lock
         run: node scripts/check-keychain-dependencies.mjs
 
@@ -142,6 +150,9 @@ jobs:
             | grep -q '"configured":false'
 
           node --test tests/server-persistence.test.mjs
+          PCC_TEST_ALLOW_FICTIONAL_MUTATIONS=1 PCC_TEST_BASE_URL=http://localhost:3000 node --test tests/assistant-server.test.mjs
+          npm ci --prefix integrations/pcc-mcp --ignore-scripts --no-audit --no-fund
+          PCC_TEST_ALLOW_FICTIONAL_MUTATIONS=1 PCC_MCP_TEST_BASE_URL=http://127.0.0.1:3000 PCC_MCP_TEST_PUBLIC_ORIGIN=http://localhost:3000 npm test --prefix integrations/pcc-mcp
           docker compose exec -T postgres psql -U pcc -d personal_control_center -v ON_ERROR_STOP=1 <<'SQL'
           insert into spotify_tracks (user_id, track_id, name, artist)
           select id, repeat('A',22), 'Example A', 'Example Artist' from users where email = 'owner@example.test';
@@ -267,6 +278,7 @@ jobs:
           docker compose exec -T backup pg_restore -h postgres -U pcc -d keychain_restore_test --no-owner --no-privileges "/backups/$(basename "$latest_dump")"
           test "$(docker compose exec -T backup psql -h postgres -U pcc -d keychain_restore_test -Atc "select count(*) from keychain_vaults where master_ciphertext = repeat('J', 64)")" = "1"
           test "$(docker compose exec -T backup psql -h postgres -U pcc -d keychain_restore_test -Atc "select count(*) from keychain_records where ciphertext = repeat('K', 48) and revision = 7")" = "1"
+          test "$(docker compose exec -T backup psql -h postgres -U pcc -d keychain_restore_test -Atc "select count(*) > 0 from assistant_grants where char_length(token_hash) = 64")" = "t"
           docker compose exec -T backup dropdb -h postgres -U pcc keychain_restore_test
 
           docker compose run --rm --no-deps --entrypoint /bin/sh backup /usr/local/bin/pcc-offsite status | grep -q 'R2 off-site backups are disabled'

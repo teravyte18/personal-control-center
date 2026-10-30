@@ -38,6 +38,7 @@ test("library inventory paginates beyond context bounds, binds filters and revis
   const page = call("library", { limit: 1 }) as { nextCursor: string };
   assert.throws(() => call("library", { ownership: "owned", cursor: page.nextCursor }), AssistantConflictError);
   assert.throws(() => assistantRead("library", { cursor: page.nextCursor }, { ...state, revision: 5 }, "account-a", ["library"], now), AssistantConflictError);
+  assert.throws(() => assistantRead("library", { cursor: page.nextCursor }, state, "account-b", ["library"], now), AssistantConflictError);
 });
 
 test("Library filters preserve wishlist ownership and old records", () => {

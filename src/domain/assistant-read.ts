@@ -69,7 +69,7 @@ export function planningClock(timezone: string, now: Date) {
   return { today, weekStart: start.toISOString().slice(0, 10), weekEnd: end.toISOString().slice(0, 10) };
 }
 
-function planning(snapshot: PersonalDataSnapshot, args: Record<string, unknown>, revision: number, now: Date) {
+function planning(snapshot: PersonalDataSnapshot, args: Record<string, unknown>, revision: number, userId: string, now: Date) {
   const timezone = inputText(args.timezone, 100)!;
   const asOf = args.asOf === undefined ? now : new Date(inputText(args.asOf, 40)!);
   if (!Number.isFinite(asOf.getTime()) || (args.asOf !== undefined && !/^\d{4}-\d{2}-\d{2}T.*(?:Z|[+-]\d\d:\d\d)$/.test(String(args.asOf)))) throw new AssistantInputError("Use an ISO timestamp with timezone.");
@@ -100,7 +100,7 @@ function planning(snapshot: PersonalDataSnapshot, args: Record<string, unknown>,
   }
   rows.sort((a, b) => `${a.kind}:${a.sourceId}:${a.sourceSubId ?? ""}`.localeCompare(`${b.kind}:${b.sourceId}:${b.sourceSubId ?? ""}`, "en"));
   return { ...clock, timezone, asOf: asOf.toISOString(), stateSemantics: "Current canonical state grouped at asOf; not a historical reconstruction.", calendarCoverage: "not-included",
-    ...paginate(rows, args, revision, JSON.stringify(["planning", timezone, clock.today, clock.weekStart, args.asOf ?? null])) };
+    ...paginate(rows, args, revision, JSON.stringify(["planning", userId, timezone, clock.today, clock.weekStart, args.asOf ?? null])) };
 }
 
 export function assistantRead(operation: AssistantOperation, input: unknown, state: AssistantState,
@@ -137,14 +137,14 @@ export function assistantRead(operation: AssistantOperation, input: unknown, sta
       && (!priority || doc.metadata.priority === priority)
       && (!status || doc.metadata.status === status)).map((doc) => {
         const book = books.get(doc.sourceId);
-        return { ...project(doc), ...(book ? { book: { author: book.author.slice(0, 300), ratings: book.ratings, upNextOrder: book.upNextOrder,
+        return { ...project(doc), ...(book ? { book: { fieldsTruncated: [book.author, book.currentIssue, book.issuesRead].some((value) => value.length > 300), author: book.author.slice(0, 300), ratings: book.ratings, upNextOrder: book.upNextOrder,
           contentType: book.contentType, format: book.format, currentIssue: book.currentIssue.slice(0, 300), issuesRead: book.issuesRead.slice(0, 300) } } : {}) };
       });
-    return { ...envelope, filters, ...paginate(rows, args, revision, JSON.stringify(["library", filters])) };
+    return { ...envelope, filters, ...paginate(rows, args, revision, JSON.stringify(["library", userId, filters])) };
   }
   if (operation === "planning") {
     requireAssistantDomains(granted, planningDomains);
-    return { ...envelope, ...planning(snapshot, args, revision, now) };
+    return { ...envelope, ...planning(snapshot, args, revision, userId, now) };
   }
   if (operation === "read") {
     const domain = inputText(args.domain, 20)! as AssistantDomain;

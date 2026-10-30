@@ -68,16 +68,16 @@ export function AssistantSettings() {
     {error ? <p role="alert" className="text-sm text-red-700">{error}</p> : null}
     {notice ? <p role="status" className="text-sm">{notice}</p> : null}
     <form onSubmit={create} className="space-y-3">
-      <label className="block text-sm">Connection name<input value={label} onChange={(event) => setLabel(event.target.value)} maxLength={80} required className="mt-1 block w-full rounded-xl border px-3 py-3" /></label>
+      <label className="block text-sm">Connection name<input value={label} onChange={(event) => setLabel(event.target.value)} maxLength={80} required className="input mt-1 block w-full" /></label>
       <fieldset><legend className="text-sm font-medium">Allowed spaces</legend><div className="grid grid-cols-2 gap-2 mt-2">
         {assistantDomains.map((domain) => <label key={domain} className="flex items-center gap-2 min-h-11 text-sm capitalize"><input type="checkbox" checked={domains.includes(domain)} onChange={() => toggle(domain)} />{domain === "rhythm" ? "Weekly Rhythm" : domain}</label>)}
       </div></fieldset>
-      <label className="block text-sm">Expires after<select value={days} onChange={(event) => setDays(Number(event.target.value))} className="ml-2 rounded-xl border px-3 py-3"><option value={7}>7 days</option><option value={30}>30 days</option><option value={90}>90 days</option></select></label>
+      <label className="block text-sm">Expires after<select value={days} onChange={(event) => setDays(Number(event.target.value))} className="input ml-2"><option value={7}>7 days</option><option value={30}>30 days</option><option value={90}>90 days</option></select></label>
       <button type="submit" disabled={busy || loading || !domains.length} className="rounded-xl bg-slate-950 px-4 py-3 text-sm text-white disabled:opacity-50">Create read-only connection</button>
     </form>
     {token ? <div className="space-y-2 rounded-xl border p-3">
       <p className="text-sm">Save this token now; it will not be shown again. Use a trusted secret-entry field, not an assistant chat message.</p>
-      <input type="password" readOnly value={token} aria-label="New assistant connection token" autoComplete="off" className="w-full rounded-xl border px-3 py-3" />
+      <input type="password" readOnly value={token} aria-label="New assistant connection token" autoComplete="off" className="input w-full" />
       <button type="button" className="min-h-11 text-sm underline" onClick={() => { void navigator.clipboard.writeText(token).then(() => setNotice("Token copied. Store it in the connector’s trusted credential field."), () => setError("Clipboard unavailable. Select the token field to copy it securely.")); }}>Copy token</button>
       <button type="button" className="ml-4 min-h-11 text-sm underline" onClick={() => setToken("")}>Dismiss token</button>
     </div> : null}

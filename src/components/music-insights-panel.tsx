@@ -15,11 +15,6 @@ function shiftPeriod(period: string, mode: "month" | "year", offset: number) {
   const next = new Date(Date.UTC(year, month - 1 + offset, 1));
   return `${next.getUTCFullYear()}-${String(next.getUTCMonth() + 1).padStart(2, "0")}`;
 }
-function formatPeriod(period: string, mode: "month" | "year") {
-  if (mode === "year") return period.slice(0, 4);
-  return new Date(`${period}-01T12:00:00`).toLocaleDateString(undefined, { month: "long", year: "numeric" });
-}
-
 function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -114,7 +109,6 @@ export function MusicInsightsPanel({ onOpenArchive }: { onOpenArchive: () => voi
         <button type="button" className="min-h-11 min-w-11 rounded-xl border border-slate-200 bg-white text-lg"
           aria-label="Previous period" onClick={() => selectPeriod(shiftPeriod(period, mode, -1))}>‹</button>
         <div className="min-w-0 text-center">
-          <h3 className="text-base font-semibold">{formatPeriod(period, mode)}</h3>
           <label className="mt-1 block">
             <span className="sr-only">Choose a music period</span>
             <input aria-label="Choose music period" type={mode === "month" ? "month" : "number"}
@@ -126,7 +120,7 @@ export function MusicInsightsPanel({ onOpenArchive }: { onOpenArchive: () => voi
                 if (mode === "month" && /^\d{4}-(0[1-9]|1[0-2])$/.test(next)) selectPeriod(next);
                 else if (mode === "year" && /^\d{4}$/.test(next)) selectPeriod(`${next}-${period.slice(5, 7)}`);
               }}
-              className="mx-auto block max-w-36 rounded-lg border border-slate-200 bg-white px-2 py-1 text-center text-xs text-slate-500"/>
+              className="pcc-music-period"/>
           </label>
         </div>
         <button type="button" className="min-h-11 min-w-11 rounded-xl border border-slate-200 bg-white text-lg"
@@ -148,6 +142,38 @@ export function MusicInsightsPanel({ onOpenArchive }: { onOpenArchive: () => voi
           {insights.unknownDurationPlays > 0 ? <p className="mt-2 text-xs text-slate-500">
             {count(insights.unknownDurationPlays)} plays have unknown duration and are excluded from listening time.
           </p> : null}
+
+          <div className="mt-6 grid gap-5 lg:grid-cols-2">
+            <section>
+              <div className="flex items-center justify-between gap-3">
+                <h4 className="text-sm font-semibold text-slate-700">Most played songs</h4>
+                <span className="text-xs text-slate-500">Plays</span>
+              </div>
+              <div className="mt-3 rounded-2xl border border-slate-200 bg-white px-4 py-1 shadow-sm">
+                {insights.topTracks.length ? <Tracks items={insights.topTracks} expanded={expandedTracks}/> : <p className="py-4 text-sm text-slate-500">Nothing played during this period.</p>}
+                {insights.topTracks.length > 6 && <button type="button"
+                  onClick={() => setExpandedTracks((value) => !value)}
+                  className="min-h-11 w-full border-t border-slate-100 text-sm font-semibold text-slate-600">
+                  {expandedTracks ? "Show fewer" : "Show all 15"}
+                </button>}
+              </div>
+            </section>
+            <section>
+              <div className="flex items-center justify-between gap-3">
+                <h4 className="text-sm font-semibold text-slate-700">Top artists</h4>
+                <span className="text-xs text-slate-500">Plays</span>
+              </div>
+              <div className="mt-3 rounded-2xl border border-slate-200 bg-white px-4 py-1 shadow-sm">
+                {insights.topArtists.length ? <Artists items={insights.topArtists} expanded={expandedArtists}/> : <p className="py-4 text-sm text-slate-500">No artists during this period.</p>}
+                {insights.topArtists.length > 6 && <button type="button"
+                  onClick={() => setExpandedArtists((value) => !value)}
+                  className="min-h-11 w-full border-t border-slate-100 text-sm font-semibold text-slate-600">
+                  {expandedArtists ? "Show fewer" : "Show all 12"}
+                </button>}
+              </div>
+              <p className="mt-2 text-xs text-slate-500">Based on album artist credits in the historical export. Collaborations may be grouped.</p>
+            </section>
+          </div>
 
           {(mode === "year" || mode === "all") && insights.trend.length > 0 && (
             <section className="mt-5">
@@ -224,38 +250,6 @@ export function MusicInsightsPanel({ onOpenArchive }: { onOpenArchive: () => voi
               )}
             </div>
           </section>
-
-          <div className="mt-6 grid gap-5 lg:grid-cols-2">
-            <section>
-              <div className="flex items-center justify-between gap-3">
-                <h4 className="text-sm font-semibold text-slate-700">Most played songs</h4>
-                <span className="text-xs text-slate-500">Plays</span>
-              </div>
-              <div className="mt-3 rounded-2xl border border-slate-200 bg-white px-4 py-1 shadow-sm">
-                {insights.topTracks.length ? <Tracks items={insights.topTracks} expanded={expandedTracks}/> : <p className="py-4 text-sm text-slate-500">Nothing played during this period.</p>}
-                {insights.topTracks.length > 6 && <button type="button"
-                  onClick={() => setExpandedTracks((value) => !value)}
-                  className="min-h-11 w-full border-t border-slate-100 text-sm font-semibold text-slate-600">
-                  {expandedTracks ? "Show fewer" : "Show all 15"}
-                </button>}
-              </div>
-            </section>
-            <section>
-              <div className="flex items-center justify-between gap-3">
-                <h4 className="text-sm font-semibold text-slate-700">Top artists</h4>
-                <span className="text-xs text-slate-500">Plays</span>
-              </div>
-              <div className="mt-3 rounded-2xl border border-slate-200 bg-white px-4 py-1 shadow-sm">
-                {insights.topArtists.length ? <Artists items={insights.topArtists} expanded={expandedArtists}/> : <p className="py-4 text-sm text-slate-500">No artists during this period.</p>}
-                {insights.topArtists.length > 6 && <button type="button"
-                  onClick={() => setExpandedArtists((value) => !value)}
-                  className="min-h-11 w-full border-t border-slate-100 text-sm font-semibold text-slate-600">
-                  {expandedArtists ? "Show fewer" : "Show all 12"}
-                </button>}
-              </div>
-              <p className="mt-2 text-xs text-slate-500">Based on album artist credits in the historical export. Collaborations may be grouped.</p>
-            </section>
-          </div>
 
           {(rising.length > 0 || insights.rediscoveries.length > 0) && (
             <section className="mt-6">

@@ -22,6 +22,7 @@ import {
   reorderUpNext,
   serializeBookDetails,
   sortBooksForShelf,
+  sortBooksForView,
   type BookContentType,
   type BookDetails,
   type BookFormat,
@@ -97,14 +98,14 @@ export default function LibraryPage() {
   const [minimumRating, setMinimumRating] = useState("");
   const [creating, setCreating] = useState(false);
   const [openBookId, setOpenBookId] = useState<string | null>(null);
-  const [previewId, setPreviewId] = useState("");
+  const [sort, setSort] = useState<"shelf" | "reading-first" | "title" | "rating">("shelf");
   const [listView, setListView] = useState(false);
   const openBook = books.find((book) => book.item.id === openBookId);
 
   const visibleBooks = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase();
     const minimum = minimumRating === "" ? undefined : Number(minimumRating);
-    return sortBooksForShelf(books, shelf).filter((book) => {
+    return sortBooksForView(books, shelf, sort).filter((book) => {
       const score = getBookScore(book.details);
       if (normalizedQuery
         && !book.item.title.toLocaleLowerCase().includes(normalizedQuery)
@@ -117,7 +118,7 @@ export default function LibraryPage() {
       if (minimum !== undefined && (score === undefined || score < minimum)) return false;
       return true;
     });
-  }, [books, shelf, query, readingFilter, ownershipFilter, priorityFilter, contentTypeFilter, formatFilter, minimumRating]);
+  }, [books, shelf, sort, query, readingFilter, ownershipFilter, priorityFilter, contentTypeFilter, formatFilter, minimumRating]);
 
   function nextQueueOrder() {
     return books.reduce((maximum, book) => Math.max(maximum, book.details.upNextOrder), 0) + 1;
@@ -173,7 +174,6 @@ export default function LibraryPage() {
 
   const filterCount = [readingFilter, ownershipFilter, priorityFilter, contentTypeFilter, formatFilter, minimumRating].filter(Boolean).length;
   const currentShelf = shelves.find((candidate) => candidate.id === shelf) ?? shelves[0];
-  const previewBook = visibleBooks.find(book => book.item.id === previewId) ?? visibleBooks[0];
 
   return (
     <section className="pcc-library">
@@ -224,6 +224,13 @@ export default function LibraryPage() {
         </button>
         <button type="button" className="pcc-control pcc-library-view" onClick={() => setListView(value => !value)} aria-pressed={listView}>{listView ? "Gallery" : "List"}</button>
       </div>
+
+      <label className="pcc-library-sort">Sort books
+        <select value={sort} disabled={shelf === "up-next"} onChange={event => setSort(event.target.value as typeof sort)}>
+          <option value="shelf">Shelf order</option><option value="reading-first">Reading first</option><option value="title">Title</option><option value="rating">Highest score</option>
+        </select>
+        {shelf === "up-next" ? <span>Manual queue order</span> : null}
+      </label>
 
       {filtersOpen ? (
         <div id="library-filters" className="mt-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -284,26 +291,12 @@ export default function LibraryPage() {
                 showQueueControls={shelf === "up-next"}
                 canMoveUp={index > 0}
                 canMoveDown={index < visibleBooks.length - 1}
-                onOpen={() => {
-                  setPreviewId(book.item.id);
-                  if (!window.matchMedia("(min-width: 1200px)").matches) setOpenBookId(book.item.id);
-                }}
+                onOpen={() => setOpenBookId(book.item.id)}
                 onMove={(direction) => moveBook(book.item.id, direction)}
               />
             ))}
           </div>
-          {previewBook ? <aside className="pcc-collection-detail" aria-label="Selected book">
-            <h3 className="pcc-section-title">{previewBook.item.title}</h3>
-            <p className="pcc-record-meta">{previewBook.details.author || "Unknown author"}</p>
-            <div className="pcc-detail-cover"><Cover coverId={previewBook.details.coverId} title={previewBook.item.title} /></div>
-            <p className="pcc-record-title">{ownershipLabels[previewBook.details.ownership]} · {readingLabels[previewBook.details.readingState]}</p>
-            <p className="pcc-record-meta">{previewBook.details.startDate ? `Started ${previewBook.details.startDate}` : "No start date"} · {previewBook.details.finishDate ? `Finished ${previewBook.details.finishDate}` : "No finish date"}</p>
-            {previewBook.details.currentIssue ? <p className="pcc-record-meta">Resume: {previewBook.details.currentIssue}</p> : null}
-            <p className="pcc-record-meta">{formatBookScore(previewBook.details) ? `${formatBookScore(previewBook.details)} / 10` : "Unrated"}</p>
-            <button className="pcc-control theme-home-button" onClick={() => setOpenBookId(previewBook.item.id)}>Open book</button>
-            <button className="pcc-control" onClick={() => setOpenBookId(previewBook.item.id)}>Edit book</button>
-            <p className="pcc-record-meta">Enjoyment, impact and execution remain independent ratings.</p>
-          </aside> : null}
+
           </div>
         </>
       )}

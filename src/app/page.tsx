@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { workHref } from "@/domain/work-links";
+import { UpcomingCommitments } from "@/components/upcoming-commitments";
 import { FormEvent, useMemo, useState, useSyncExternalStore } from "react";
 import { buildHomeNearTermEntries, type HomeNearTermEntry } from "@/domain/home-today";
 import { usePersonalData, useRhythmData } from "@/lib/personal-data";
@@ -163,6 +165,7 @@ export default function CapturePage() {
         </div>
 
         <aside className="pcc-home-context">
+          <UpcomingCommitments period={period} />
           <div className="pcc-panel pcc-inbox-summary"><div><h3 className="pcc-section-title">Inbox</h3><p className="pcc-record-meta">{inboxCount ? `${inboxCount} captures to organise` : "Inbox is clear"}</p></div><Link href="/inbox" className="pcc-control">Open Inbox</Link></div>
           <div className="pcc-panel"><h3 className="pcc-section-title">This week</h3><p className="pcc-record-title">{rhythmTemplates.filter(template => template.state === "active").map(template => `${template.title} ${getRhythmProgress(template.id,rhythmCompletions,period).count} / ${template.targetPerWeek}`).join(" · ") || "No weekly intentions selected."}</p><p className="pcc-record-meta">{formatDate(period.start)}–{formatDate(period.end)} · Saturday–Friday</p><Link href="/rhythm" className="pcc-control mt-3 w-full">Open Week</Link></div>
         </aside>
@@ -219,7 +222,7 @@ function NearTermPanel({ entries }: { entries: HomeNearTermEntry[] }) {
 function TodayRow({ entry }: { entry: HomeNearTermEntry }) {
   const overdue = entry.state === "overdue";
   const upcoming = entry.state === "upcoming";
-  const href = entry.kind === "task" ? `/tasks?task=${encodeURIComponent(entry.sourceId)}` : `/projects?project=${encodeURIComponent(entry.sourceId)}`;
+  const href = workHref({ sourceType: entry.kind, sourceItemId: entry.sourceId, sourceActionId: entry.sourceActionId });
 
   return (
     <Link href={href} className="group flex min-w-0 max-w-full gap-3 overflow-hidden py-3 first:pt-0 last:pb-0">
@@ -228,7 +231,7 @@ function TodayRow({ entry }: { entry: HomeNearTermEntry }) {
         aria-hidden="true"
       />
       <span className="min-w-0 flex-1 overflow-hidden">
-        <span className="block truncate text-sm font-semibold text-slate-900 group-hover:underline">{entry.title}</span>
+        <span className="pcc-record-title block font-semibold text-slate-900 group-hover:underline">{entry.title}</span>
         <span className="mt-1 flex min-w-0 items-center gap-2 text-xs">
           <span className="min-w-0 truncate text-slate-500">
             {entry.kind === "task" ? "Task" : entry.context}

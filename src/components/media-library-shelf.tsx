@@ -43,7 +43,6 @@ export function MediaLibraryShelf({ type }: { type: MediaType }) {
   const [view, setView] = useState<ShelfView>(type === "series" ? "watching" : "library");
   const [creating, setCreating] = useState(false);
   const [openMediaId, setOpenMediaId] = useState<string | null>(null);
-  const [previewId, setPreviewId] = useState("");
   const openMedia = media.find((entry) => entry.item.id === openMediaId);
 
   const visibleMedia = useMemo(() => sortMediaItems(media).filter((entry) => {
@@ -54,7 +53,6 @@ export function MediaLibraryShelf({ type }: { type: MediaType }) {
 
   const label = type === "film" ? "Movies" : "Series";
   const singular = type === "film" ? "movie" : "series";
-  const preview = visibleMedia.find(entry => entry.item.id === previewId) ?? visibleMedia[0];
   const viewOptions: { value: ShelfView; label: string }[] = type === "film"
     ? [
         { value: "library", label: "My movies" },
@@ -143,19 +141,10 @@ export function MediaLibraryShelf({ type }: { type: MediaType }) {
         <div className="pcc-collection-layout">
         <div className="pcc-media-grid">
           {visibleMedia.map((entry) => (
-            <MediaCard key={entry.item.id} media={entry} onOpen={() => {
-              setPreviewId(entry.item.id);
-              if (!window.matchMedia("(min-width: 1200px)").matches) setOpenMediaId(entry.item.id);
-            }} />
+            <MediaCard key={entry.item.id} media={entry} onOpen={() => setOpenMediaId(entry.item.id)} />
           ))}
         </div>
-        {preview ? <aside className="pcc-collection-detail" aria-label="Selected media">
-          <div className="pcc-detail-cover"><MediaPoster posterId={preview.details.posterId} title={preview.item.title} /></div>
-          <h3 className="pcc-section-title">{preview.item.title}</h3>
-          <p className="pcc-record-title">{statusLabels[preview.details.status]}{mediaProgressLabel(preview.details) ? ` · ${mediaProgressLabel(preview.details)}` : ""}</p>
-          {preview.details.rating !== undefined ? <p className="pcc-record-meta">{preview.details.rating.toFixed(1)} / 10</p> : null}
-          <button className="pcc-control theme-home-button" onClick={() => setOpenMediaId(preview.item.id)}>Open details</button>
-        </aside> : null}
+
         </div>
       )}
 

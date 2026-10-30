@@ -162,3 +162,7 @@ This is intentional failure isolation. Inspect Account & access, correct the con
 ## Boundary
 
 This is not full two-way synchronisation of Personal Control Center records. Direct Google-side edits to projected Tasks or Project Actions still do not flow back into the app. That broader conflict-resolution problem remains separate from Agenda's read-only view of ordinary Google events.
+
+## P2 presentation follow-up
+
+Agenda includes an optional native sourceHref for recognised Task/Project Action projections in the app-owned calendar. Project Action links identify both project and action. Ordinary event descriptions expand on request. Home reads the current week through the existing authenticated events endpoint and shows up to three upcoming external/Agenda commitments; exclusive all-day end dates are handled as local dates. No OAuth or ownership rules change.

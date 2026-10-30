@@ -356,3 +356,7 @@ Weekly Rhythm is successful if normal use answers “yes” to several of these:
 - Does Weekly Review become easier because intention/progress context already exists?
 - Does Agenda become less necessary?
 - Does Home become more useful with a small weekly horizon?
+
+## P2 presentation follow-up
+
+Dated focus work appears once in Dated work with its focus label and removal menu. Flexible focus remains separate. Task completion uses the canonical shared mutation; Project Action completion opens the existing notes/resolution form and requires submission.

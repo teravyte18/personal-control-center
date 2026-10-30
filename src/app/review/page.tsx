@@ -18,6 +18,7 @@ export default function ReviewPage() {
   const { draft, history, loaded, updateDraft, completeReview } = useReviewData();
   const { rhythmTemplates, rhythmCompletions, weeklyFocuses } = useRhythmData();
   const [tab, setTab] = useState<Tab>("current");
+  const [selectedReview, setSelectedReview] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [reflectionOpen, setReflectionOpen] = useState(false);
   const period = getCurrentReviewPeriod();
@@ -57,7 +58,7 @@ export default function ReviewPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2 className="text-3xl font-semibold tracking-tight">Review</h2>
-          <p className="mt-2 text-sm text-slate-500">Current period: {formatReviewPeriod(period)}</p>
+          <p className="mt-2 text-sm text-slate-500">Reviewing: {formatReviewPeriod(period)}</p>
         </div>
         <div className="pcc-view-controls">
           <TabButton active={tab === "current"} onClick={() => setTab("current")}>Current</TabButton>
@@ -66,7 +67,7 @@ export default function ReviewPage() {
       </div>
 
       {tab === "history" ? (
-        <div className="mt-7"><ReviewHistory history={history} saved={saved} /></div>
+        <div className="mt-7"><ReviewHistory key={selectedReview ?? "history"} history={history} saved={saved} initialExpandedId={selectedReview} /></div>
       ) : (
         <div className="mt-7 space-y-5">
           {!loaded || (!ready && !completed) ? (
@@ -74,8 +75,10 @@ export default function ReviewPage() {
           ) : completed ? (
             <div className="rounded-[2rem] border border-emerald-200 bg-emerald-50 p-7 text-emerald-950 shadow-sm">
               <p className="text-sm font-semibold">Review complete</p>
-              <h3 className="mt-2 text-2xl font-semibold">This period is closed until next Saturday.</h3>
+              <h3 className="mt-2 text-2xl font-semibold">Your review is saved.</h3>
               <p className="mt-3 text-sm leading-6 text-emerald-800">{completedEntry ? `Completed ${new Date(completedEntry.completedAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}.` : "The completed review is available in History."}</p>
+              <button type="button" className="pcc-control mt-4" onClick={() => { setSelectedReview(completedEntry?.id ?? null); setTab("history"); }}>Read completed review</button>
+              <p className="mt-3 text-sm">The next review opens on Saturday.</p>
             </div>
           ) : (
             <>

@@ -120,7 +120,7 @@ export function DataStatusBanner() {
   }
 
   if (syncing || captureSyncing) {
-    return <p className="mb-3 text-right text-xs font-medium text-slate-400" aria-live="polite">Saving to server…</p>;
+    return <p className="pcc-save-status" aria-live="polite">Saving to server…</p>;
   }
 
   return null;

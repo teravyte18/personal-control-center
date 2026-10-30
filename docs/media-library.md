@@ -151,3 +151,7 @@ Only after real use demonstrates value, consider:
 - richer Series progress if season/episode is insufficient;
 - Weekly Review viewing activity;
 - recommendation shortcuts powered by the Personal Advisor.
+
+## P2 presentation follow-up
+
+Movie and Series cards open their full editor directly on phone and desktop. The duplicate desktop preview panel is removed; record fields and poster handling are unchanged.

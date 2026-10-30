@@ -7,8 +7,8 @@ import type { ReviewEntry } from "@/lib/personal-data";
 
 const PHOTO_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-export function ReviewHistory({ history, saved }: { history: ReviewEntry[]; saved: boolean }) {
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+export function ReviewHistory({ history, saved, initialExpandedId = null }: { history: ReviewEntry[]; saved: boolean; initialExpandedId?: string | null }) {
+  const [expandedId, setExpandedId] = useState<string | null>(initialExpandedId);
 
   if (history.length === 0) {
     return (

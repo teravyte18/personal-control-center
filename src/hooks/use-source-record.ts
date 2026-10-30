@@ -8,7 +8,7 @@ function subscribe(listener: () => void) {
 }
 
 /** Resolve canonical source links without changing any persisted record. */
-export function useSourceRecord(parameter: "project" | "task") {
+export function useSourceRecord(parameter: "project" | "task" | "action" | "complete") {
   const search = useSyncExternalStore(subscribe, () => window.location.search, () => "");
   return new URLSearchParams(search).get(parameter) ?? "";
 }

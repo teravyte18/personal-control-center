@@ -264,3 +264,20 @@ export function formatBookScore(details: BookDetails) {
 export function dateWithinPeriod(value: string, start: string, end: string) {
   return Boolean(value && value >= start && value <= end);
 }
+
+/** Keep the curated Up next queue stable, including when switching sort modes. */
+export function sortBooksForView(books: readonly BookItem[], shelf: BookShelfId, sort: "shelf" | "reading-first" | "title" | "rating") {
+  const entries = sortBooksForShelf(books, shelf);
+  if (shelf === "up-next" || sort === "shelf") return entries;
+  return entries.sort((left, right) => {
+    if (sort === "reading-first") {
+      const difference = Number(right.details.readingState === "reading") - Number(left.details.readingState === "reading");
+      if (difference) return difference;
+    }
+    if (sort === "rating") {
+      const difference = (getBookScore(right.details) ?? -1) - (getBookScore(left.details) ?? -1);
+      if (difference) return difference;
+    }
+    return left.item.title.localeCompare(right.item.title, undefined, { sensitivity: "base" });
+  });
+}

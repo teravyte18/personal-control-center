@@ -53,3 +53,17 @@ Check narrow phone, ordinary phone, laptop and wide desktop, with Default plus a
 7. Check keyboard focus and forced colours; inspect light/dark contrast and all theme Capture artwork. Existing themes must not change data behaviour.
 
 Deploy/rollback through the existing trial process only after reviewing the PR. No database restore or volume removal is needed to change UI branches.
+
+## P2 — stacked on P1
+
+- Home adds up to three upcoming external/Agenda Calendar commitments for the current week, excluding expired events and PCC work already shown elsewhere. Disconnected/error states link to Account or retry; Calendar remains optional.
+- Week shows dated focus items once, in Dated work, with their selected-for-Week label and removal menu. Task checkboxes use the shared completion action. Project-action completion links open the existing completion-note/resolution form; visiting a URL never completes work.
+- Home, Week and Agenda links select the precise canonical project action. Agenda returns a native source link only for recognised projections in the app-owned calendar; ordinary event descriptions are optional expanded details.
+- Library book sorting offers shelf order, reading first, title and score. Up next retains its manual order and shelf membership remains unchanged. Book/Movie/Series cards open their existing full editor on desktop and phone, removing the redundant desktop preview column.
+- Music uses the available desktop width, moves rankings before secondary trend/genre sections, and uses one adequately sized period input instead of a duplicated period heading. Random song remains below the main content.
+- Review explicitly confirms the saved review and opens that exact entry in History. Notes regain bounded compact rows. Transient saving status no longer shifts page content; offline/errors remain persistent in-flow messages.
+- The centred five-item mobile dock and header All Spaces change from P1 are retained.
+
+P2 does not redesign calendar ownership or the Capture information architecture. Full theme/contrast, screen-reader, physical keyboard and responsive visual acceptance remain outstanding. No Figma or production deployment is included. The existing authenticated Calendar read response gains an optional `sourceHref`; persistence, OAuth scopes and projection writes are unchanged.
+
+P2 validation: lint, production build/TypeScript and `git diff --check` pass; all 195 tests pass, including source URL encoding, calendar end-date filtering, work identity and book-sort regressions. Local Node 24 uses the equivalent strip-types test command. Docker remains unavailable locally; production-stack checks run in GitHub CI. After-change browser/device verification remains outstanding.

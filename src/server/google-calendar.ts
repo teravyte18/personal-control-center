@@ -1,4 +1,5 @@
 import "server-only";
+import { projectedWorkHref } from "@/domain/work-links";
 
 import {
   createCipheriv,
@@ -132,6 +133,7 @@ export type AgendaEvent = {
   allDay: boolean;
   editable: boolean;
   source: AgendaEventSource;
+  sourceHref?: string;
 };
 
 export type AgendaEventDraft = {
@@ -597,6 +599,7 @@ function normalizeAgendaEvent(
     allDay,
     editable: source === "agenda",
     source,
+    sourceHref: source === "task" || source === "project-action" ? projectedWorkHref(event.extendedProperties?.private) : undefined,
   };
 }
 

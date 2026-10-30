@@ -149,11 +149,11 @@ The variable font is served locally from `public/fonts/dm-sans.ttf`, with swap l
 - **Label:** the label token for controls and record titles.
 - **Metadata:** the metadata token for counts, dates, secondary details and phone dock labels.
 
-**The Readable Control Rule.** Inputs use the compact control role with a minimum touchable height; coarse-pointer inputs increase to the body size. Authentication inputs and textareas already use the body size. Keep browser zoom available and preserve native date, select and file input behavior.
+**The Readable Control Rule.** Inputs use a minimum touchable height and 16px body text on phone; native controls remain readable regardless of pointer classification. Authentication inputs and textareas already use the body size. Keep browser zoom available and preserve native date, select and file input behavior.
 
 ## Layout
 
-Phone is the base layout below (768px): a PCC / Account header, one working column and a fixed bottom dock. Four configurable pins surround Capture; All Spaces sits beneath them. Header and dock account for safe-area insets. Main content includes bottom clearance for the dock, and editors reserve clearance for their fixed action bar.
+Phone is the base layout below (768px): a compact Home / All Spaces header with a distinct surface, one working column and a fixed single-row dock. The five-item dock preserves four configurable pins with Capture centred between them. All Spaces is in the top-right header; Account remains accessible from that directory. Header and dock account for safe-area insets. When a focused editing control and the visual viewport indicate a software keyboard, the dock hides until the keyboard is dismissed. Main content includes bottom clearance for the dock, and editors reserve clearance for their fixed action bar.
 
 From (768px), phone navigation disappears and a labelled rail occupies (112px). The workspace offsets by that width, with (32px) top and (24px) horizontal padding. Context layouts become two columns where implemented: tasks, notes, Week, food, review, music and Capture. Projects switch from one selected focus to ownership rows with associated actions.
 
@@ -165,13 +165,13 @@ Use the frontmatter spacing steps: small gaps within controls, standard gaps wit
 
 ## Elevation & Depth
 
-Working surfaces are flat at rest. Background changes, borders, whitespace and selection provide depth; the Focus + Atlas override removes the inherited small and large shadows and backdrop blur on working surfaces. Structural rows remain open and compact. Editor overlays are opaque workspace surfaces above navigation, with a surface-colored fixed action bar.
+Working surfaces are flat at rest. Background changes, borders, whitespace and selection provide depth; the Focus + Atlas override removes the inherited small and large shadows and backdrop blur on working surfaces. Structural rows remain compact within visibly bounded groups. Week and Home sections use a consistent surface, divider and internal padding; whitespace alone must not carry section hierarchy. Editor overlays are opaque workspace surfaces above navigation, with a surface-colored fixed action bar.
 
 Inputs retain the existing soft focus ring alongside the global visible keyboard outline. Do not generalize that ring into resting card elevation. Motion is limited to existing control feedback; coarse touch does not depend on hover. Reduced-motion preference makes transitions and animations effectively immediate and disables smooth scrolling.
 
 ## Shapes
 
-Controls and navigation use the control radius; grouped forms, selected context and empty containers use the surface radius. Artwork uses the smaller artwork radius and clips its content. Common controls are at least (44px) high, rail links (48px), dock items (50px), and space links (56px). Rows use an open silhouette rather than nested rounded cards. Collection status text is plain metadata, not a decorative pill.
+Controls and navigation use the control radius; grouped forms, selected context and empty containers use the surface radius. Artwork uses the smaller artwork radius and clips its content. Common controls are at least (44px) high, rail links (48px), dock items (50px), and space links (64px). Rows use an open silhouette rather than nested rounded cards. Collection status text is plain metadata, not a decorative pill.
 
 ## Components
 
@@ -221,3 +221,7 @@ The shell names loading and shows three quiet placeholder rows before personal d
 - **Don't** encode private records, screenshots, credentials or trial host details in design documentation.
 - **Don't** change record semantics, authentication, permissions or data behavior as part of visual extension.
 
+
+## Trial feedback polish — 29 October 2026
+
+The feedback-driven first pass is documented in [`docs/ui-polish-2026.md`](docs/ui-polish-2026.md). It restores directory icons and surfaces, groups Week/Home, corrects expense padding, clarifies outflow-share labels, separates task completion from editing, and shortens phone navigation. Shared `--pcc-line` and `--pcc-divider` tokens distinguish neutral control borders from theme identity linework. Figma and the machine-generated 22 October design snapshot remain references for the original trial, not certification of this follow-up. Runtime CSS and this feedback record describe the current adaptation.

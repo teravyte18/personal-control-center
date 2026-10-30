@@ -10,6 +10,7 @@ import { isDestinationActive, type Destination } from "@/lib/navigation";
 import { useDesktopQuickAccess, useMobileQuickAccess } from "@/lib/navigation-preferences";
 import { useThemePreference } from "@/lib/theme-preferences";
 import { usePersonalData } from "@/lib/personal-data";
+import { useKeyboardVisible } from "@/hooks/use-keyboard-visible";
 
 const designIcons = new Set(["projects", "tasks", "rhythm", "review"]);
 
@@ -26,12 +27,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { destinations: mobileDestinations } = useMobileQuickAccess();
   const { theme } = useThemePreference();
   const { loaded } = usePersonalData();
+  const keyboardVisible = useKeyboardVisible();
 
   return (
-    <div className="theme-shell pcc-shell" data-space={pathname.split("/")[1] || "home"}>
+    <div className="theme-shell pcc-shell" data-space={pathname.split("/")[1] || "home"} data-keyboard-open={keyboardVisible}>
       <a className="pcc-skip-link" href="#working-surface">Skip to content</a>
       <aside className="pcc-rail" aria-label="Desktop navigation">
-        <Link href="/" className="pcc-brand" aria-label="Personal Control Center">PCC</Link>
+        <Link href="/" className="pcc-brand" aria-label="Home" aria-current={pathname === "/" ? "page" : undefined}>PCC <span className="pcc-home-label">Home</span></Link>
         <p className="pcc-brand-context">Personal Control Center</p>
         <nav className="pcc-pins" aria-label="Pinned navigation">
           {desktopDestinations.map((destination) => (
@@ -50,8 +52,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       <header className="pcc-phone-header">
-        <Link href="/" className="pcc-brand" aria-label="Personal Control Center">PCC</Link>
-        <Link href="/account" className="pcc-control">Account</Link>
+        <Link href="/" className="pcc-brand" aria-label="Home" aria-current={pathname === "/" ? "page" : undefined}>PCC <span className="pcc-home-label">Home</span></Link>
+        <Link href="/spaces" className={`pcc-header-spaces ${spacesActive ? "theme-nav-active" : ""}`} aria-current={spacesActive ? "page" : undefined}><Icon name="spaces" /><span>All Spaces</span></Link>
       </header>
       <div className="pcc-workspace">
         <main id="working-surface" tabIndex={-1} className="pcc-main">
@@ -64,12 +66,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <nav className="pcc-phone-dock" aria-label="Primary navigation">
         <div className="pcc-dock-pins">
           {mobileDestinations.slice(0, 2).map(destination => <DockLink key={destination.id} destination={destination} active={isDestinationActive(pathname, destination.href)} />)}
-          <Link href="/" className="pcc-dock-link theme-home-button" aria-label="Capture a thought" aria-current={pathname === "/" ? "page" : undefined}>
+          <Link href="/" className={`pcc-dock-link pcc-dock-capture ${pathname === "/" ? "theme-nav-active" : ""}`} aria-label="Home and Capture" aria-current={pathname === "/" ? "page" : undefined}>
             <ThemeCaptureIcon theme={theme} className="h-5 w-5" /><span>Capture</span>
           </Link>
           {mobileDestinations.slice(2).map(destination => <DockLink key={destination.id} destination={destination} active={isDestinationActive(pathname, destination.href)} />)}
         </div>
-        <Link href="/spaces" className="pcc-all-spaces" aria-current={spacesActive ? "page" : undefined}>All Spaces</Link>
       </nav>
     </div>
   );

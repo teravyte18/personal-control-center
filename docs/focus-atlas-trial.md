@@ -90,6 +90,10 @@ The deployment regression test exercises a trial branch held by another worktree
 
 Exact production-trial and rollback instructions are in [`phone-deployment.md`](phone-deployment.md#focus--atlas-on-the-normal-production-url).
 
+## Feedback polish
+
+The owner requested a first feedback-driven polish pass for desktop and phone. See [`ui-polish-2026.md`](ui-polish-2026.md) for its scope, remaining work and current verification limits. The follow-up is stacked on this trial; merge approval remains pending. Earlier browser/visual checks above apply to the original trial revision and do not certify the follow-up.
+
 ## Trial notes
 
 For each friction report record: space, device/width, theme, action attempted, expected result, actual result, and whether it blocks work. Try capture, two independent project actions, weekly log/undo, note autosave, a comic with ratings, Series progress, expense entry and Review before approving merge.

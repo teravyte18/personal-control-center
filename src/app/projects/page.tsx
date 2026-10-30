@@ -51,7 +51,7 @@ export default function ProjectsPage() {
 
   const areaSelect = <label><span className="sr-only">Project view and area</span><select className="input" value={area} onChange={event => setArea(event.target.value as AreaFilter)}><option value="all">All areas</option>{Object.entries(areaLabels).map(([id, label]) => <option key={id} value={id}>{label}</option>)}<option value="incubating">Incubating</option></select></label>;
   const actionMeta = (projectId: string, actionId: string, targetDate: string) => [
-    targetDate ? `Check-in ${formatDateOnly(targetDate)}` : "No check-in date",
+    targetDate ? `${targetDate < localDateOnly() ? "Overdue since" : "Check-in"} ${formatDateOnly(targetDate)}` : "No check-in date",
     weeklyFocuses.some(focus => focus.weekStart === period.start && focusMatches(focus, "project-action", projectId, actionId)) ? "Selected for Week" : "",
   ].filter(Boolean).join(" · ");
 
@@ -79,12 +79,12 @@ export default function ProjectsPage() {
         <div className="pcc-project-selector"><label><span className="sr-only">Switch project</span><select className="input" value={selected?.id ?? ""} onChange={event => setSelectedId(event.target.value)}>{visible.length ? visible.map(project => <option key={project.id} value={project.id}>{project.title} · Switch project</option>) : <option value="">No projects</option>}</select></label><details><summary className="pcc-control">Views</summary><div className="pcc-project-views">{areaSelect}<label><span className="sr-only">Search projects</span><input className="input" placeholder="Find projects" value={query} onChange={event => setQuery(event.target.value)} /></label></div></details></div>
         {selected ? <>
           <article className="pcc-focus-action">
-            <h3>{actions[0]?.title ?? selected.title}</h3>
-            <p className="pcc-record-meta">{areaLabels[selected.area]} · {actions[0]?.targetDate ? formatDateOnly(actions[0].targetDate) : "No check-in date"}</p>
-            {actions[0]?.details || selected.description ? <p className="pcc-focus-description">{actions[0]?.details || selected.description}</p> : null}
+            <div><h3>{selected.title}</h3><p className="pcc-record-meta">{areaLabels[selected.area]}</p></div>
+            {selected.description ? <p className="pcc-focus-description">{selected.description}</p> : null}
+            {actions[0] ? <div className="pcc-project-current-action"><p className="pcc-record-meta">Next action</p><h4 className="pcc-section-title">{actions[0].title}</h4><p className={`pcc-record-meta ${isProjectActionPastCheckIn(actions[0]) ? "pcc-overdue" : ""}`}>{actionMeta(selected.id, actions[0].id, actions[0].targetDate)}</p>{actions[0].details ? <p className="pcc-focus-description">{actions[0].details}</p> : null}</div> : null}
             <button className="pcc-control theme-home-button" onClick={() => setDetailId(selected.id)}>{actions.length ? "Open action" : "Open project"}</button>
           </article>
-          {actions.length > 1 ? <div className="mt-4"><h3 className="pcc-section-title">Other open actions</h3>{actions.slice(1).map(entry => <button key={entry.id} className="pcc-record w-full" onClick={() => setDetailId(selected.id)}><span className="pcc-record-title">{entry.title}</span><p className="pcc-record-meta">{actionMeta(selected.id,entry.id,entry.targetDate)}</p></button>)}</div> : null}
+          {actions.length > 1 ? <div className="pcc-panel mt-4"><h3 className="pcc-section-title">Other open actions</h3>{actions.slice(1).map(entry => <button key={entry.id} className="pcc-record pcc-action-row w-full" onClick={() => setDetailId(selected.id)}><span className="pcc-record-title">{entry.title}</span><p className={`pcc-record-meta ${isProjectActionPastCheckIn(entry) ? "pcc-overdue" : ""}`}>{actionMeta(selected.id,entry.id,entry.targetDate)}</p></button>)}</div> : null}
           <details className="mt-4"><summary className="pcc-control w-full">All {view} projects · {visible.length}</summary>{visible.map(project => <button key={project.id} className="pcc-record w-full" onClick={() => setSelectedId(project.id)}><span className="pcc-record-title">{project.title}</span><p className="pcc-record-meta">{getOpenProjectActions(project).length} open actions</p></button>)}</details>
         </> : <p className="pcc-empty">No projects match this view. Change the view or create a project.</p>}
       </div>
@@ -99,4 +99,9 @@ export default function ProjectsPage() {
       {detail ? <ProjectDetail project={detail} onClose={() => setDetailId("")} /> : null}
     </section>
   );
+}
+
+function localDateOnly() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 }

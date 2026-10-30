@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createHash } from "node:crypto";
-import postgres from "postgres";
 
 // This test mutates only a deliberately provisioned fictional integration stack.
 // Never silently fall back to the production port.
@@ -85,6 +84,7 @@ test("assistant grants isolate users/domains, cannot write, and revoke/expire in
   assert.equal((await read("library", {}, planning.data.token)).status, 403);
 
   if (process.env.PCC_TEST_DATABASE_URL) {
+    const { default: postgres } = await import("postgres");
     const sql = postgres(process.env.PCC_TEST_DATABASE_URL, { max: 1 });
     try {
       const [stored] = await sql`select token_hash from assistant_grants where id = ${planning.data.grant.id}`;

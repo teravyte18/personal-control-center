@@ -16,7 +16,8 @@ This directory contains current product/operations documentation plus a small am
 - [`ui-ux-audit-2026-10-evidence.md`](ui-ux-audit-2026-10-evidence.md) — 23 fresh captures from the reassessment and a fictional reproduction recipe; private screenshots excluded
 - [`ui-ux-audit-2026-10-backlog.csv`](ui-ux-audit-2026-10-backlog.csv) — ranked audit recommendations with impact, effort, and acceptance checks
 
-- [`ui-polish-2026.md`](ui-polish-2026.md) — feedback-driven first polish pass, deferred work, and phone/desktop validation checklist
+- [`ui-polish-2026.md`](ui-polish-2026.md) — merged P1/P2 changes, screen-by-screen behavior checks, and validation limits
+- [`ui-polish-p3.md`](ui-polish-p3.md) — proposed, unimplemented follow-up scope, acceptance criteria, and safe parallel-work handoff
 
 ## Feature and design guides
 

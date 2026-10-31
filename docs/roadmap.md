@@ -8,9 +8,11 @@ The broad UI/UX consolidation work is complete enough to return to a usage-led a
 
 The real-use audit is documented, **Weekly Rhythm and the Personal Context Layer are implemented**, and Home already displays dated work through the current Saturday–Friday week (PR #83). The Spotify Music space is also deployed and its automatic collection and genre-enrichment worker passed a live Pi smoke test on 20 October 2026.
 
-**Current priority: the Focus + Atlas personal usage trial.** On 22 October 2026, the owner chose to use `agent/focus-atlas-trial` for a few days before giving feedback and authorized replacing the normal production UI with it. [PR #102](https://github.com/teravyte18/personal-control-center/pull/102) stays draft, with adjustments and explicit merge approval pending. Main remains the rollback source. See [`focus-atlas-trial.md`](focus-atlas-trial.md) for the checklist, known limitations and feedback format. Production testing, elapsed time and passing CI do not authorize merging.
+**UI status, 30 October 2026:** Focus + Atlas (#102), P1 polish (#103) and P2 polish (#105) are merged into main. P1 restores grouping and phone navigation; P2 improves source links, planning/collection interactions and secondary layouts. See [`ui-polish-2026.md`](ui-polish-2026.md) for delivered behavior and validation limits. Merge status does not establish deployment or visual acceptance.
 
-The retrieval and AI sections below remain broader candidates, not instructions to expand this trial. The capture-centred graph Home is deferred. Continue observing Rhythm and Agenda during ordinary use; choose subsequent work from owner feedback. AI remains exploratory, not a committed next slice.
+**Next UI candidate: P3, not implemented.** [`ui-polish-p3.md`](ui-polish-p3.md) separates remaining Home/Week and Calendar decisions from smaller state/coverage/accessibility improvements. Start with inspection and acceptance of the current merged UI; use observed friction to select the next implementation slice. The plan is not evidence that every earlier audit item has been resolved or that a new redesign is approved.
+
+The retrieval and AI sections below remain broader candidates, not instructions to expand UI work. The capture-centred graph Home remains deferred. Continue observing Rhythm and Agenda during ordinary use; choose subsequent work from owner feedback. AI remains exploratory, not a committed next slice.
 
 See [`usage-audit-2026-10.md`](usage-audit-2026-10.md) and [`weekly-rhythm.md`](weekly-rhythm.md).
 
@@ -24,9 +26,9 @@ graph LR
     AUDIT["Real-use audit<br/>✅"]
     RHY["Weekly Rhythm MVP<br/>✅"]
     HOME["Home through week-end<br/>+ Music live sync<br/>✅"]
-    TEST["Current<br/>Focus + Atlas usage trial<br/>Feedback and merge approval pending"]
+    TEST["Focus + Atlas + P1/P2<br/>Merged; device acceptance pending"]
     RET["Later technical candidate<br/>Retrieval phases 1–3<br/>No LLM"]
-    CAL["Parallel product decision<br/>Agenda / Calendar #72"]
+    CAL["P3 candidate; not implemented<br/>Planning clarity + Agenda / Calendar"]
     LAB["Later experiment<br/>LLM Planner / Advisor<br/>only if useful"]
 
     S1 --> UX --> CTX --> AUDIT --> RHY --> HOME --> TEST

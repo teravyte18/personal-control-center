@@ -1,5 +1,7 @@
 # Personal System Specification
 
+> Current status (2026-10-30): Focus + Atlas #102 and polish #103/#105 are merged into `main`. Trial/merge-pending passages below describe the earlier trial and are historical; use current `main` and the delivery rules in `AGENTS.md` for new work. The read-only assistant connection is documented in [assistant-connection.md](assistant-connection.md).
+
 ## Problem
 
 Important responsibilities, projects, interests, reference information, personal spending, media history, food ideas, and future plans can live across memory and disconnected tools. This creates repeated mental review, makes it harder to focus, and allows useful information to compete with urgent work.

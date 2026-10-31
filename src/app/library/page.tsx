@@ -645,7 +645,7 @@ function BookEditor({
                 </label>
               </div>
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <Field label="Title" wide><input className="input" value={title} onChange={(event) => setTitle(event.target.value)} required autoFocus /></Field>
+                <Field label="Title" wide><input className="input" value={title} onChange={(event) => setTitle(event.target.value)} required data-dialog-initial-focus /></Field>
                 <Field label="Author"><input className="input" value={details.author} onChange={(event) => setDetails((current) => ({ ...current, author: event.target.value }))} placeholder="Optional" /></Field>
                 <Field label="Subtitle or edition note" wide><input className="input" value={details.editionNote} onChange={(event) => setDetails((current) => ({ ...current, editionNote: event.target.value }))} placeholder="Optional edition, translation, or subtitle" /></Field>
               </div>

@@ -444,3 +444,12 @@ The system is useful when:
 - future integrations consume deliberate bounded context rather than arbitrary database access;
 - experimental AI costs and data exposure remain visible and controlled;
 - no AI feature is promoted simply because the underlying API works.
+
+
+## Optional owner chat (disabled by default)
+
+Talk to Rem adds a pinnable, phone-first conversation destination with
+cookie-owner-bound private routes and a host-only Unix-socket adapter. It adds
+no automatic context collection, transcript archive or live configuration. It
+remains off until separately authorized provisioning and rollout verification. See
+[Rem chat](rem-chat.md) for the contract, restrictions and remaining gates.

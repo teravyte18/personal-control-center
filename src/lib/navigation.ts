@@ -18,7 +18,8 @@ export type IconName =
   | "trips"
   | "fitness"
   | "habits"
-  | "settings";
+  | "settings"
+  | "rem";
 
 export type Destination = {
   id: string;
@@ -31,6 +32,7 @@ export type Destination = {
 };
 
 export const destinations: Destination[] = [
+  { id: "rem", label: "Talk to Rem", href: "/spaces/rem", icon: "rem", description: "Continue a dedicated conversation with Rem.", available: true, pinnable: true },
   {
     id: "inbox",
     label: "Inbox",

@@ -125,6 +125,8 @@ A book appears in generated Review context when its optional start or finish dat
 18. Inspect Library Personal Context and confirm comic progress appears only on the Book record.
 19. Confirm cross-account cover URLs remain inaccessible.
 
+20. Open Add book using the keyboard: Title receives initial focus, Tab/Shift+Tab stay inside, and Escape/Cancel return focus to Add book. Repeat from an existing book launcher.
+
 ## Current boundaries
 
 The delivered Library does not yet include issue-by-issue comic catalogues, automatic issue metadata/number validation, ISBN/barcode scanning, reverse-image cover matching, page progress, reading timers, highlights, ebook ingestion, detailed lending, social activity, AI summaries/recommendations, or automatic metadata saving.

@@ -382,3 +382,12 @@ The current user-isolation and rate-limit model is appropriate for one trusted a
 ## Architecture decision records
 
 Use short records for choices that would be expensive or confusing to revisit. Each record should include context, decision, consequences, and status.
+
+
+## Optional owner chat (disabled by default)
+
+Talk to Rem adds a pinnable, phone-first conversation destination with
+cookie-owner-bound private routes and a host-only Unix-socket adapter. It adds
+no automatic context collection, transcript archive or live configuration. It
+remains off until separately authorized provisioning and rollout verification. See
+[Rem chat](rem-chat.md) for the contract, restrictions and remaining gates.

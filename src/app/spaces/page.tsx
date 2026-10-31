@@ -17,7 +17,7 @@ const mobileSlotLabels = ["Left 1", "Left 2", "Right 1", "Right 2"] as const;
 const destinationGroups = [
   { label: "Plan", ids: ["projects", "tasks", "rhythm", "review", "agenda", "inbox"] },
   { label: "Keep", ids: ["thoughts", "notes", "library", "food"] },
-  { label: "Explore & manage", ids: ["expenses", "music", "markets", "keychain", "accomplishments", "archive", "context"] },
+  { label: "Explore & manage", ids: ["rem", "expenses", "music", "markets", "keychain", "accomplishments", "archive", "context"] },
 ] as const;
 
 function availableDestination(id: string) {

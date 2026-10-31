@@ -333,7 +333,7 @@ input, textarea { caret-color: var(--theme-accent); }
 .rem-page .pcc-page-header { margin-bottom: 12px; }
 .rem-chat { width: 100%; max-width: 880px; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
 .rem-chat-note, .rem-chat-meta { color: var(--pcc-muted); font-size: 12px; line-height: 18px; }
-.rem-chat-messages { display: flex; flex: 1 1 auto; flex-direction: column; gap: 12px; min-height: clamp(128px, 26dvh, 220px); max-height: calc(100dvh - 360px); overflow: auto; overscroll-behavior: contain; padding: 4px 2px; }
+.rem-chat-messages { display: flex; flex: 1 1 auto; flex-direction: column; gap: 12px; min-height: clamp(64px, calc(100dvh - 520px), 220px); max-height: calc(100dvh - 360px); overflow: auto; overscroll-behavior: contain; padding: 4px 2px; }
 .rem-message { max-width: min(92%, 720px); min-width: 0; padding: 12px 14px; border: 1px solid var(--pcc-line); border-radius: 14px; background: var(--theme-surface); overflow-wrap: anywhere; white-space: pre-wrap; }
 .rem-message-user { align-self: flex-end; background: var(--pcc-selected); }
 .rem-message-role { margin-bottom: 4px; color: var(--pcc-muted); font-size: 12px; line-height: 18px; }

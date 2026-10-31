@@ -20,6 +20,8 @@ This directory contains current product/operations documentation plus a small am
 
 ## Feature and design guides
 
+- [`rem-chat.md`](rem-chat.md) — owner chat UI and backend (disabled by default), private host adapter and rollout gates
+
 - [`assistant-connection.md`](assistant-connection.md) — scoped read-only assistant grants, MCP adapter, tool contracts, verification and rollout gates
 
 - [`ui-design-directions-2026-10.md`](ui-design-directions-2026-10.md) — editable Figma concepts, separate phone/desktop Projects layouts, skill provenance and review limits

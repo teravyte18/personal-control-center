@@ -22,7 +22,8 @@ export function useDialogFocus<T extends HTMLElement>() {
       branch = branch.parentElement;
     }
     const controls = () => Array.from(root.querySelectorAll<HTMLElement>('button:not(:disabled), a[href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), summary, [tabindex="0"]')).filter(element => element.getClientRects().length > 0);
-    const first = controls()[0];
+    // Move focus only after capturing the launcher; native autofocus runs earlier.
+    const first = root.querySelector<HTMLElement>("[data-dialog-initial-focus]") ?? controls()[0];
     if (!root.contains(document.activeElement)) (first ?? root).focus();
     const trap = (event: KeyboardEvent) => {
       if (event.key !== "Tab") return;

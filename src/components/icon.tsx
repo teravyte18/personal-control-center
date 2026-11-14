@@ -18,6 +18,8 @@ export function Icon({ name, className = "h-5 w-5" }: IconProps) {
   };
 
   switch (name) {
+    case "rem":
+      return <svg {...common}><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-5 4v-4.5a2.5 2.5 0 0 1-1-2Z" /><path d="M8 9h8M8 12h5" /></svg>;
     case "capture":
       return <svg {...common}><path d="M12 5v14M5 12h14" /></svg>;
     case "inbox":

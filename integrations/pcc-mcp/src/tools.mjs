@@ -9,8 +9,8 @@ const workRef = z.object({
 }).strict();
 const proposedSession = z.object({
   id: z.string().min(1).max(100).optional(),
-  date: z.string().regex(/^\\d{4}-\\d{2}-\\d{2}$/),
-  start: z.string().regex(/^([01]\\d|2[0-3]):[0-5]\\d$/),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  start: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
   minutes: z.number().int().min(15).max(480),
   title: z.string().min(1).max(300),
   estimateMinutes: z.number().int().min(15).max(1440).optional(),
@@ -29,12 +29,12 @@ export const tools = [
     domains, query: z.string().trim().min(1).max(240).optional(), current: z.array(z.enum(["projects", "tasks", "rhythm"])).max(3).optional(), maxChars: z.number().int().min(1000).max(20000).optional(), maxRecords: z.number().int().min(1).max(20).optional() }).strict() },
   { name: "pcc_get_planner_calendar", operation: "planner-calendar",
     description: "Read privacy-minimised busy intervals, planner preferences and current work sessions for at most 21 days. Requires opt-in planner-only grant. No event titles are returned. Never claim free time from unverified calendar state.",
-    schema: z.object({ from: z.string().regex(/^\\d{4}-\\d{2}-\\d{2}$/), to: z.string().regex(/^\\d{4}-\\d{2}-\\d{2}$/) }).strict() },
+    schema: z.object({ from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) }).strict() },
   { name: "pcc_submit_planner_plan", operation: "planner-submit",
     description: "Replace only future, unlocked, unconfirmed assistant-origin sessions. Preserves manual sessions and original Tasks. Requires explicit planner-write grant, fresh revision, and validation against live Calendar. Does not create Tasks or modify Projects.",
     schema: z.object({
       revision: z.number().int().nonnegative(),
-      replaceFrom: z.string().regex(/^\\d{4}-\\d{2}-\\d{2}$/),
+      replaceFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
       sessions: z.array(proposedSession).min(1).max(20),
     }).strict() },
   { name: "pcc_get_planning", operation: "planning", description: "Read current PCC tasks, open project actions, project attention and weekly intentions using an explicit IANA timezone. Paginate for all records. Meaningful dates differ from flexible focus. Calendar is NOT included: never infer free time from this result. asOf groups current state, not a historical snapshot.", schema: z.object({

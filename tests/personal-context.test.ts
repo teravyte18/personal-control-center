@@ -39,6 +39,8 @@ function snapshot(overrides: Partial<PersonalDataSnapshot> = {}): PersonalDataSn
     rhythmTemplates: [],
     rhythmCompletions: [],
     weeklyFocuses: [],
+    plannerPreferences: { timezone:"Europe/Lisbon",start:"10:00",end:"17:00",morningBufferMinutes:30,capacityPercent:65,targetThesisSessions:3,thesisSessionMinutes:120,notes:"" },
+    plannerSessions: [],
     ...overrides,
   };
 }

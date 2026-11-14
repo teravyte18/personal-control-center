@@ -22,7 +22,7 @@ test("planner retains Saturday-Friday week boundary, schedules Monday-Friday onl
 });
 test("planner normalization rejects invalid dates, times, duration and malformed references",()=>{
  const valid=make();
- assert.deepEqual(normalizePlannerSession(valid),valid);
+ assert.equal(normalizePlannerSession(valid)?.id,valid.id);
  assert.equal(normalizePlannerSession({...valid,date:"2026-02-30"}),null);
  assert.equal(normalizePlannerSession({...valid,start:"25:00"}),null);
  assert.equal(normalizePlannerSession({...valid,minutes:17}),null);

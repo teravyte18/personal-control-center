@@ -3,7 +3,7 @@ import { getDatabase } from "@/server/database";
 import { getAgendaEvents } from "@/server/google-calendar";
 import { loadPersonalDataState } from "@/server/personal-data-store";
 import {
-  normalizePlannerSession, sessionOverlaps, timeToMinutes, validatePlannerSession,
+  normalizePlannerSession, timeToMinutes, validatePlannerSession,
   type PlannerSession,
 } from "@/domain/weekly-planner";
 import { createId } from "@/domain/personal-data";
@@ -94,9 +94,6 @@ export async function submitPlannerProposal(userId:string,input:unknown) {
     if (issue) throw new PlannerInputError(issue);
     if (availability.busy.some(e=>conflictWithEvent(session,e,zone))) throw new PlannerInputError("Fixed calendar commitment overlaps a proposed session.");
   }
-  const hours=rows.reduce((sum,s)=>sum+s.minutes,0);
-  const minutesAvailable=rows.length*480;
-  if (hours>minutesAvailable) throw new PlannerInputError("Plan exceeds maximum safe work capacity.");
   const sql=getDatabase();
   return sql.begin(async tx=>{
     const [row]=await tx<{revision:number|string;snapshot:unknown}[]>`

@@ -18,7 +18,7 @@ test("real stdio MCP → PCC reads, denies ungranted Notes, and observes revocat
   const client = new Client({ name: "pcc-live-fixture", version: "1" });
   try {
     await client.connect(transport);
-    assert.equal((await client.listTools()).tools.length, 5);
+    assert.equal((await client.listTools()).tools.length, 8);
     const result = await client.callTool({ name: "pcc_library_list", arguments: {} });
     assert.notEqual(result.isError, true);
     assert.ok(result.structuredContent.records.some((row) => row.sourceId === "connector-example-book"));

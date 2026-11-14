@@ -33,7 +33,7 @@ export async function POST(request:Request) {
   try{
     const grant=await grantForPlanner(request);
     if(!(request.headers.get("content-type")??"").startsWith("application/json")) throw new PlannerInputError("JSON required.");
-    const body=recordInput(await readAssistantJson(request),["revision","replaceFrom","sessions"]);
+    const body=recordInput(await readAssistantJson(request, 32768),["revision","replaceFrom","sessions"]);
     const result=await submitPlannerProposal(grant.userId,body);
     return Response.json(result,{headers});
   }catch(error){return failure(error,request.headers.has("authorization"));}

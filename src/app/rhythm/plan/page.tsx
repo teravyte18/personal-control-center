@@ -6,15 +6,14 @@ import { getOpenProjectActions, isOpenTask, usePersonalData, usePlannerData } fr
 import { getRhythmPeriod } from "@/domain/weekly-rhythm";
 import { useCalendarCommitments } from "@/hooks/use-calendar-commitments";
 import {
-  createPlannerSession, plannerWeekDays, reconcileSession, sessionOverlaps,
+  createPlannerSession, plannerWeekDays, reconcileSession,
   validatePlannerSession, type PlannerOutcome, type PlannerSession, type PlannerWorkRef,
 } from "@/domain/weekly-planner";
 
 const timeLabel = (value: string) => value;
-function nextSaturdayPeriod() {
+function selectedPeriod(weeksAhead: number) {
   const reference = new Date();
-  // The overview uses Saturday-Friday, but the planner always schedules the following Monday-Friday.
-  reference.setDate(reference.getDate() + 7);
+  reference.setDate(reference.getDate() + weeksAhead * 7);
   return getRhythmPeriod(reference);
 }
 function workId(ref: PlannerWorkRef) {
@@ -35,7 +34,8 @@ const statuses: {value:PlannerOutcome;label:string}[] = [
 export default function PlannerPage() {
   const {items,loaded:itemsLoaded} = usePersonalData();
   const {plannerSessions,plannerPreferences,upsertPlannerSession,deletePlannerSession,updatePlannerPreferences,loaded} = usePlannerData();
-  const period = useMemo(() => nextSaturdayPeriod(), []);
+  const [weeksAhead,setWeeksAhead] = useState(0);
+  const period = useMemo(() => selectedPeriod(weeksAhead), [weeksAhead]);
   const days = useMemo(() => plannerWeekDays(period.start),[period.start]);
   const calendarPeriod = useMemo(()=>({start:days[0] ?? period.start,end:days[4] ?? period.end}),[days,period]);
   const {result:calendar,error:calendarError,retry:retryCalendar} = useCalendarCommitments(calendarPeriod);
@@ -108,7 +108,8 @@ export default function PlannerPage() {
       <div>
         <nav className="flex gap-3 text-sm"><Link href="/rhythm" className="underline">Week overview</Link><span aria-current="page" className="font-semibold">Plan</span></nav>
         <h2 className="mt-3 text-3xl font-semibold tracking-tight">Work planner</h2>
-        <p className="pcc-context">Next Monday–Friday · {days[0]?dateDisplay(days[0]):""}–{days[4]?dateDisplay(days[4]):""}</p>
+        <p className="pcc-context">{weeksAhead === 0 ? "Current" : "Next"} Monday–Friday · {days[0]?dateDisplay(days[0]):""}–{days[4]?dateDisplay(days[4]):""}</p>
+        <div className="mt-2 flex gap-2"><button type="button" className="rounded-lg border px-3 py-2 text-sm" aria-pressed={weeksAhead===0} onClick={()=>{setWeeksAhead(0);setDate("");}}>This week</button><button type="button" className="rounded-lg border px-3 py-2 text-sm" aria-pressed={weeksAhead===1} onClick={()=>{setWeeksAhead(1);setDate("");}}>Next week</button></div>
       </div>
       <button type="button" onClick={()=>setShowPreferences(v=>!v)} className="min-h-11 rounded-xl border px-4 text-sm">Preferences</button>
     </header>

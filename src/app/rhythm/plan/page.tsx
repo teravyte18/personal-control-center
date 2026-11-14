@@ -1,5 +1,7 @@
 "use client";
 
+import { summarizePlannerSessions } from "@/domain/planner-insights";
+
 import Link from "next/link";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { getOpenProjectActions, isOpenTask, usePersonalData, usePlannerData } from "@/lib/personal-data";
@@ -103,19 +105,9 @@ export default function PlannerPage() {
   const activeCommitments = useMemo(() => (calendar?.events ?? []).filter(e=>e.source==="google"||e.source==="agenda"),[calendar]);
   const calendarReady = Boolean(calendar && !calendarError && (calendar.connected || calendar.events.length > 0));
   const sorted = useMemo(()=>plannerSessions.filter(s=>days.includes(s.date)).sort((a,b)=>a.date.localeCompare(b.date)||a.start.localeCompare(b.start)),[plannerSessions,days]);
-  const insight = useMemo(() => {
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - 28);
-    const recent = plannerSessions.filter(s => s.date >= cutoff.toISOString().slice(0,10) && s.date <= new Date().toISOString().slice(0,10));
-    return {
-      confirmed: recent.filter(s => Boolean(s.outcome)).length,
-      completed: recent.filter(s => s.outcome === "completed").length,
-      partial: recent.filter(s => s.outcome === "partial").length,
-      notStarted: recent.filter(s => s.outcome === "not-started").length,
-      unconfirmed: recent.filter(s => !s.outcome).length,
-      actualMinutes: recent.reduce((sum,s)=>sum+(s.actualMinutes ?? 0),0),
-      recordedEffort: recent.filter(s=>s.actualMinutes!==undefined).length,
-    };
+  const insight = useMemo(()=>{
+    const cutoff=new Date(); cutoff.setDate(cutoff.getDate()-28);
+    return summarizePlannerSessions(plannerSessions,cutoff.toISOString().slice(0,10),new Date().toISOString().slice(0,10));
   },[plannerSessions]);
   const firstDate = date || days[0] || "";
   function addSession(event:FormEvent) {
@@ -226,11 +218,14 @@ export default function PlannerPage() {
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <div><p className="pcc-context">Completed</p><p className="text-xl font-semibold">{insight.completed}</p></div>
         <div><p className="pcc-context">Still in progress</p><p className="text-xl font-semibold">{insight.partial}</p></div>
-        <div><p className="pcc-context">Not started</p><p className="text-xl font-semibold">{insight.notStarted}</p></div>
+        <div><p className="pcc-context">Not started</p><p className="text-xl font-semibold">{insight.missed}</p></div>
         <div><p className="pcc-context">Unconfirmed</p><p className="text-xl font-semibold">{insight.unconfirmed}</p></div>
-        <div><p className="pcc-context">Recorded effort</p><p className="text-xl font-semibold">{minuteLabel(insight.actualMinutes)}</p></div>
+        <div><p className="pcc-context">Recorded effort</p><p className="text-xl font-semibold">{minuteLabel(insight.effort.actualMinutes)}</p></div>
       </div>
-      <p className="pcc-context">Outcomes confirmed for {insight.confirmed} sessions; effort is only the sum of sessions where you entered actual minutes ({insight.recordedEffort}). Unconfirmed is not counted as missed.</p>
+      <p className="pcc-context">Outcomes confirmed for {insight.confirmed} sessions; effort is only the sum of sessions where you entered actual minutes ({insight.effort.recorded}). Unconfirmed is not counted as missed.</p>
+      <p className="pcc-context">Morning engagement: {insight.morning.engaged} of {insight.morning.confirmed} confirmed morning sessions. Engaged means completed or partially completed.</p>
+      {insight.effort.ratio!==null&&<p className="pcc-context">Actual / estimated effort (recorded sessions only): {insight.effort.ratio.toFixed(2)}×. Interpret cautiously if only a few sessions have actual effort.</p>}
+      {insight.suggestions.length>0&&<div className="space-y-2"><h4 className="font-semibold text-sm">Possible adjustments to test</h4>{insight.suggestions.map(s=><p key={s} className="pcc-context">{s}</p>)}</div>}
     </div>
     <div className="rounded-2xl border p-4 space-y-2">
       <h3 className="font-semibold">OpenClaw planning requests</h3>

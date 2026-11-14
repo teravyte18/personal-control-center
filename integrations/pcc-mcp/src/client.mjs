@@ -33,8 +33,11 @@ export function createPccClient({ origin, token, fetchImpl = fetch, timeoutMs = 
     if (!Object.hasOwn(responses, operation)) throw new Error("Unsupported PCC operation.");
     const plannerWrite = operation === "planner-submit";
     const plannerCalendar = operation === "planner-calendar";
-    const url = new URL(plannerWrite || plannerCalendar ? "/api/assistant/planner" : `/api/assistant/${operation}`, base);
-    if (plannerCalendar) {
+    const plannerRequests = operation === "planner-requests";
+    const url = new URL(plannerWrite || plannerCalendar || plannerRequests ? "/api/assistant/planner" : `/api/assistant/${operation}`, base);
+    if (plannerRequests) {
+      url.searchParams.set("mode","requests");
+    } else if (plannerCalendar) {
       url.searchParams.set("from", args.from);
       url.searchParams.set("to", args.to);
     } else if (!plannerWrite) {

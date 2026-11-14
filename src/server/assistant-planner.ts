@@ -48,8 +48,10 @@ export async function plannerAvailability(userId:string, from:string, to:string)
   if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to) || to < from) throw new PlannerInputError("Invalid date range.");
   const span = (Date.parse(to+"T12:00:00Z")-Date.parse(from+"T12:00:00Z")) / 86400000;
   if (!Number.isFinite(span) || span > 21) throw new PlannerInputError("Date range must not exceed 21 days.");
-  const max = new Date(to+"T12:00:00Z"); max.setUTCDate(max.getUTCDate()+1);
-  const calendar = await getAgendaEvents(userId,from+"T00:00:00Z",max.toISOString());
+  // Cover timezone offsets and DST at both boundaries; overlap filtering happens in the configured local zone.
+  const min = new Date(from+"T12:00:00Z"); min.setUTCDate(min.getUTCDate()-1);
+  const max = new Date(to+"T12:00:00Z"); max.setUTCDate(max.getUTCDate()+2);
+  const calendar = await getAgendaEvents(userId,min.toISOString(),max.toISOString());
   if (!calendar.connected || calendar.needsReconnect) throw new PlannerConflictError("Calendar is not available.");
   // Do not expose appointment titles, locations or notes to an agent.
   const busy = calendar.events.filter(e=>e.source==="google"||e.source==="agenda")

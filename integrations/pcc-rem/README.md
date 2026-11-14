@@ -2,7 +2,7 @@
 
 A small host-only transport boundary, not an agent/orchestrator. No npm install or
 extra provider account is needed. Reuse the installed official OpenClaw export at
-exact version `2026.10.9`, using compatible host Node24. Never install OpenClaw in
+exact version `2026.11.3`, using compatible host Node24. Never install OpenClaw in
 the PCC container or import hashed internal production files.
 
 Start only after separately authorized provisioning:

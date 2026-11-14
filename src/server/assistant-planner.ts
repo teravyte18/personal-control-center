@@ -3,7 +3,7 @@ import { getDatabase } from "@/server/database";
 import { getAgendaEvents } from "@/server/google-calendar";
 import { loadPersonalDataState } from "@/server/personal-data-store";
 import {
-  normalizePlannerSession, timeToMinutes, validatePlannerSession,
+  normalizePlannerSession, plannerSessionInReplacementWindow, timeToMinutes, validatePlannerSession,
   type PlannerSession,
 } from "@/domain/weekly-planner";
 import { createId } from "@/domain/personal-data";
@@ -44,6 +44,13 @@ function withinHorizon(date: string, timezone: string, now = new Date()) {
   endDate.setUTCDate(endDate.getUTCDate()+21);
   return date >= start && date <= endDate.toISOString().slice(0,10);
 }
+function localDate(now: Date, timezone: string) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit",
+  }).formatToParts(now);
+  const get = (part: string) => parts.find(x => x.type === part)?.value ?? "";
+  return get("year") + "-" + get("month") + "-" + get("day");
+}
 export async function plannerAvailability(userId:string, from:string, to:string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to) || to < from) throw new PlannerInputError("Invalid date range.");
   const span = (Date.parse(to+"T12:00:00Z")-Date.parse(from+"T12:00:00Z")) / 86400000;
@@ -70,8 +77,9 @@ export async function submitPlannerProposal(userId:string,input:unknown) {
   const current = await loadPersonalDataState(userId);
   if (current.revision !== input.revision) throw new PlannerConflictError("Plan changed; retrieve fresh availability.");
   const zone=current.snapshot.plannerPreferences.timezone;
+  const now=new Date();
   const replaceFrom=input.replaceFrom as string;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(replaceFrom)||!withinHorizon(replaceFrom,zone))
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(replaceFrom)||!withinHorizon(replaceFrom,zone,now))
     throw new PlannerInputError("Invalid replan start date.");
   const rows:PlannerSession[]=[];
   for (const candidate of input.sessions) {
@@ -82,16 +90,17 @@ export async function submitPlannerProposal(userId:string,input:unknown) {
       estimateMinutes:candidate.estimateMinutes ?? candidate.minutes,
       work:candidate.work, locked:false,origin:"assistant",createdAt:new Date().toISOString(),
     });
-    if (!session || !withinHorizon(session.date,zone) || session.date<replaceFrom
+    if (!session || !withinHorizon(session.date,zone,now) || session.date<replaceFrom
       || [0,6].includes(new Date(session.date+"T12:00:00Z").getUTCDay()))
       throw new PlannerInputError("Invalid proposed workday or session.");
     if (rows.some(s=>s.id===session.id)) throw new PlannerInputError("Duplicate session ID.");
     rows.push(session);
   }
   const to=rows.reduce((max,s)=>s.date>max?s.date:max,replaceFrom);
+  const today=localDate(now,zone);
   const availability=await plannerAvailability(userId,replaceFrom,to);
   if (availability.revision!==input.revision) throw new PlannerConflictError("Calendar or plan changed; retry.");
-  const existing=current.snapshot.plannerSessions.filter(s=>!(s.origin==="assistant" && !s.locked && !s.outcome && s.date>=replaceFrom));
+  const existing=current.snapshot.plannerSessions.filter(s=>!plannerSessionInReplacementWindow(s,replaceFrom,to,today));
   for (const session of rows) {
     const issue=validatePlannerSession(session,[...existing,...rows.filter(s=>s.id!==session.id)],current.snapshot.items,[]);
     if (issue) throw new PlannerInputError(issue);
@@ -113,8 +122,9 @@ export async function submitPlannerProposal(userId:string,input:unknown) {
       const target=queued.week_start instanceof Date ? queued.week_start.toISOString().slice(0,10) : String(queued.week_start).slice(0,10);
       if(start.toISOString().slice(0,10)!==target) throw new PlannerInputError("Request week does not match proposal.");
     }
+    if (localDate(new Date(), zone) !== today) throw new PlannerConflictError("Day changed; retrieve a new plan.");
     const snapshot=normalizePersonalDataSnapshot(row.snapshot);
-    const retained=snapshot.plannerSessions.filter(s=>!(s.origin==="assistant" && !s.locked && !s.outcome && s.date>=replaceFrom));
+    const retained=snapshot.plannerSessions.filter(s=>!plannerSessionInReplacementWindow(s,replaceFrom,to,today));
     // Recheck against the transactional version, never erase protected sessions.
     for(const session of rows) {
       const issue=validatePlannerSession(session,[...retained,...rows.filter(s=>s.id!==session.id)],snapshot.items,[]);

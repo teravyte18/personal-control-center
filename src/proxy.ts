@@ -6,7 +6,7 @@ const INSECURE_USER_HEADER = "x-pcc-user-email";
 function isPublicPath(pathname: string) {
   // Only these read handlers admit bearer credentials. Each validates its own
   // dedicated grant; this never admits bearer tokens on browser/write routes.
-  return /^\/api\/assistant\/(library|search|read|context|planning)$/.test(pathname)
+  return /^\/api\/assistant\/(library|search|read|context|planning|planner)$/.test(pathname)
     || pathname === "/login"
     || pathname === "/activate"
     || pathname === "/api/health"

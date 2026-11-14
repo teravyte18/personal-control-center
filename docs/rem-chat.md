@@ -82,7 +82,7 @@ Mount the socket **directory**, not an inode, app-only and read-only; directory
 ## Host adapter
 
 See [host adapter guide](../integrations/pcc-rem/README.md). It reuses the installed
-public `openclaw/plugin-sdk/gateway-runtime` export, pinned to `2026.10.9`, host Node
+public `openclaw/plugin-sdk/gateway-runtime` export, pinned to `2026.11.3`, host Node
 24.22.1+ (not PCC's Node22). Dedicated operator-provisioned identity/token storage
 never falls back to default OpenClaw identity/auth stores. Explicit read+write
 only, protocol4; no pairing/admin/shared token/utility calls. Subscription precedes

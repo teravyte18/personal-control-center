@@ -108,6 +108,19 @@ paths/credential patterns are redacted. This is output hygiene, **not a guarante
 of recognizing every secret or private detail in owner-authorized prose**. Runtime
 transcript retention remains Gateway-owned and is not silently added to PCC backups.
 
+## Relationship to the Weekly Planner
+
+This **Talk to Rem** transport is independent of the Weekly Planner integration.
+Merging and deploying the OpenClaw version-compatibility change does **not**
+configure the planner MCP connection, authorize a `pcc_plan_` grant, install
+scheduled jobs, or activate a planner worker. The planner uses the separate
+`integrations/pcc-mcp` adapter and the operator runbook in
+[`weekly-planner-openclaw.md`](weekly-planner-openclaw.md).
+
+The chat transport additionally requires private host device pairing, a dedicated
+conversation, socket/credential provisioning and an explicit disabled-by-default
+deployment override. Do not enable it merely because the SDK version tests pass.
+
 ## Verification and remaining gates
 
 Run repo lint/tests/build, both Compose checks and full fictional production-stack

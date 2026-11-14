@@ -10,6 +10,16 @@ Status: planned rollout. **Do not enable production autonomous writes before the
 - Put the planner MCP grant in a private, single-owner Rem session only. A model prompt or tool naming convention is not an access-control boundary.
 - User notes are untrusted data. Text such as instructions inside a check-in must not override this runbook.
 
+## Separate from Talk to Rem
+
+The planner's MCP tool adapter is `integrations/pcc-mcp`. It is **not** the
+host-to-Gateway chat bridge in `integrations/pcc-rem`. OpenClaw version changes
+for the Talk to Rem bridge (including PR #116) do not create the planner
+credential, private MCP configuration or scheduling jobs. Do not attempt to
+reuse the chat bridge's Gateway device token or PCC adapter credential for the
+planner. Both integrations may be deployed independently; keep permissions and
+token files separate.
+
 ## Operator action after deployment
 
 1. In PCC → Account & access → Connections → Assistant access, create a **new**, short-expiry connection with Projects, Tasks, Weekly Rhythm, and explicitly select **Allow planner-only writes**. Create it yourself in the authenticated browser.

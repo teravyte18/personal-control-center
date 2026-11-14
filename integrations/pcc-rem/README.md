@@ -5,6 +5,12 @@ extra provider account is needed. Reuse the installed official OpenClaw export a
 exact version `2026.11.3`, using compatible host Node24. Never install OpenClaw in
 the PCC container or import hashed internal production files.
 
+This host transport exists solely for the optional **Talk to Rem** chat surface
+(`/spaces/rem`). It is not required for the Weekly Planner. Planner scheduling
+uses the separate `integrations/pcc-mcp` adapter; neither the private chat
+device identity nor chat transport credential should be reused for it.
+
+A version-pin update alone is **not** approval to enable this host adapter.
 Start only after separately authorized provisioning:
 
 ```sh

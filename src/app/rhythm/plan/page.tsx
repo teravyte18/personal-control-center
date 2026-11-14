@@ -63,6 +63,20 @@ export default function PlannerPage() {
   const activeCommitments = useMemo(() => (calendar?.events ?? []).filter(e=>e.source==="google"||e.source==="agenda"),[calendar]);
   const calendarReady = Boolean(calendar && !calendarError && (calendar.connected || calendar.events.length > 0));
   const sorted = useMemo(()=>plannerSessions.filter(s=>days.includes(s.date)).sort((a,b)=>a.date.localeCompare(b.date)||a.start.localeCompare(b.start)),[plannerSessions,days]);
+  const insight = useMemo(() => {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 28);
+    const recent = plannerSessions.filter(s => s.date >= cutoff.toISOString().slice(0,10) && s.date <= new Date().toISOString().slice(0,10));
+    return {
+      confirmed: recent.filter(s => Boolean(s.outcome)).length,
+      completed: recent.filter(s => s.outcome === "completed").length,
+      partial: recent.filter(s => s.outcome === "partial").length,
+      notStarted: recent.filter(s => s.outcome === "not-started").length,
+      unconfirmed: recent.filter(s => !s.outcome).length,
+      actualMinutes: recent.reduce((sum,s)=>sum+(s.actualMinutes ?? 0),0),
+      recordedEffort: recent.filter(s=>s.actualMinutes!==undefined).length,
+    };
+  },[plannerSessions]);
   const firstDate = date || days[0] || "";
   function addSession(event:FormEvent) {
     event.preventDefault();
@@ -166,6 +180,17 @@ export default function PlannerPage() {
           </div>;
         })}
       </div>)}
+    </div>
+    <div className="rounded-2xl border p-4 space-y-3">
+      <h3 className="font-semibold">Recent activity · 28 days</h3>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div><p className="pcc-context">Completed</p><p className="text-xl font-semibold">{insight.completed}</p></div>
+        <div><p className="pcc-context">Still in progress</p><p className="text-xl font-semibold">{insight.partial}</p></div>
+        <div><p className="pcc-context">Not started</p><p className="text-xl font-semibold">{insight.notStarted}</p></div>
+        <div><p className="pcc-context">Unconfirmed</p><p className="text-xl font-semibold">{insight.unconfirmed}</p></div>
+        <div><p className="pcc-context">Recorded effort</p><p className="text-xl font-semibold">{minuteLabel(insight.actualMinutes)}</p></div>
+      </div>
+      <p className="pcc-context">Outcomes confirmed for {insight.confirmed} sessions; effort is only the sum of sessions where you entered actual minutes ({insight.recordedEffort}). Unconfirmed is not counted as missed.</p>
     </div>
     <div className="rounded-2xl border p-4 space-y-2">
       <h3 className="font-semibold">Refine with OpenClaw</h3>

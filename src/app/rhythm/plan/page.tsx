@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { getOpenProjectActions, isOpenTask, usePersonalData, usePlannerData } from "@/lib/personal-data";
 import { getRhythmPeriod } from "@/domain/weekly-rhythm";
 import { useCalendarCommitments } from "@/hooks/use-calendar-commitments";
@@ -48,6 +48,46 @@ export default function PlannerPage() {
   const [feedback,setFeedback] = useState<Record<string,{outcome:PlannerOutcome;note:string;actual:string}>>({});
   const [showPreferences,setShowPreferences] = useState(false);
   const [instruction,setInstruction] = useState("");
+  const [pendingRequests,setPendingRequests] = useState<Array<{id:string;weekStart:string;intent:string;instructions:string;processedAt:string|null}>>([]);
+  const [queueBusy,setQueueBusy] = useState(false);
+  const [queueError,setQueueError] = useState("");
+  useEffect(()=>{
+    let active=true;
+    const refresh=async()=>{
+      try{
+        const response=await fetch("/api/planner/requests",{cache:"no-store"});
+        if(!response.ok) return;
+        const data=await response.json() as {requests:typeof pendingRequests};
+        if(active)setPendingRequests(data.requests);
+      }catch{/* Do not obscure locally saved sessions when request status is offline. */}
+    };
+    void refresh();
+    const id=window.setInterval(()=>{void refresh();},30000);
+    return ()=>{active=false;window.clearInterval(id);};
+  },[]);
+  async function queuePlan() {
+    if(queueBusy||!days[0])return;
+    setQueueBusy(true);setQueueError("");
+    try{
+      const response=await fetch("/api/planner/requests",{
+        method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({weekStart:days[0],intent:"replan",instructions:instruction}),
+      });
+      const data=await response.json();
+      if(!response.ok)throw new Error(typeof data.error==="string"?data.error:"Could not queue planning request.");
+      setPendingRequests(v=>[data.request,...v]);
+      setInstruction("");
+      setMessage("Planning request queued. Rem will process it after the private automation is enabled.");
+    }catch(error){setQueueError(error instanceof Error?error.message:"Could not queue request.");}
+    finally{setQueueBusy(false);}
+  }
+  async function cancelRequest(id:string) {
+    try{
+      const response=await fetch("/api/planner/requests",{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({id})});
+      if(!response.ok)throw new Error();
+      setPendingRequests(v=>v.filter(request=>request.id!==id));
+    }catch{setQueueError("Could not cancel the request.");}
+  }
   const work = useMemo(()=>{
     const result:{key:string;title:string;ref:PlannerWorkRef}[]=[];
     for (const item of items) {
@@ -193,10 +233,15 @@ export default function PlannerPage() {
       <p className="pcc-context">Outcomes confirmed for {insight.confirmed} sessions; effort is only the sum of sessions where you entered actual minutes ({insight.recordedEffort}). Unconfirmed is not counted as missed.</p>
     </div>
     <div className="rounded-2xl border p-4 space-y-2">
-      <h3 className="font-semibold">Refine with OpenClaw</h3>
-      <p className="pcc-context">Natural-language planning is not connected yet. Notes are stored in PCC, and the assistant integration must be extended before they can be read or changed by OpenClaw.</p>
-      <textarea value={instruction} onChange={e=>setInstruction(e.target.value)} className="w-full rounded-lg border p-2" placeholder="Example: Move unfinished work to the next free morning…" rows={2}/>
-      <button type="button" disabled={!instruction.trim()} onClick={()=>{void navigator.clipboard.writeText(instruction);setMessage("Instruction copied. No schedule was changed.");}} className="min-h-11 rounded-xl border px-4 text-sm disabled:opacity-50">Copy instruction</button>
+      <h3 className="font-semibold">OpenClaw planning requests</h3>
+      <p className="pcc-context">Queue a plan or replan for this week. Once the private Rem automation is enabled, it can read this request, check current tasks and Calendar, and submit a revised schedule. It will not run immediately from the browser.</p>
+      <textarea value={instruction} onChange={e=>setInstruction(e.target.value)} maxLength={2000} className="w-full rounded-lg border p-2" placeholder="Optional: Keep unfinished work from the same project first; move my deep work later tomorrow…" rows={3}/>
+      <button type="button" disabled={queueBusy} onClick={()=>{void queuePlan();}} className="min-h-11 rounded-xl border px-4 text-sm disabled:opacity-50">{queueBusy?"Queuing…":"Request plan / replan"}</button>
+      {queueError&&<p role="alert" className="text-sm">{queueError}</p>}
+      {pendingRequests.filter(request=>request.processedAt===null).map(request=><div key={request.id} className="flex justify-between items-start gap-2 rounded-xl border p-3">
+        <div><p className="text-sm font-semibold">Pending · {request.weekStart}</p><p className="pcc-context">{request.instructions||"Use current priorities and preferences"}</p></div>
+        <button type="button" className="text-sm underline" onClick={()=>{void cancelRequest(request.id);}}>Cancel</button>
+      </div>)}
     </div>
   </section>;
 }

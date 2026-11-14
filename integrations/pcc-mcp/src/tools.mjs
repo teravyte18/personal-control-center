@@ -27,6 +27,9 @@ export const tools = [
     domain: z.enum(["library", "projects", "tasks", "reviews", "notes", "thoughts"]), sourceId: z.string().trim().min(1).max(200), sourceSubId: z.string().trim().min(1).max(200).optional() }).strict() },
   { name: "pcc_get_context", operation: "context", description: "Build bounded PCC context from selected granted domains. Optional question invokes deterministic lexical retrieval. This is not an exhaustive list; respect truncation, record/recency bounds and source provenance. Use planning/library tools for complete pagination.", schema: z.object({
     domains, query: z.string().trim().min(1).max(240).optional(), current: z.array(z.enum(["projects", "tasks", "rhythm"])).max(3).optional(), maxChars: z.number().int().min(1000).max(20000).optional(), maxRecords: z.number().int().min(1).max(20).optional() }).strict() },
+  { name: "pcc_get_planner_requests", operation: "planner-requests",
+    description: "Check for pending plan/replan requests in this private PCC account. Read-only, no LLM calls required if the queue is empty. Poll sparingly.",
+    schema: z.object({}).strict() },
   { name: "pcc_get_planner_calendar", operation: "planner-calendar",
     description: "Read privacy-minimised busy intervals, planner preferences and current work sessions for at most 21 days. Requires opt-in planner-only grant. No event titles are returned. Never claim free time from unverified calendar state.",
     schema: z.object({ from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) }).strict() },
@@ -34,6 +37,7 @@ export const tools = [
     description: "Replace only future, unlocked, unconfirmed assistant-origin sessions. Preserves manual sessions and original Tasks. Requires explicit planner-write grant, fresh revision, and validation against live Calendar. Does not create Tasks or modify Projects.",
     schema: z.object({
       revision: z.number().int().nonnegative(),
+      requestId: z.string().uuid().optional(),
       replaceFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
       sessions: z.array(proposedSession).min(1).max(20),
     }).strict() },
@@ -50,6 +54,10 @@ export const responses = {
   search: z.object({ ...common, complete: z.boolean(), totalMatches: z.number().int().nonnegative(), results: z.array(z.object({ domain: z.string(), sourceId: z.string(), title: z.string().max(300), snippet: z.string().max(400) }).passthrough()).max(25) }).passthrough(),
   context: z.object({ ...common, complete: z.literal(false), context: z.object({}).passthrough() }).passthrough(),
   planning: z.object({ ...common, ...paginated, calendarCoverage: z.literal("not-included"), timezone: z.string(), today: z.string(), records: z.array(z.object({ kind: z.string(), sourceId: z.string(), title: z.string().max(300), category: z.string().optional() }).passthrough()).max(25) }).passthrough(),
+  "planner-requests": z.object({requests:z.array(z.object({
+    id:z.string(),weekStart:z.string(),intent:z.enum(["generate","replan"]),instructions:z.string(),
+    createdAt:z.string(),processedAt:z.string().nullable(),
+  })).max(10)}).strict(),
   "planner-calendar": z.object({
     revision:z.number().int().nonnegative(), timezone:z.string(), preferences:z.object({}).passthrough(),
     busy:z.array(z.object({start:z.string(),end:z.string(),allDay:z.boolean()})),

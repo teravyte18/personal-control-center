@@ -1,3 +1,4 @@
+import { listPlannerRequests } from "@/server/planner-requests";
 import { AssistantAccessError, readAssistantJson, recordInput } from "@/domain/assistant-access";
 import { requireAssistantGrant } from "@/server/assistant-grants";
 import { plannerAvailability, PlannerConflictError, PlannerInputError, submitPlannerProposal } from "@/server/assistant-planner";
@@ -23,6 +24,9 @@ export async function GET(request:Request) {
   try {
     const grant=await grantForPlanner(request);
     const params=new URL(request.url).searchParams;
+    if(params.get("mode")==="requests" && [...params.keys()].every(k=>k==="mode")) {
+      return Response.json({requests:await listPlannerRequests(grant.userId,true)},{headers});
+    }
     if([...params.keys()].some(k=>!["from","to"].includes(k))) throw new PlannerInputError("Invalid availability query.");
     const from=params.get("from")??"",to=params.get("to")??"";
     const result=await plannerAvailability(grant.userId,from,to);
@@ -33,7 +37,7 @@ export async function POST(request:Request) {
   try{
     const grant=await grantForPlanner(request);
     if(!(request.headers.get("content-type")??"").startsWith("application/json")) throw new PlannerInputError("JSON required.");
-    const body=recordInput(await readAssistantJson(request, 32768),["revision","replaceFrom","sessions"]);
+    const body=recordInput(await readAssistantJson(request, 32768),["revision","replaceFrom","sessions","requestId"]);
     const result=await submitPlannerProposal(grant.userId,body);
     return Response.json(result,{headers});
   }catch(error){return failure(error,request.headers.has("authorization"));}

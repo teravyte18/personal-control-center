@@ -1,12 +1,12 @@
 import { AuthenticationRequiredError, resolveRequestUser } from "@/server/request-user";
-import { requireSameOrigin } from "@/domain/assistant-access";
+import { requireSameOrigin, AssistantAccessError } from "@/domain/assistant-access";
 import { createPlannerRequest, listPlannerRequests, cancelPlannerRequest, PlannerRequestInputError } from "@/server/planner-requests";
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 const headers={"Cache-Control":"private, no-store"};
 function failure(e:unknown) {
-  const code=e instanceof AuthenticationRequiredError?401:e instanceof PlannerRequestInputError?400:503;
-  return Response.json({error:code===401?"Authentication required.":code===400?e instanceof Error?e.message:"Invalid request.":"Planner queue unavailable."},{status:code,headers});
+  const code=e instanceof AuthenticationRequiredError?401:e instanceof AssistantAccessError?403:e instanceof PlannerRequestInputError || e instanceof SyntaxError?400:503;
+  return Response.json({error:code===401?"Authentication required.":code===403?"Request origin denied.":code===400?e instanceof Error?e.message:"Invalid request.":"Planner queue unavailable."},{status:code,headers});
 }
 export async function GET(request:Request) {
   try{

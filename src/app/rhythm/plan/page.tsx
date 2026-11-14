@@ -1,5 +1,6 @@
-import { summarizePlannerSessions } from "@/domain/planner-insights";
 "use client";
+
+import { summarizePlannerSessions } from "@/domain/planner-insights";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState, type FormEvent } from "react";

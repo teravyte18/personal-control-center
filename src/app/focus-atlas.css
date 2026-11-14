@@ -326,3 +326,31 @@ input, textarea { caret-color: var(--theme-accent); }
 
 .pcc-library-controls { row-gap: 8px; }
 .pcc-note-list > article { min-height: 64px; }
+
+
+/* Dedicated Rem conversation */
+.rem-page { min-height: calc(100dvh - 110px); }
+.rem-page .pcc-page-header { margin-bottom: 12px; }
+.rem-chat { width: 100%; max-width: 880px; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.rem-chat-note, .rem-chat-meta { color: var(--pcc-muted); font-size: 12px; line-height: 18px; }
+.rem-chat-messages { display: flex; flex: 1 1 auto; flex-direction: column; gap: 12px; min-height: clamp(64px, calc(100dvh - 520px), 220px); max-height: calc(100dvh - 360px); overflow: auto; overscroll-behavior: contain; padding: 4px 2px; }
+.rem-message { max-width: min(92%, 720px); min-width: 0; padding: 12px 14px; border: 1px solid var(--pcc-line); border-radius: 14px; background: var(--theme-surface); overflow-wrap: anywhere; white-space: pre-wrap; }
+.rem-message-user { align-self: flex-end; background: var(--pcc-selected); }
+.rem-message-role { margin-bottom: 4px; color: var(--pcc-muted); font-size: 12px; line-height: 18px; }
+.rem-message-text { font-size: 16px; line-height: 24px; }
+.rem-chat-empty { margin: auto; color: var(--pcc-muted); text-align: center; }
+.rem-chat-status { min-height: 20px; margin: 0; color: var(--pcc-muted); font-size: 14px; }
+.rem-chat-error { margin: 0; padding: 8px 12px; border: 1px solid var(--semantic-danger-border); border-radius: 12px; background: #fff1f2; color: var(--semantic-danger-fg); font-size: 14px; line-height: 20px; }
+.rem-composer { position: static; display: grid; gap: 8px; padding: 12px; border: 1px solid var(--pcc-line); border-radius: 16px; background: var(--theme-surface); }
+.rem-composer label { font-size: 14px; }
+.rem-composer textarea { width: 100%; min-height: 96px; resize: vertical; border: 1px solid var(--pcc-line); border-radius: 12px; padding: 11px 12px; background: var(--theme-surface); color: var(--foreground); font: inherit; font-size: 16px; line-height: 24px; }
+.rem-composer textarea:focus-visible, .rem-button:focus-visible { outline: 2px solid var(--theme-accent); outline-offset: 2px; }
+.rem-composer-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
+.rem-composer-actions > .rem-chat-meta { margin-right: auto; }
+.rem-button { min-height: 44px; border: 1px solid var(--foreground); border-radius: 12px; padding: 9px 16px; background: var(--foreground); color: var(--background); font-size: 14px; cursor: pointer; }
+.rem-button-quiet { border-color: var(--pcc-line); background: var(--theme-surface); color: var(--foreground); }
+.rem-button:disabled { opacity: .55; cursor: not-allowed; }
+@media (min-width: 768px) { .rem-page { min-height: calc(100dvh - 64px); } .rem-chat-messages { max-height: calc(100dvh - 330px); } }
+@media (max-width: 360px) { .rem-composer-actions > .rem-chat-meta { flex-basis: 100%; } .rem-message { max-width: 100%; } }
+.rem-composer .rem-button:not(.rem-button-quiet) { background-color: var(--foreground); color: var(--background); }
+.rem-composer .rem-button:disabled:not(.rem-button-quiet) { background-color: var(--pcc-selected); color: var(--foreground); opacity: 1; }

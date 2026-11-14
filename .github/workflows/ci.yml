@@ -40,6 +40,26 @@ jobs:
           npm audit --omit=dev --audit-level=high
           npm pack --dry-run
 
+      - name: Validate disabled Rem adapter fixtures
+        run: node --test integrations/pcc-rem/*.test.mjs
+
+      - name: Validate Rem stream lifecycle
+        run: node --experimental-strip-types --test tests/rem-chat-stream.test.mjs
+
+      - name: Validate enabled Rem cookie authorization
+        env:
+          PCC_TEST_ALLOW_FICTIONAL_MUTATIONS: "1"
+          PCC_TEST_REM_FICTIONAL_DATABASE_URL: postgres://pcc:fictional-password@127.0.0.1:54329/rem_chat_test
+        run: |
+          set -eu
+          docker run -d --name pcc-rem-cookie-ci --tmpfs /var/lib/postgresql/data -p 127.0.0.1:54329:5432 -e POSTGRES_USER=pcc -e POSTGRES_PASSWORD=fictional-password -e POSTGRES_DB=rem_chat_test postgres:17-alpine
+          trap 'docker rm -f pcc-rem-cookie-ci' EXIT
+          for attempt in $(seq 1 30); do
+            if docker exec pcc-rem-cookie-ci pg_isready -U pcc -d rem_chat_test; then break; fi
+            sleep 1
+          done
+          node --test tests/rem-chat-server.test.mjs
+
       - name: Verify Keychain crypto dependency lock
         run: node scripts/check-keychain-dependencies.mjs
 

@@ -3,13 +3,14 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { assistantDomains, planningDomains, type AssistantDomain } from "@/domain/assistant-access";
 
-type Grant = { id: string; label: string; domains: AssistantDomain[]; expiresAt: string; revokedAt: string | null; lastUsedAt: string | null };
+type Grant = { id: string; label: string; domains: AssistantDomain[]; plannerWrite?: boolean; expiresAt: string; revokedAt: string | null; lastUsedAt: string | null };
 
 export function AssistantSettings() {
   const [grants, setGrants] = useState<Grant[]>([]);
   const [domains, setDomains] = useState<AssistantDomain[]>(["library", ...planningDomains]);
   const [label, setLabel] = useState("Personal assistant");
   const [days, setDays] = useState(30);
+  const [plannerWrite, setPlannerWrite] = useState(false);
   const [token, setToken] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -44,7 +45,7 @@ export function AssistantSettings() {
     event.preventDefault();
     setBusy(true); setError(""); setNotice(""); setToken("");
     try {
-      const response = await fetch("/api/assistant-grants", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ label, domains, days }) });
+      const response = await fetch("/api/assistant-grants", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ label, domains, days, plannerWrite }) });
       if (!response.ok) throw new Error("Could not create this connection. Check the selected spaces or revoke an unused connection.");
       const body = await response.json() as { token: string };
       setToken(body.token);
@@ -63,7 +64,7 @@ export function AssistantSettings() {
     finally { setBusy(false); }
   }
   return <div className="space-y-4 p-4">
-    <p className="text-sm text-slate-500">Read-only access to selected spaces. Keychain is never included. Your assistant’s model provider may receive the records it retrieves.</p>
+    <p className="text-sm text-slate-500">Read-only access by default; optional planner-only session writes. Keychain is never included. Your assistant’s model provider may receive the records it retrieves.</p>
     {loading ? <p role="status">Loading connections…</p> : null}
     {error ? <p role="alert" className="text-sm text-red-700">{error}</p> : null}
     {notice ? <p role="status" className="text-sm">{notice}</p> : null}
@@ -72,8 +73,18 @@ export function AssistantSettings() {
       <fieldset><legend className="text-sm font-medium">Allowed spaces</legend><div className="grid grid-cols-2 gap-2 mt-2">
         {assistantDomains.map((domain) => <label key={domain} className="flex items-center gap-2 min-h-11 text-sm capitalize"><input type="checkbox" checked={domains.includes(domain)} onChange={() => toggle(domain)} />{domain === "rhythm" ? "Weekly Rhythm" : domain}</label>)}
       </div></fieldset>
+      <label className="flex items-start gap-3 rounded-xl border p-3 text-sm">
+        <input type="checkbox" className="mt-1" checked={plannerWrite}
+          onChange={(event) => {
+            const checked=event.target.checked;
+            setPlannerWrite(checked);
+            if (checked) setDomains((current) => [...new Set([...current, ...planningDomains])]);
+          }} />
+        <span><strong>Allow planner-only writes (experimental)</strong><br />
+          A private OpenClaw agent with this connection may replace future unlocked agent-created work sessions, after calendar validation. It cannot modify Tasks, Projects, Reviews or Keychain. Use only in the owner-private agent.</span>
+      </label>
       <label className="block text-sm">Expires after<select value={days} onChange={(event) => setDays(Number(event.target.value))} className="input ml-2"><option value={7}>7 days</option><option value={30}>30 days</option><option value={90}>90 days</option></select></label>
-      <button type="submit" disabled={busy || loading || !domains.length} className="rounded-xl bg-slate-950 px-4 py-3 text-sm text-white disabled:opacity-50">Create read-only connection</button>
+      <button type="submit" disabled={busy || loading || !domains.length || (plannerWrite && planningDomains.some(domain=>!domains.includes(domain)))} className="rounded-xl bg-slate-950 px-4 py-3 text-sm text-white disabled:opacity-50">{plannerWrite ? "Create planner connection" : "Create read-only connection"}</button>
     </form>
     {token ? <div className="space-y-2 rounded-xl border p-3">
       <p className="text-sm">Save this token now; it will not be shown again. Use a trusted secret-entry field, not an assistant chat message.</p>
@@ -82,7 +93,7 @@ export function AssistantSettings() {
       <button type="button" className="ml-4 min-h-11 text-sm underline" onClick={() => setToken("")}>Dismiss token</button>
     </div> : null}
     <ul className="divide-y">{grants.map((grant) => <li key={grant.id} className="py-3 text-sm">
-      <p className="font-medium">{grant.label}</p><p className="text-slate-500">{grant.domains.join(", ")} · Expires {new Date(grant.expiresAt).toLocaleDateString()}</p>
+      <p className="font-medium">{grant.label}</p><p className="text-slate-500">{grant.domains.join(", ")} · {grant.plannerWrite ? "Planner write enabled" : "Read-only"} · Expires {new Date(grant.expiresAt).toLocaleDateString()}</p>
       <p className="text-slate-500">{grant.lastUsedAt ? `Last used ${new Date(grant.lastUsedAt).toLocaleDateString()}` : "Not used yet"}</p>
       {grant.revokedAt ? <p>Revoked</p> : <button type="button" disabled={busy} onClick={() => { void revoke(grant.id); }} className="min-h-11 text-red-700 underline disabled:opacity-50">Revoke</button>}
     </li>)}</ul>

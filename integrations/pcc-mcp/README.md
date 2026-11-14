@@ -1,4 +1,4 @@
-# PCC read-only MCP adapter
+# PCC scoped MCP adapter (read-only by default)
 
 Local stdio tools for PCC's dedicated, scoped assistant API. No direct database
 or upload access. Requires Node 22.18+; dependencies are pinned in this package's
@@ -110,3 +110,9 @@ credential values. Stdout is reserved for MCP messages.
 Disable the MCP entry and revoke the grant to disconnect. Uninstalling the
 adapter does not delete PCC records. The connector performs no background
 polling, scheduled inference, model calls or canonical writes.
+
+## Optional weekly-planner connection
+
+After the planner integration has been merged, deployed and authorised, an explicit `pcc_plan_` credential can use `pcc_get_planner_calendar` and `pcc_submit_planner_plan`. Ordinary `pcc_ro_` credentials remain read-only, including when they can read planning history.
+
+Do not reuse the example read-only token file for planner writes. Configure a separate owner-private MCP server entry and allowlist; validate grant isolation and revocation before running an automation. See [planner runbook](../../docs/weekly-planner-openclaw.md). The planner-submit tool changes only future assistant-origin planner sessions; it cannot change normal Tasks or Projects.

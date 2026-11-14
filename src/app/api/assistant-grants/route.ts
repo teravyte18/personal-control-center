@@ -21,8 +21,8 @@ export async function POST(request: Request) {
   try {
     const user = await requireAuthenticatedUser(request);
     requireSameOrigin(request, process.env.PCC_PUBLIC_URL);
-    const body = recordInput(await readAssistantJson(request), ["label", "domains", "days"]);
-    return Response.json(await createAssistantGrant(user.id, body.label, body.domains, body.days), { status: 201, headers });
+    const body = recordInput(await readAssistantJson(request), ["label", "domains", "days", "plannerWrite"]);
+    return Response.json(await createAssistantGrant(user.id, body.label, body.domains, body.days, body.plannerWrite), { status: 201, headers });
   } catch (error) { return failure(error); }
 }
 export async function DELETE(request: Request) {

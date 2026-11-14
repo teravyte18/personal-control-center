@@ -12,6 +12,7 @@ export type PlannerSession = {
   work: PlannerWorkRef[];
   estimateMinutes: number;
   locked: boolean;
+  origin?: "manual" | "assistant";
   createdAt: string;
   outcome?: PlannerOutcome;
   outcomeAt?: string;
@@ -84,8 +85,9 @@ export function normalizePlannerSession(value: unknown): PlannerSession | null {
   if (outcome && !validTimestamp(value.outcomeAt)) return null;
   if (value.actualMinutes !== undefined && !minutesInRange(value.actualMinutes, 0, 1440)) return null;
   if (value.note !== undefined && (typeof value.note !== "string" || value.note.length > 4000)) return null;
+  if (value.origin !== undefined && !["manual","assistant"].includes(String(value.origin))) return null;
   return {
-    id:value.id,date:value.date,start:value.start,minutes:value.minutes,title:value.title.trim(),work,
+    id:value.id,date:value.date,start:value.start,minutes:value.minutes,title:value.title.trim(),work,origin: value.origin as PlannerSession["origin"] | undefined,
     estimateMinutes:value.estimateMinutes,locked:value.locked,createdAt:value.createdAt,
     outcome,outcomeAt:outcome ? value.outcomeAt as string : undefined,
     actualMinutes:value.actualMinutes as number | undefined,

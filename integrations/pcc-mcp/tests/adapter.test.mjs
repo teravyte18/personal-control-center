@@ -30,6 +30,33 @@ test("client sends fixed read operation, refuses redirects and sanitizes server 
   await assert.rejects(denied("library", {}), { message: "PCC access denied or credential expired/revoked." });
   await assert.rejects(call("constructor", {}), /Unsupported/);
 });
+test("planner POST uses a distinct opt-in credential, scoped URL and JSON schema", async () => {
+  const plannerToken = "pcc_plan_" + "b".repeat(43);
+  const call = createPccClient({ origin: "http://127.0.0.1:3107", token: plannerToken,
+    fetchImpl: async (url, init) => {
+      assert.equal(url.pathname, "/api/assistant/planner");
+      assert.equal(init.method, "POST");
+      assert.equal(init.headers["Content-Type"], "application/json");
+      assert.equal(init.headers.Authorization, "Bearer " + plannerToken);
+      assert.equal(JSON.parse(init.body).replaceFrom, "2026-11-16");
+      return Response.json({saved:true,revision:5,count:1,calendarCheckedAt:"2026-11-14T16:00:00.000Z"});
+    },
+  });
+  const proposal = {revision:4,replaceFrom:"2026-11-16",
+    sessions:[{date:"2026-11-16",start:"10:30",minutes:120,title:"Fictional analysis",work:[]}]};
+  const tool=tools.find(item=>item.operation==="planner-submit");
+  assert.ok(tool);
+  assert.equal(tool.schema.safeParse(proposal).success,true);
+  assert.equal(tool.schema.safeParse({...proposal,sessions:[{...proposal.sessions[0],admin:true}]}).success,false);
+  assert.equal((await call("planner-submit",proposal)).saved,true);
+  const calendar = createPccClient({origin:"http://127.0.0.1:3107",token:plannerToken,fetchImpl:async (url,init)=>{
+    assert.equal(init.method,"GET");
+    assert.equal(url.pathname,"/api/assistant/planner");
+    assert.equal(url.searchParams.get("from"),"2026-11-16");
+    return Response.json({revision:4,timezone:"Europe/Lisbon",preferences:{},busy:[],sessions:[],fetchedAt:"2026-11-14T16:00:00.000Z"});
+  }});
+  assert.equal((await calendar("planner-calendar",{from:"2026-11-16",to:"2026-11-20"})).revision,4);
+});
 test("malformed, HTML and oversized responses never reach tools", async () => {
   for (const response of [Response.json({ token }), new Response("<html>login</html>", { headers: { "content-type": "text/html" } }), new Response('"' + "x".repeat(250001) + '"', { headers: { "content-type": "application/json" } })]) {
     const call = createPccClient({ origin: "http://127.0.0.1:3107", token, fetchImpl: async () => response });
@@ -41,14 +68,15 @@ test("tool schemas reject identity, URL, raw mutation and unknown argument injec
     assert.equal(tool.schema.safeParse({ userId: "other", url: "https://evil.test", mutation: {} }).success, false);
   }
 });
-test("MCP protocol discovers five read-only tools and returns structured results", async () => {
+test("MCP protocol discovers five read-only and two scoped planner tools and returns structured results", async () => {
   const [left, right] = InMemoryTransport.createLinkedPair();
   const server = createServer(async () => library);
   const client = new Client({ name: "pcc-test", version: "1" });
   try {
     await server.connect(left); await client.connect(right);
-    const listed = await client.listTools(); assert.equal(listed.tools.length, 5);
-    assert.ok(listed.tools.every((tool) => tool.annotations.readOnlyHint));
+    const listed = await client.listTools(); assert.equal(listed.tools.length, 7);
+    assert.equal(listed.tools.filter(tool=>tool.annotations.readOnlyHint).length,6);
+    assert.equal(listed.tools.find(tool=>tool.name==="pcc_submit_planner_plan")?.annotations.readOnlyHint,false);
     const result = await client.callTool({ name: "pcc_library_list", arguments: {} });
     assert.deepEqual(result.structuredContent, library);
     const invalid = await client.callTool({ name: "pcc_library_list", arguments: { userId: "other" } });
@@ -65,7 +93,7 @@ test("real stdio process handles discovery and HTTP read without stdout noise", 
   const client = new Client({ name: "stdio-test", version: "1" });
   try {
     await client.connect(transport);
-    assert.equal((await client.listTools()).tools.length, 5);
+    assert.equal((await client.listTools()).tools.length, 7);
     assert.deepEqual((await client.callTool({ name: "pcc_library_list", arguments: {} })).structuredContent, library);
   } finally { await client.close(); await transport.close(); await new Promise((resolve) => fake.close(resolve)); }
 });

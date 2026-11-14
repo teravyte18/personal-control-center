@@ -22,21 +22,28 @@ export async function loadCredential(env) {
       token = (await handle.readFile("utf8")).trim();
     } finally { await handle.close(); }
   }
-  if (!/^pcc_ro_[A-Za-z0-9_-]{43}$/.test(token ?? "")) throw new Error("Invalid PCC credential format.");
+  if (!/^pcc_(ro|plan)_[A-Za-z0-9_-]{43}$/.test(token ?? "")) throw new Error("Invalid PCC credential format.");
   return token;
 }
 
 export function createPccClient({ origin, token, fetchImpl = fetch, timeoutMs = 15000 }) {
   const base = validateOrigin(origin);
-  if (!/^pcc_ro_[A-Za-z0-9_-]{43}$/.test(token ?? "")) throw new Error("Invalid PCC credential format.");
+  if (!/^pcc_(ro|plan)_[A-Za-z0-9_-]{43}$/.test(token ?? "")) throw new Error("Invalid PCC credential format.");
   return async function call(operation, args, signal) {
     if (!Object.hasOwn(responses, operation)) throw new Error("Unsupported PCC operation.");
-    const url = new URL(`/api/assistant/${operation}`, base);
-    url.searchParams.set("input", JSON.stringify(args));
-    if (url.search.length > 15000) throw new Error("PCC input is too large.");
+    const plannerWrite = operation === "planner-submit";
+    const plannerCalendar = operation === "planner-calendar";
+    const url = new URL(plannerWrite || plannerCalendar ? "/api/assistant/planner" : `/api/assistant/${operation}`, base);
+    if (plannerCalendar) {
+      url.searchParams.set("from", args.from);
+      url.searchParams.set("to", args.to);
+    } else if (!plannerWrite) {
+      url.searchParams.set("input", JSON.stringify(args));
+    }
+    if (url.search.length > 15000 || (plannerWrite && JSON.stringify(args).length > 32000)) throw new Error("PCC input is too large.");
     const requestSignal = signal ? AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]) : AbortSignal.timeout(timeoutMs);
     let response;
-    try { response = await fetchImpl(url, { method: "GET", headers: { Authorization: `Bearer ${token}`, Accept: "application/json" }, redirect: "error", cache: "no-store", signal: requestSignal }); }
+    try { response = await fetchImpl(url, { method: plannerWrite ? "POST" : "GET", headers: { Authorization: `Bearer ${token}`, Accept: "application/json", ...(plannerWrite ? { "Content-Type": "application/json" } : {}) }, ...(plannerWrite ? { body: JSON.stringify(args) } : {}), redirect: "error", cache: "no-store", signal: requestSignal }); }
     catch { throw new Error("PCC request failed, timed out, or was cancelled."); }
     if (!response.ok) {
       await response.body?.cancel();

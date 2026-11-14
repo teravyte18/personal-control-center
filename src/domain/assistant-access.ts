@@ -58,7 +58,7 @@ export function requireSameOrigin(request: Request, publicUrl?: string) {
   }
 }
 
-export async function readAssistantJson(request: Request) {
+export async function readAssistantJson(request: Request, maxBytes = 4096) {
   const reader = request.body?.getReader();
   if (!reader) throw new AssistantInputError("JSON is required.");
   const chunks: Uint8Array[] = [];
@@ -68,7 +68,7 @@ export async function readAssistantJson(request: Request) {
       const { done, value } = await reader.read();
       if (done) break;
       size += value.byteLength;
-      if (size > 4096) { await reader.cancel(); throw new AssistantInputError("Request is too large."); }
+      if (size > maxBytes) { await reader.cancel(); throw new AssistantInputError("Request is too large."); }
       chunks.push(value);
     }
     const bytes = new Uint8Array(size); let offset = 0;

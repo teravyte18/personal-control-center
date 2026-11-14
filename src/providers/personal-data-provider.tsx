@@ -39,7 +39,9 @@ import {
   type PersonalDataMutation,
   type PersonalDataSnapshot,
 } from "@/domain/personal-data-snapshot";
-import { loadPersonalData, saveItems, saveReviews, saveRhythm } from "@/lib/personal-storage";
+import { loadPersonalData, saveItems, saveReviews, saveRhythm, savePlanner } from "@/lib/personal-storage";
+
+import { type PlannerSession, type PlannerPreferences } from "@/domain/weekly-planner";
 
 const LOCAL_SAVE_DELAY_MS = 400;
 const SERVER_REFRESH_INTERVAL_MS = 5_000;
@@ -87,6 +89,11 @@ type PersonalDataContextValue = {
   rhythmTemplates: RhythmTemplate[];
   rhythmCompletions: PersonalDataSnapshot["rhythmCompletions"];
   weeklyFocuses: PersonalDataSnapshot["weeklyFocuses"];
+  plannerPreferences: PlannerPreferences;
+  plannerSessions: PlannerSession[];
+  updatePlannerPreferences: (preferences: PlannerPreferences) => void;
+  upsertPlannerSession: (session: PlannerSession) => void;
+  deletePlannerSession: (id: string) => void;
   addRhythm: (
     title: string,
     targetPerWeek: number,
@@ -240,6 +247,7 @@ export function PersonalDataProvider({ children }: { children: ReactNode }) {
     saveItems(window.localStorage, current.items);
     saveReviews(window.localStorage, current.draft, current.history);
     saveRhythm(window.localStorage, current.rhythmTemplates, current.rhythmCompletions, current.weeklyFocuses);
+    savePlanner(window.localStorage, current.plannerPreferences, current.plannerSessions);
   }, []);
 
   useEffect(() => {
@@ -388,6 +396,8 @@ export function PersonalDataProvider({ children }: { children: ReactNode }) {
   const rhythmTemplates = snapshot.rhythmTemplates;
   const rhythmCompletions = snapshot.rhythmCompletions;
   const weeklyFocuses = snapshot.weeklyFocuses;
+  const plannerPreferences = snapshot.plannerPreferences;
+  const plannerSessions = snapshot.plannerSessions;
   const openItems = useMemo(
     () => items.filter((item) => !["completed", "archived"].includes(item.status)),
     [items],
@@ -537,6 +547,10 @@ export function PersonalDataProvider({ children }: { children: ReactNode }) {
     commitMutation({ type: "remove-weekly-focus", id });
   }, [commitMutation]);
 
+  const updatePlannerPreferences = useCallback((preferences: PlannerPreferences) => commitMutation({type:"set-planner-preferences",preferences}),[commitMutation]);
+  const upsertPlannerSession = useCallback((session: PlannerSession) => commitMutation({type:"upsert-planner-session",session}),[commitMutation]);
+  const deletePlannerSession = useCallback((id: string) => commitMutation({type:"delete-planner-session",id}),[commitMutation]);
+
   const value = useMemo<PersonalDataContextValue>(() => ({
     items,
     loaded,
@@ -559,6 +573,11 @@ export function PersonalDataProvider({ children }: { children: ReactNode }) {
     rhythmTemplates,
     rhythmCompletions,
     weeklyFocuses,
+    plannerPreferences,
+    plannerSessions,
+    updatePlannerPreferences,
+    upsertPlannerSession,
+    deletePlannerSession,
     addRhythm,
     updateRhythm,
     deleteRhythm,
@@ -595,6 +614,11 @@ export function PersonalDataProvider({ children }: { children: ReactNode }) {
     rhythmTemplates,
     rhythmCompletions,
     weeklyFocuses,
+    plannerPreferences,
+    plannerSessions,
+    updatePlannerPreferences,
+    upsertPlannerSession,
+    deletePlannerSession,
     addRhythm,
     updateRhythm,
     deleteRhythm,
@@ -688,6 +712,11 @@ export function useRhythmData() {
     addWeeklyFocus,
     removeWeeklyFocus,
   };
+}
+
+export function usePlannerData() {
+  const {plannerPreferences,plannerSessions,updatePlannerPreferences,upsertPlannerSession,deletePlannerSession,loaded} = usePersonalDataContext();
+  return {plannerPreferences,plannerSessions,updatePlannerPreferences,upsertPlannerSession,deletePlannerSession,loaded};
 }
 
 export function useDataConnection() {

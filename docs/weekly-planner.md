@@ -44,3 +44,9 @@ Add an optional time-block planning surface inside Week. It should make a small 
 - The host Pi's OpenClaw configuration is not accessible from a GitHub checkout. A code PR cannot provision the agent, private MCP grant, cron job or runtime secret.
 - Do not install a timer or large third-party calendar UI dependency solely for this feature.
 - Do not merge/deploy until relevant tests, lint, build and Compose validation pass.
+
+## Initial insights and safe adaptation
+
+The Week planner now computes a cautious 28-day overview: confirmed and unconfirmed outcomes, completed/partial/missed blocks, morning engagement, and actual/estimated effort only for sessions with recorded actual minutes. Suggestions appear only with a minimum evidence threshold; unknown outcomes never count as misses. These are descriptive heuristics, not a model or a diagnosis of motivation.
+
+For agent-level learning, Rem should summarize *aggregate* history and voluntary user feedback in its private memory. Do not copy raw session notes or sensitive medical details into persistent memory. A durable pattern should require several comparable observations, and user approval is required before changing long-term planning preferences. The agent must not self-justify increasingly low targets simply because a few mornings were missed.

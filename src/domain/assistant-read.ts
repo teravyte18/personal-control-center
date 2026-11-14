@@ -111,7 +111,7 @@ function planning(snapshot: PersonalDataSnapshot, args: Record<string, unknown>,
     });
   }
   rows.sort((a, b) => `${a.kind}:${a.sourceId}:${a.sourceSubId ?? ""}`.localeCompare(`${b.kind}:${b.sourceId}:${b.sourceSubId ?? ""}`, "en"));
-  return { ...clock, timezone, asOf: asOf.toISOString(), stateSemantics: "Current canonical state grouped at asOf; not a historical reconstruction.", calendarCoverage: "not-included",
+  return { ...clock, timezone, plannerPreferences: snapshot.plannerPreferences, asOf: asOf.toISOString(), stateSemantics: "Current canonical state grouped at asOf; not a historical reconstruction.", calendarCoverage: "not-included",
     ...paginate(rows, args, revision, JSON.stringify(["planning", userId, timezone, clock.today, clock.weekStart, args.asOf ?? null])) };
 }
 

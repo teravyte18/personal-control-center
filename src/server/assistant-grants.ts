@@ -5,11 +5,11 @@ import { AssistantAccessError, AssistantInputError, inputInteger, inputText, par
 import type { AssistantDomain } from "@/domain/assistant-access";
 
 type GrantRow = {
-  id: string; label: string; domains: AssistantDomain[];
+  id: string; label: string; domains: AssistantDomain[]; planner_write: boolean;
   created_at: Date; expires_at: Date; revoked_at: Date | null; last_used_at: Date | null;
 };
 function metadata(row: GrantRow) {
-  return { id: row.id, label: row.label, domains: row.domains, createdAt: row.created_at.toISOString(),
+  return { id: row.id, label: row.label, domains: row.domains, plannerWrite: row.planner_write, createdAt: row.created_at.toISOString(),
     expiresAt: row.expires_at.toISOString(), revokedAt: row.revoked_at?.toISOString() ?? null,
     lastUsedAt: row.last_used_at?.toISOString() ?? null };
 }
@@ -17,17 +17,20 @@ function hash(token: string) { return createHash("sha256").update(token).digest(
 
 export async function listAssistantGrants(userId: string) {
   const rows = await getDatabase()<GrantRow[]>`
-    select id, label, domains, created_at, expires_at, revoked_at, last_used_at
+    select id, label, domains, planner_write, created_at, expires_at, revoked_at, last_used_at
     from assistant_grants where user_id = ${userId} order by created_at desc
   `;
   return rows.map(metadata);
 }
 
-export async function createAssistantGrant(userId: string, labelValue: unknown, domainValue: unknown, daysValue: unknown) {
+export async function createAssistantGrant(userId: string, labelValue: unknown, domainValue: unknown, daysValue: unknown, plannerWriteValue: unknown = false) {
   const label = inputText(labelValue, 80)!;
   const domains = parseAssistantDomains(domainValue);
   const days = inputInteger(daysValue, 30, 90);
-  const token = `pcc_ro_${randomBytes(32).toString("base64url")}`;
+  if (typeof plannerWriteValue !== "boolean") throw new AssistantInputError("Invalid planner write permission.");
+  const plannerWrite = plannerWriteValue;
+  if (plannerWrite && !["projects","tasks","rhythm"].every(domain => domains.includes(domain as AssistantDomain))) throw new AssistantInputError("Planner write requires Projects, Tasks and Weekly Rhythm.");
+  const token = `pcc_${plannerWrite ? "plan" : "ro"}_${randomBytes(32).toString("base64url")}`;
   const expiresAt = new Date(Date.now() + days * 86400000);
   const sql = getDatabase();
   // Serialize per account and bound accumulated credential records.
@@ -37,9 +40,9 @@ export async function createAssistantGrant(userId: string, labelValue: unknown, 
     const [count] = await tx`select count(*)::int as total from assistant_grants where user_id = ${userId} and revoked_at is null and expires_at > now()`;
     if (count.total >= 20) throw new AssistantInputError("Revoke an existing connection before creating another.");
     const [row] = await tx<GrantRow[]>`
-      insert into assistant_grants (id, user_id, label, token_hash, domains, expires_at)
-      values (${randomUUID()}, ${userId}, ${label}, ${hash(token)}, ${domains}, ${expiresAt})
-      returning id, label, domains, created_at, expires_at, revoked_at, last_used_at
+      insert into assistant_grants (id, user_id, label, token_hash, domains, planner_write, expires_at)
+      values (${randomUUID()}, ${userId}, ${label}, ${hash(token)}, ${domains}, ${plannerWrite}, ${expiresAt})
+      returning id, label, domains, planner_write, created_at, expires_at, revoked_at, last_used_at
     `;
     return metadata(row);
   });
@@ -53,10 +56,10 @@ export async function revokeAssistantGrant(userId: string, id: unknown) {
 
 export async function requireAssistantGrant(request: Request) {
   const authorization = request.headers.get("authorization") ?? "";
-  if (!/^Bearer pcc_ro_[A-Za-z0-9_-]{43}$/.test(authorization)) throw new AssistantAccessError("Assistant authentication is required.");
+  if (!/^Bearer pcc_(ro|plan)_[A-Za-z0-9_-]{43}$/.test(authorization)) throw new AssistantAccessError("Assistant authentication is required.");
   const sql = getDatabase();
-  const [row] = await sql<{ id: string; user_id: string; domains: AssistantDomain[] }[]>`
-    select g.id, g.user_id, g.domains from assistant_grants g
+  const [row] = await sql<{ id: string; user_id: string; domains: AssistantDomain[]; planner_write: boolean }[]>`
+    select g.id, g.user_id, g.domains, g.planner_write from assistant_grants g
     join users u on u.id = g.user_id
     where g.token_hash = ${hash(authorization.slice(7))} and g.revoked_at is null
       and g.expires_at > now() and u.status = 'active'
@@ -65,5 +68,5 @@ export async function requireAssistantGrant(request: Request) {
   // Coarse usage metadata only; never store tool arguments or personal content.
   await sql`update assistant_grants set last_used_at = now() where id = ${row.id}
     and (last_used_at is null or last_used_at < now() - interval '5 minutes')`;
-  return { userId: row.user_id, domains: row.domains };
+  return { userId: row.user_id, domains: row.domains, plannerWrite: row.planner_write && authorization.startsWith("Bearer pcc_plan_") };
 }

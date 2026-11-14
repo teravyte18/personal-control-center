@@ -52,6 +52,8 @@ import {
   type WeeklyFocus,
 } from "./weekly-rhythm.ts";
 
+import { normalizePlannerPreferences, normalizePlannerSession, normalizePlannerSessions, type PlannerPreferences, type PlannerSession } from "./weekly-planner.ts";
+
 export const PERSONAL_DATA_EXPORT_FORMAT = "personal-control-center";
 export const PERSONAL_DATA_EXPORT_VERSION = 1;
 
@@ -65,6 +67,8 @@ export type PersonalDataSnapshot = {
   rhythmTemplates: RhythmTemplate[];
   rhythmCompletions: RhythmCompletion[];
   weeklyFocuses: WeeklyFocus[];
+  plannerPreferences: PlannerPreferences;
+  plannerSessions: PlannerSession[];
 };
 
 export type PersonalDataExport = {
@@ -124,7 +128,10 @@ export type PersonalDataMutation =
   | { type: "add-rhythm-completion"; completion: RhythmCompletion }
   | { type: "delete-rhythm-completion"; id: string }
   | { type: "add-weekly-focus"; focus: WeeklyFocus }
-  | { type: "remove-weekly-focus"; id: string };
+  | { type: "remove-weekly-focus"; id: string }
+  | { type: "set-planner-preferences"; preferences: PlannerPreferences }
+  | { type: "upsert-planner-session"; session: PlannerSession }
+  | { type: "delete-planner-session"; id: string };
 
 export const emptyPersonalDataSnapshot: PersonalDataSnapshot = {
   items: [],
@@ -136,6 +143,8 @@ export const emptyPersonalDataSnapshot: PersonalDataSnapshot = {
   rhythmTemplates: [],
   rhythmCompletions: [],
   weeklyFocuses: [],
+  plannerPreferences: normalizePlannerPreferences(undefined),
+  plannerSessions: [],
 };
 
 const reviewFields = [
@@ -316,6 +325,8 @@ export function normalizePersonalDataSnapshot(value: unknown): PersonalDataSnaps
     rhythmTemplates: normalizeRhythmTemplates(value.rhythmTemplates),
     rhythmCompletions: normalizeRhythmCompletions(value.rhythmCompletions),
     weeklyFocuses: normalizeWeeklyFocuses(value.weeklyFocuses),
+    plannerPreferences: normalizePlannerPreferences(value.plannerPreferences),
+    plannerSessions: normalizePlannerSessions(value.plannerSessions),
   };
 }
 
@@ -330,6 +341,7 @@ export function hasPersonalData(snapshot: PersonalDataSnapshot) {
     || snapshot.rhythmTemplates.length > 0
     || snapshot.rhythmCompletions.length > 0
     || snapshot.weeklyFocuses.length > 0
+    || snapshot.plannerSessions.length > 0
     || customizedExpenseTargets
     || reviewContentFields.some((field) => snapshot.draft[field].trim().length > 0);
 }
@@ -363,6 +375,17 @@ export function normalizePersonalDataExport(value: unknown): PersonalDataExport 
 export function normalizePersonalDataMutation(value: unknown): PersonalDataMutation | null {
   if (!isRecord(value) || typeof value.type !== "string") return null;
 
+  if (value.type === "set-planner-preferences") {
+    if (!isRecord(value.preferences)) return null;
+    return {type: "set-planner-preferences", preferences: normalizePlannerPreferences(value.preferences)};
+  }
+  if (value.type === "upsert-planner-session") {
+    const session = normalizePlannerSession(value.session);
+    return session ? {type: "upsert-planner-session",session} : null;
+  }
+  if (value.type === "delete-planner-session") {
+    return typeof value.id === "string" && value.id.length > 0 ? {type:"delete-planner-session",id:value.id} : null;
+  }
   if (value.type === "add-item") {
     const item = normalizeItem(value.item);
     return item ? { type: "add-item", item } : null;
@@ -557,6 +580,9 @@ export function applyPersonalDataMutation(
   snapshot: PersonalDataSnapshot,
   mutation: PersonalDataMutation,
 ): PersonalDataSnapshot {
+  if (mutation.type === "set-planner-preferences") return {...snapshot,plannerPreferences:mutation.preferences};
+  if (mutation.type === "upsert-planner-session") return {...snapshot,plannerSessions:normalizePlannerSessions([...snapshot.plannerSessions.filter(s => s.id !== mutation.session.id),mutation.session])};
+  if (mutation.type === "delete-planner-session") return {...snapshot,plannerSessions:snapshot.plannerSessions.filter(s=>s.id!==mutation.id)};
   if (mutation.type === "add-item") {
     return snapshot.items.some((item) => item.id === mutation.item.id)
       ? snapshot

@@ -186,6 +186,7 @@ export default function RhythmPage() {
         <div>
           <h2 className="mt-1 text-3xl font-semibold tracking-tight">This week</h2>
           <p className="pcc-context">{formatPeriod(period.start, period.end)} · Saturday–Friday</p>
+          <Link href="/rhythm/plan" className="mt-2 inline-flex min-h-11 items-center rounded-xl border px-4 text-sm font-semibold">Plan work sessions →</Link>
         </div>
         <button
           type="button"

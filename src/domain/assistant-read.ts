@@ -98,8 +98,21 @@ function planning(snapshot: PersonalDataSnapshot, args: Record<string, unknown>,
       .filter((entry) => { const date = dateInZone(new Date(entry.completedAt), timezone); return date >= clock.weekStart && date <= clock.weekEnd; }).length;
     rows.push({ kind: "rhythm-intention", sourceId: template.id, title: template.title.slice(0, 300), target: template.targetPerWeek, completed, category: "flexible-this-week", path: "/rhythm" });
   }
+  // Explicit planning grants may read session outcomes, including bounded check-in notes.
+  // Entries remain distinct from original task status and may span multiple sessions.
+  const recentPlannerDate = new Date(asOf.getTime() - 180 * 86400000).toISOString().slice(0, 10);
+  for (const session of snapshot.plannerSessions) {
+    if (session.date < recentPlannerDate) continue;
+    rows.push({
+      kind:"planner-session", sourceId:session.id, title:session.title.slice(0,300),
+      date:session.date, start:session.start, minutes:session.minutes,
+      estimateMinutes:session.estimateMinutes, outcome:session.outcome ?? "unconfirmed",
+      actualMinutes:session.actualMinutes ?? null, note:session.note?.slice(0,1500) ?? "",
+      noteTruncated:(session.note?.length ?? 0)>1500, work:session.work, path:"/rhythm/plan",
+    });
+  }
   rows.sort((a, b) => `${a.kind}:${a.sourceId}:${a.sourceSubId ?? ""}`.localeCompare(`${b.kind}:${b.sourceId}:${b.sourceSubId ?? ""}`, "en"));
-  return { ...clock, timezone, asOf: asOf.toISOString(), stateSemantics: "Current canonical state grouped at asOf; not a historical reconstruction.", calendarCoverage: "not-included",
+  return { ...clock, timezone, plannerPreferences: snapshot.plannerPreferences, asOf: asOf.toISOString(), stateSemantics: "Current canonical state grouped at asOf; not a historical reconstruction.", calendarCoverage: "not-included",
     ...paginate(rows, args, revision, JSON.stringify(["planning", userId, timezone, clock.today, clock.weekStart, args.asOf ?? null])) };
 }
 

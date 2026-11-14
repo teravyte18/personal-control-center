@@ -21,6 +21,7 @@ const LEGACY_ITEMS_KEY = "pcc-items-v1";
 const REVIEW_DRAFT_KEY = "pcc-review-draft-v2";
 const LEGACY_REVIEW_KEY = "pcc-review-v1";
 const REVIEW_HISTORY_KEY = "pcc-review-history-v1";
+const PLANNER_KEY = "pcc-weekly-planner-v1";
 const RHYTHM_KEY = "pcc-weekly-rhythm-v1";
 export const activeBrowserUserStorageKey = "pcc-active-browser-user-v1";
 
@@ -32,6 +33,8 @@ export type BrowserUserIdentity = {
 type StorageReader = Pick<Storage, "getItem">;
 type StorageWriter = Pick<Storage, "getItem" | "setItem">;
 
+import { normalizePlannerPreferences, normalizePlannerSessions, type PlannerPreferences, type PlannerSession } from "@/domain/weekly-planner";
+
 export type StoredPersonalData = {
   items: Item[];
   draft: ReviewDraft;
@@ -39,6 +42,8 @@ export type StoredPersonalData = {
   rhythmTemplates: RhythmTemplate[];
   rhythmCompletions: RhythmCompletion[];
   weeklyFocuses: WeeklyFocus[];
+  plannerPreferences: PlannerPreferences;
+  plannerSessions: PlannerSession[];
 };
 
 export function loadActiveBrowserUser(storage: StorageReader): BrowserUserIdentity | null {
@@ -86,6 +91,8 @@ export function loadPersonalData(storage: StorageReader): StoredPersonalData {
     const storedHistory = readForActiveUser(storage, REVIEW_HISTORY_KEY);
     const storedRhythm = readForActiveUser(storage, RHYTHM_KEY);
     const rhythm = storedRhythm ? JSON.parse(storedRhythm) as Record<string, unknown> : {};
+    const storedPlanner = readForActiveUser(storage, PLANNER_KEY);
+    const planner = storedPlanner ? JSON.parse(storedPlanner) as Record<string, unknown> : {};
 
     return {
       items: storedItems ? normalizeItems(JSON.parse(storedItems)) : [],
@@ -94,6 +101,8 @@ export function loadPersonalData(storage: StorageReader): StoredPersonalData {
       rhythmTemplates: normalizeRhythmTemplates(rhythm.rhythmTemplates),
       rhythmCompletions: normalizeRhythmCompletions(rhythm.rhythmCompletions),
       weeklyFocuses: normalizeWeeklyFocuses(rhythm.weeklyFocuses),
+      plannerPreferences: normalizePlannerPreferences(planner.preferences),
+      plannerSessions: normalizePlannerSessions(planner.sessions),
     };
   } catch (error) {
     console.warn("Could not load locally saved personal data.", error);
@@ -104,6 +113,8 @@ export function loadPersonalData(storage: StorageReader): StoredPersonalData {
       rhythmTemplates: [],
       rhythmCompletions: [],
       weeklyFocuses: [],
+      plannerPreferences: normalizePlannerPreferences(undefined),
+      plannerSessions: [],
     };
   }
 }
@@ -142,6 +153,11 @@ export function saveRhythm(
   }
 }
 
+export function savePlanner(storage: StorageWriter, preferences: PlannerPreferences, sessions: PlannerSession[]) {
+  try { writeForActiveUser(storage, PLANNER_KEY, JSON.stringify({preferences,sessions})); }
+  catch (error) { console.warn("Could not save planner locally.",error); }
+}
+
 export const personalStorageKeys = {
   items: ITEMS_KEY,
   legacyItems: LEGACY_ITEMS_KEY,
@@ -149,5 +165,6 @@ export const personalStorageKeys = {
   legacyReviewDraft: LEGACY_REVIEW_KEY,
   reviewHistory: REVIEW_HISTORY_KEY,
   rhythm: RHYTHM_KEY,
+  planner: PLANNER_KEY,
   activeBrowserUser: activeBrowserUserStorageKey,
 } as const;

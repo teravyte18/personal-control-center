@@ -41,14 +41,15 @@ test("tool schemas reject identity, URL, raw mutation and unknown argument injec
     assert.equal(tool.schema.safeParse({ userId: "other", url: "https://evil.test", mutation: {} }).success, false);
   }
 });
-test("MCP protocol discovers five read-only tools and returns structured results", async () => {
+test("MCP protocol discovers five read-only and two scoped planner tools and returns structured results", async () => {
   const [left, right] = InMemoryTransport.createLinkedPair();
   const server = createServer(async () => library);
   const client = new Client({ name: "pcc-test", version: "1" });
   try {
     await server.connect(left); await client.connect(right);
-    const listed = await client.listTools(); assert.equal(listed.tools.length, 5);
-    assert.ok(listed.tools.every((tool) => tool.annotations.readOnlyHint));
+    const listed = await client.listTools(); assert.equal(listed.tools.length, 7);
+    assert.equal(listed.tools.filter(tool=>tool.annotations.readOnlyHint).length,6);
+    assert.equal(listed.tools.find(tool=>tool.name==="pcc_submit_planner_plan")?.annotations.readOnlyHint,false);
     const result = await client.callTool({ name: "pcc_library_list", arguments: {} });
     assert.deepEqual(result.structuredContent, library);
     const invalid = await client.callTool({ name: "pcc_library_list", arguments: { userId: "other" } });
@@ -65,7 +66,7 @@ test("real stdio process handles discovery and HTTP read without stdout noise", 
   const client = new Client({ name: "stdio-test", version: "1" });
   try {
     await client.connect(transport);
-    assert.equal((await client.listTools()).tools.length, 5);
+    assert.equal((await client.listTools()).tools.length, 7);
     assert.deepEqual((await client.callTool({ name: "pcc_library_list", arguments: {} })).structuredContent, library);
   } finally { await client.close(); await transport.close(); await new Promise((resolve) => fake.close(resolve)); }
 });

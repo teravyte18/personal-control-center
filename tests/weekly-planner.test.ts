@@ -6,6 +6,7 @@ import {
 } from "../src/domain/weekly-planner.ts";
 import { applyPersonalDataMutation, emptyPersonalDataSnapshot, normalizePersonalDataMutation, normalizePersonalDataSnapshot } from "../src/domain/personal-data-snapshot.ts";
 import type { Item } from "../src/domain/personal-data.ts";
+import { assistantRead } from "../src/domain/assistant-read.ts";
 
 const task:Item = {
  id:"task-1",title:"Review report",description:"",actions:[],kind:"task",status:"active",area:"personal",
@@ -56,4 +57,16 @@ test("outcomes preserve notes, unfinished work and explicit actual effort",()=>{
  const restored=normalizePersonalDataSnapshot(JSON.parse(JSON.stringify(snapshot)));
  assert.equal(restored.plannerSessions[0].note,"Unexpected research follow-up");
  assert.equal(normalizePersonalDataMutation({type:"upsert-planner-session",session:{...a,minutes:-1}}),null);
+});
+
+test("scoped planning reader exposes bounded session notes and preferences without generic write access",()=>{
+  const session=reconcileSession(make(),"partial","Next session: investigate a new detail.",150,now);
+  const snapshot={...emptyPersonalDataSnapshot,plannerSessions:[session]};
+  const result=assistantRead("planning",{timezone:"Europe/Lisbon",asOf:"2026-11-17T12:00:00Z",limit:25},{revision:1,snapshot},"fictional-owner",["projects","tasks","rhythm"],new Date("2026-11-17T12:00:00Z")) as {
+    records:Array<{kind:string;note?:string;outcome?:string}>;plannerPreferences:{start:string};
+  };
+  const row=result.records.find(s=>s.kind==="planner-session");
+  assert.equal(row?.note,"Next session: investigate a new detail.");
+  assert.equal(row?.outcome,"partial");
+  assert.equal(result.plannerPreferences.start,"10:00");
 });

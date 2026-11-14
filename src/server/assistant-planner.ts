@@ -60,10 +60,11 @@ export async function plannerAvailability(userId:string, from:string, to:string)
     fetchedAt:new Date().toISOString()};
 }
 export async function submitPlannerProposal(userId:string,input:unknown) {
-  if (!record(input) || Object.keys(input).some(k=>!["revision","replaceFrom","sessions"].includes(k))
+  if (!record(input) || Object.keys(input).some(k=>!["revision","replaceFrom","sessions","requestId"].includes(k))
     || !Number.isSafeInteger(input.revision) || typeof input.replaceFrom !== "string"
     || !Array.isArray(input.sessions) || input.sessions.length<1 || input.sessions.length>20)
     throw new PlannerInputError("Invalid proposed plan.");
+  if (input.requestId !== undefined && (typeof input.requestId !== "string" || !/^[0-9a-f-]{36}$/.test(input.requestId))) throw new PlannerInputError("Invalid request ID.");
   const current = await loadPersonalDataState(userId);
   if (current.revision !== input.revision) throw new PlannerConflictError("Plan changed; retrieve fresh availability.");
   const zone=current.snapshot.plannerPreferences.timezone;
@@ -100,6 +101,16 @@ export async function submitPlannerProposal(userId:string,input:unknown) {
       select revision,snapshot from personal_data_state where user_id=${userId} for update
     `;
     if(!row || Number(row.revision)!==input.revision) throw new PlannerConflictError("State changed; retrieve a new plan.");
+    if(input.requestId) {
+      const [queued]=await tx<{week_start:Date|string}[]>`
+        select week_start from planner_requests where user_id=${userId} and id=${input.requestId as string} and processed_at is null for update
+      `;
+      if(!queued) throw new PlannerConflictError("Requested planning job is not pending.");
+      const start=new Date(replaceFrom+"T12:00:00Z");
+      start.setUTCDate(start.getUTCDate() - (start.getUTCDay()+6)%7);
+      const target=queued.week_start instanceof Date ? queued.week_start.toISOString().slice(0,10) : String(queued.week_start).slice(0,10);
+      if(start.toISOString().slice(0,10)!==target) throw new PlannerInputError("Request week does not match proposal.");
+    }
     const snapshot=normalizePersonalDataSnapshot(row.snapshot);
     const retained=snapshot.plannerSessions.filter(s=>!(s.origin==="assistant" && !s.locked && !s.outcome && s.date>=replaceFrom));
     // Recheck against the transactional version, never erase protected sessions.
@@ -111,6 +122,9 @@ export async function submitPlannerProposal(userId:string,input:unknown) {
     const [saved]=await tx<{revision:number|string}[]>`
       update personal_data_state set snapshot=${tx.json(next)},revision=revision+1,updated_at=now()
       where user_id=${userId} returning revision
+    `;
+    if(input.requestId) await tx`
+      update planner_requests set processed_at=now() where user_id=${userId} and id=${input.requestId as string} and processed_at is null
     `;
     return {saved:true,revision:Number(saved.revision),count:rows.length,calendarCheckedAt:availability.fetchedAt};
   });

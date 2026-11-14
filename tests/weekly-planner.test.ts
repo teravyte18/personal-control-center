@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
  createPlannerSession, defaultPlannerPreferences, normalizePlannerSession, normalizePlannerState,
+ plannerSessionInReplacementWindow,
  plannerWeekDays, reconcileSession, sessionOverlaps, validatePlannerSession,
 } from "../src/domain/weekly-planner.ts";
 import { applyPersonalDataMutation, emptyPersonalDataSnapshot, normalizePersonalDataMutation, normalizePersonalDataSnapshot } from "../src/domain/personal-data-snapshot.ts";
@@ -20,6 +21,19 @@ const make = (date="2026-11-16",start="10:30") => createPlannerSession({
 test("planner retains Saturday-Friday week boundary, schedules Monday-Friday only",()=>{
  assert.deepEqual(plannerWeekDays("2026-11-14"),["2026-11-16","2026-11-17","2026-11-18","2026-11-19","2026-11-20"]);
  assert.deepEqual(plannerWeekDays("2026-11-16"),[]);
+});
+test("assistant replacement is bounded to the proposal window and future dates",()=>{
+ const sample=(overrides:Partial<ReturnType<typeof make>>={})=>({
+  ...make("2026-11-18"),origin:"assistant" as const,locked:false,...overrides,
+ });
+ const from="2026-11-16",to="2026-11-18",today="2026-11-17";
+ assert.equal(plannerSessionInReplacementWindow(sample(),from,to,today),true);
+ assert.equal(plannerSessionInReplacementWindow(sample({date:today}),from,to,today),false);
+ assert.equal(plannerSessionInReplacementWindow(sample({date:"2026-11-19"}),from,to,today),false);
+ assert.equal(plannerSessionInReplacementWindow(sample({date:"2026-11-15"}),from,to,today),false);
+ assert.equal(plannerSessionInReplacementWindow(sample({origin:"manual"}),from,to,today),false);
+ assert.equal(plannerSessionInReplacementWindow(sample({locked:true}),from,to,today),false);
+ assert.equal(plannerSessionInReplacementWindow(sample({outcome:"partial"}),from,to,today),false);
 });
 test("planner normalization rejects invalid dates, times, duration and malformed references",()=>{
  const valid=make();

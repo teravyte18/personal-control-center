@@ -19,6 +19,14 @@ export type PlannerSession = {
   note?: string;
   actualMinutes?: number;
 };
+
+/** Assistant replans only replace unconfirmed future sessions inside the submitted window. */
+export function plannerSessionInReplacementWindow(
+  session: PlannerSession, from: string, to: string, today: string,
+) {
+  return session.origin === "assistant" && !session.locked && !session.outcome
+    && session.date > today && session.date >= from && session.date <= to;
+}
 export type PlannerPreferences = {
   timezone: string;
   start: string;

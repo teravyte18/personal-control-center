@@ -100,8 +100,9 @@ function planning(snapshot: PersonalDataSnapshot, args: Record<string, unknown>,
   }
   // Explicit planning grants may read session outcomes, including bounded check-in notes.
   // Entries remain distinct from original task status and may span multiple sessions.
+  const recentPlannerDate = new Date(asOf.getTime() - 180 * 86400000).toISOString().slice(0, 10);
   for (const session of snapshot.plannerSessions) {
-    if (session.date < clock.weekStart.slice(0,4) + "-01-01") continue;
+    if (session.date < recentPlannerDate) continue;
     rows.push({
       kind:"planner-session", sourceId:session.id, title:session.title.slice(0,300),
       date:session.date, start:session.start, minutes:session.minutes,

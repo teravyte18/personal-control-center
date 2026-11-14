@@ -17,6 +17,7 @@ Status: planned rollout. **Do not enable production autonomous writes before the
 3. Install/update the pinned adapter code on the Pi using the documented adapter setup. Update the private Rem MCP allowlist to include:
    - `pcc_get_planning`
    - `pcc_get_context` (only if corresponding domains are granted)
+   - `pcc_get_planner_requests`
    - `pcc_get_planner_calendar`
    - `pcc_submit_planner_plan`
 4. Point this private connection at the new token file. Keep existing read-only connections unchanged.
@@ -40,6 +41,12 @@ Status: planned rollout. **Do not enable production autonomous writes before the
 
 > Inspect the PCC planner integration code and the runbook at `docs/weekly-planner-openclaw.md` on the merged deployed branch. Do not install or change production credentials, enable cron jobs, access private calendar data or change any PCC records yet. Report (a) your current OpenClaw version, (b) the exact owner-private MCP configuration location, (c) a safe deployment/update procedure for the pinned PCC adapter, and (d) how to create two paused jobs: weekly planning on Saturday and daily reconciliation on weekdays. Propose a low-token agent execution approach that uses the new planner tools. Do not expose credentials, private prompts, personal tasks or private schedule details in logs or GitHub. Await my approval before you enable or run jobs.
 
+## Request polling and automation
+
+PCC now stores authenticated Plan / Replan requests in `planner_requests`. Rem should call `pcc_get_planner_requests` on a low-cost schedule; **if there are no pending requests, stop without making an LLM inference call**. For a pending request, retrieve relevant task pages and last session notes via `pcc_get_planning`, fetch the fresh Calendar busy intervals via `pcc_get_planner_calendar`, and submit a proposal with that request ID using `pcc_submit_planner_plan`. A successful atomic save acknowledges the request. The browser can cancel requests that have not been processed. There is no standing license to modify Tasks or Calendar events.
+
+A weekly Saturday job may generate a next-week plan proactively; daily reconciliation should read actual outcomes and rearrange only unlocked, unconfirmed future assistant sessions. Do not automatically treat unconfirmed sessions as failed or downgrade aspirations after one bad week. Save useful trends in the private agent memory deliberately and concisely, not full raw PCC exports. Keep weekly and daily model calls bounded by explicit limits.
+
 ## Future work
 
-A user-triggered in-app request queue, reliable job idempotency/acknowledgements, and operator-verified automation are part of the next slice. Do not label the copy-only refinement textarea as integrated.
+The durable request queue and atomic acknowledgement are implemented. Operator-verified Rem automations and end-to-end server tests still require the Pi runtime. Do not label the copy-only refinement textarea as integrated.

@@ -5,18 +5,18 @@ import { RemController } from './controller.mjs';
 import { admitText, ABORT_TRIGGERS } from './input-policy.mjs';
 const binding={id:'fictional_binding_0001',agentId:'fixture',sessionKey:'agent:fixture:pcc-fictional'};
 function fixture({ledger=[],loseAck=false,saveFails=false,clockFloor=0,recoveryDelays=undefined,watchdogDelays=undefined}={}) {
-  const frames=[],active=[],receipts=[];let physical='fictional-physical-1',leaf=null,rows=[],snapshotMessages=[],historyFailures=0,historyGate=null,historyInFlight=0,maxHistoryInFlight=0,saveGate=null,saveInFlight=0;
+  const frames=[],active=[],receipts=[];let physical='fictional-physical-1',recoveryPhysical=null,recoveryKey=null,leaf=null,rows=[],snapshotMessages=[],recoveryMessages=null,recoveryReceipts=null,historyFailures=0,historyGate=null,historyInFlight=0,maxHistoryInFlight=0,saveGate=null,saveInFlight=0;
   const rpc=async(method,p)=> {
     frames.push({method,p});
     if(method==='sessions.messages.subscribe')return {key:binding.sessionKey,agentId:binding.agentId};
     assert.equal(p.sessionKey,binding.sessionKey);assert.equal(p.agentId,binding.agentId);
-    if(method==='chat.history'){historyInFlight++;maxHistoryInFlight=Math.max(maxHistoryInFlight,historyInFlight);try{if(historyGate)await historyGate;if(historyFailures-->0)throw new Error('fictional history timeout');return {sessionKey:binding.sessionKey,sessionId:physical,messages:snapshotMessages,deltaCursor:'fictional-cursor',sessionInfo:{hasActiveRun:active.length>0,activeRunIds:[...active],activeLeafEntryId:leaf},inputReceipts:receipts};}finally{historyInFlight--;}}
+    if(method==='chat.history'){historyInFlight++;maxHistoryInFlight=Math.max(maxHistoryInFlight,historyInFlight);try{if(historyGate)await historyGate;if(historyFailures-->0)throw new Error('fictional history timeout');if(p.limit===200)return {sessionKey:recoveryKey??binding.sessionKey,sessionId:recoveryPhysical??physical,messages:recoveryMessages??snapshotMessages,sessionInfo:{hasActiveRun:active.length>0,activeRunIds:[...active],activeLeafEntryId:leaf},inputReceipts:recoveryReceipts??receipts};return {sessionKey:binding.sessionKey,sessionId:physical,messages:snapshotMessages,deltaCursor:'fictional-cursor',sessionInfo:{hasActiveRun:active.length>0,activeRunIds:[...active],activeLeafEntryId:leaf},inputReceipts:receipts};}finally{historyInFlight--;}}
     if(method==='chat.send'){active.push(p.idempotencyKey);if(loseAck)throw new Error('fictional private provider error');return {runId:p.idempotencyKey,status:'started'};}
     if(method==='chat.abort'){return {ok:true,aborted:true,runIds:[p.runId]};}
     throw new Error('unexpected method');
   };
   const controller=new RemController({binding,rpc,ledger,clockFloor,recoveryDelays,watchdogDelays,saveLedger:async value=>{saveInFlight++;try{if(saveGate)await saveGate;if(saveFails)throw new Error('fictional storage failure');rows=structuredClone(value);}finally{saveInFlight--;}}});
-  return {controller,frames,active,receipts,get saveInFlight(){return saveInFlight;},get maxHistoryInFlight(){return maxHistoryInFlight;},get rows(){return rows;},setHistoryFailures:value=>{historyFailures=value;},setHistoryGate:value=>{historyGate=value;},setSaveGate:value=>{saveGate=value;},setSaveFails:value=>{saveFails=value;},setPhysical:value=>{physical=value;},setLeaf:value=>{leaf=value;},setMessages:value=>{snapshotMessages=value;}};
+  return {controller,frames,active,receipts,get saveInFlight(){return saveInFlight;},get maxHistoryInFlight(){return maxHistoryInFlight;},get rows(){return rows;},setHistoryFailures:value=>{historyFailures=value;},setHistoryGate:value=>{historyGate=value;},setSaveGate:value=>{saveGate=value;},setSaveFails:value=>{saveFails=value;},setPhysical:value=>{physical=value;},setLeaf:value=>{leaf=value;},setMessages:value=>{snapshotMessages=value;},setRecoveryMessages:value=>{recoveryMessages=value;},setRecoveryReceipts:value=>{recoveryReceipts=value;},setRecoveryAddress:(key,id)=>{recoveryKey=key;recoveryPhysical=id;}};
 }
 const body=(c,text='A fictional question')=>({submissionId:newRemSubmissionId(),text,revision:c.snapshot().revision});
 async function eventually(check) {
@@ -60,11 +60,56 @@ test('lost ACK recovers after restart from the exact transcript source identity 
   assert.equal(restarted.controller.snapshot().state,'ready');assert.equal(restarted.rows[0].state,'finished');assert.equal(restarted.rows[0].messageId,'canonical-one');
   assert.equal(restarted.frames.filter(f=>f.method==='chat.send').length,0);
 });
+test('history-window fallback settles exact proof found only beyond normal tail and never projects it',async()=>{
+  const f=fixture({loseAck:true});await f.controller.connect();const input=body(f.controller);
+  await assert.rejects(f.controller.send(input),{code:'outcome_unknown'});const row=f.rows[0];f.active.length=0;
+  f.setMessages(Array.from({length:40},(_,i)=>({role:'assistant',content:`tail ${i}`,__openclaw:{id:`tail-${i}`}})));
+  f.setRecoveryMessages([{role:'user',content:'different text',__openclaw:{id:'recovered-canonical',idempotencyKey:`${row.runId}:user`}}]);
+  await f.controller.history();assert.equal(f.controller.snapshot().state,'ready');assert.equal(f.rows[0].state,'finished');
+  assert.equal(f.controller.snapshot().messages.length,40);assert.equal(f.controller.snapshot().messages.some(message=>message.id.includes('recovered-canonical')),false);
+  const reads=f.frames.filter(frame=>frame.method==='chat.history');assert.equal(reads.length,4);
+  assert.deepEqual(reads[2].p,{sessionKey:binding.sessionKey,agentId:binding.agentId,limit:40,maxBytes:65536,maxChars:8000,inputRunIds:[row.runId]});
+  assert.deepEqual(reads[3].p,{sessionKey:binding.sessionKey,agentId:binding.agentId,limit:200,maxBytes:524288,maxChars:8000,inputRunIds:[row.runId]});
+  assert.equal(f.frames.filter(frame=>frame.method==='chat.send').length,1);
+});
+test('inactive model-error recovery context settles only from canonical user identity, never as a successful reply',async()=>{
+  const f=fixture({loseAck:true});await f.controller.connect();const input=body(f.controller);
+  await assert.rejects(f.controller.send(input),{code:'outcome_unknown'});const row=f.rows[0];f.active.length=0;
+  f.setMessages([{role:'assistant',content:'No successful reply in the normal tail',__openclaw:{id:'normal-context'}}]);
+  f.setRecoveryMessages([
+    {role:'user',content:'canonical input',__openclaw:{id:'canonical-user',idempotencyKey:`${row.runId}:user`}},
+    {role:'assistant',stopReason:'error',content:'model error diagnostic',__openclaw:{id:'error-context'}},
+  ]);
+  await f.controller.history();
+  assert.equal(f.controller.snapshot().state,'ready');assert.equal(f.rows[0].state,'finished');assert.equal(f.rows[0].messageId,'canonical-user');
+  assert.deepEqual(f.controller.snapshot().messages.map(message=>message.text),['No successful reply in the normal tail']);
+  assert.equal(f.controller.snapshot().messages.some(message=>message.text.includes('model error diagnostic')),false);
+  assert.equal(f.frames.filter(frame=>frame.method==='chat.send').length,1);
+});
+test('fallback is skipped when normal exact proof exists or the run remains active',async()=>{
+  const f=fixture({loseAck:true});await f.controller.connect();const input=body(f.controller);
+  await assert.rejects(f.controller.send(input),{code:'outcome_unknown'});const row=f.rows[0];
+  f.receipts.push({runId:row.runId,state:'consumed'});f.active.length=0;await f.controller.history();
+  assert.equal(f.frames.filter(frame=>frame.method==='chat.history'&&frame.p.limit===200).length,0);
+  const g=fixture({loseAck:true});await g.controller.connect();const second=body(g.controller);
+  await assert.rejects(g.controller.send(second),{code:'outcome_unknown'});await g.controller.history();
+  assert.equal(g.frames.filter(frame=>frame.method==='chat.history'&&frame.p.limit===200).length,0);
+});
+test('fallback rejects mismatched Gateway address or physical session',async()=>{
+  for(const address of [[`agent:other:pcc-fictional`,'fictional-physical-1'],[binding.sessionKey,'other-physical']]){
+    const f=fixture({loseAck:true});await f.controller.connect();const input=body(f.controller);
+    await assert.rejects(f.controller.send(input),{code:'outcome_unknown'});f.active.length=0;
+    f.setRecoveryMessages([{role:'user',content:'ignored',__openclaw:{id:'foreign',idempotencyKey:`${f.rows[0].runId}:user`}}]);
+    f.setRecoveryAddress(...address);await f.controller.history();
+    assert.equal(f.controller.snapshot().state,'outcome_unknown');assert.equal(f.rows[0].state,'unknown');
+  }
+});
 test('an inactive run or identical text without its exact transcript source identity remains unknown',async()=>{
   const f=fixture({loseAck:true});await f.controller.connect();const input=body(f.controller);
   await assert.rejects(f.controller.send(input),{code:'outcome_unknown'});f.active.length=0;
   f.setMessages([{role:'user',content:input.text,__openclaw:{id:'unrelated',idempotencyKey:'another-run:user'}}]);
   await f.controller.history();assert.equal(f.controller.snapshot().state,'outcome_unknown');
+  assert.equal(f.frames.filter(frame=>frame.method==='chat.history'&&frame.p.limit===200).length,1);
 });
 test('durable preparation failure prevents inference; foreign activity blocks admission',async()=>{
   const f=fixture({saveFails:true});await f.controller.connect();await assert.rejects(f.controller.send(body(f.controller)),{code:'outcome_unknown'});assert.equal(f.frames.filter(f=>f.method==='chat.send').length,0);

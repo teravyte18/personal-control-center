@@ -69,6 +69,10 @@ export function nextDate(date: string) {
   return value.toISOString().slice(0, 10);
 }
 
+export function canSkipCalendarRead(status: number, isPccCalendar: boolean) {
+  return !isPccCalendar && (status === 403 || status === 404);
+}
+
 export function buildGoogleCalendarProjections(snapshot: CalendarSnapshot): GoogleCalendarProjection[] {
   const projections: GoogleCalendarProjection[] = [];
 

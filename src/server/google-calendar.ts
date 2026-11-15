@@ -10,6 +10,7 @@ import {
 import {
   buildGoogleCalendarEventBody,
   buildGoogleCalendarProjections,
+  canSkipCalendarRead,
   type GoogleCalendarEventBody,
   type GoogleCalendarProjection,
   type GoogleCalendarSourceType,
@@ -149,6 +150,7 @@ export type AgendaEventsResult = {
   configured: boolean;
   connected: boolean;
   needsReconnect: boolean;
+  coverageComplete: boolean;
   calendarName: string;
   events: AgendaEvent[];
 };
@@ -669,6 +671,7 @@ export async function getAgendaEvents(userId: string, timeMin: string, timeMax: 
       configured,
       connected: false,
       needsReconnect: false,
+      coverageComplete: false,
       calendarName: DEFAULT_CALENDAR_NAME,
       events: [],
     };
@@ -685,6 +688,7 @@ export async function getAgendaEvents(userId: string, timeMin: string, timeMax: 
     }
 
     const events: AgendaEvent[] = [];
+    let coverageComplete = true;
     for (const calendar of calendars) {
       if (!calendar.id) continue;
       try {
@@ -697,7 +701,10 @@ export async function getAgendaEvents(userId: string, timeMin: string, timeMax: 
           timeMax,
         ));
       } catch (error) {
-        if (error instanceof GoogleApiError && [403, 404].includes(error.status) && calendar.id !== connection.calendar_id) continue;
+        if (error instanceof GoogleApiError && canSkipCalendarRead(error.status, calendar.id === connection.calendar_id)) {
+          coverageComplete = false;
+          continue;
+        }
         throw error;
       }
     }
@@ -713,6 +720,7 @@ export async function getAgendaEvents(userId: string, timeMin: string, timeMax: 
       configured,
       connected: true,
       needsReconnect: false,
+      coverageComplete,
       calendarName: DEFAULT_CALENDAR_NAME,
       events,
     };
@@ -722,6 +730,7 @@ export async function getAgendaEvents(userId: string, timeMin: string, timeMax: 
         configured,
         connected: true,
         needsReconnect: true,
+        coverageComplete: false,
         calendarName: DEFAULT_CALENDAR_NAME,
         events: [],
       };

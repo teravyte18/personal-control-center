@@ -3,9 +3,18 @@ import test from "node:test";
 import {
   buildGoogleCalendarEventBody,
   buildGoogleCalendarProjections,
+  canSkipCalendarRead,
   mutationAffectsGoogleCalendar,
   nextDate,
 } from "../src/domain/google-calendar.ts";
+
+test("only unreadable secondary calendars can be skipped with incomplete coverage", () => {
+  for (const status of [403, 404]) {
+    assert.equal(canSkipCalendarRead(status, false), true);
+    assert.equal(canSkipCalendarRead(status, true), false);
+  }
+  assert.equal(canSkipCalendarRead(500, false), false);
+});
 
 const base = {
   title: "Neutral example",

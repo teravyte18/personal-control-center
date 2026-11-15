@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createPlannerSession } from "../src/domain/weekly-planner.ts";
-import { conflictWithEvent, localPlannerClock, reviewPlannerChanges, withinPlannerHorizon } from "../src/domain/planner-proposal.ts";
+import { conflictWithEvent, localPlannerClock, plannerBusyEvents, plannerCalendarCoverageIssue, reviewPlannerChanges, withinPlannerHorizon } from "../src/domain/planner-proposal.ts";
 import type { Item } from "../src/domain/personal-data.ts";
 
 const now = new Date("2026-11-16T12:00:00Z");
@@ -37,6 +37,25 @@ test("planner horizon and local clock use configured zone and real dates",()=>{
   assert.equal(withinPlannerHorizon("2026-11-37","2026-11-16"),false);
   assert.equal(withinPlannerHorizon("2026-12-07","2026-11-16"),true);
   assert.equal(withinPlannerHorizon("2026-12-08","2026-11-16"),false);
+});
+
+test("review cannot remove or move an original session beyond the 21-day horizon",()=>{
+  const outside=session("outside","2026-12-08");
+  assert.match(String(review([outside],[],[outside.id])),/no longer movable/);
+  assert.match(String(review([outside],[{...outside,date:"2026-12-07"}])),/no longer movable/);
+  const boundary=session("boundary","2026-12-07");
+  assert.ok(Array.isArray(review([boundary],[],[boundary.id])));
+});
+
+test("planner treats unmarked PCC events as busy but excludes known projections",()=>{
+  const event=(source:string)=>({source,start:"2026-11-17T14:00:00Z",end:"2026-11-17T15:00:00Z",allDay:false});
+  const busy=plannerBusyEvents([event("pcc"),event("agenda"),event("google"),event("planner-session"),event("task"),event("project-action")]);
+  assert.equal(busy.length,3);
+  assert.equal(busy.some(value=>conflictWithEvent(session("draft"),value,"UTC")),true);
+});
+test("approval fails closed when Calendar coverage is incomplete",()=>{
+  assert.match(plannerCalendarCoverageIssue(false),/could not be fully verified/);
+  assert.equal(plannerCalendarCoverageIssue(true),"");
 });
 
 test("approval busy checks include local timezone, DST and all-day commitments",()=>{

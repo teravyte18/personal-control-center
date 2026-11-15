@@ -2,6 +2,16 @@ import { applyPlannerSessionChanges, normalizePlannerSession, plannerSessionCanM
 import type { Item } from "./personal-data.ts";
 
 export type ProposalChanges = { sessions: PlannerSession[]; removeSessionIds: string[] };
+type CalendarEvent = { source: string; start: string; end: string; allDay: boolean };
+export function plannerBusyEvents(events: CalendarEvent[]) {
+  // Recognised PCC projections are already represented by canonical planner state.
+  // Unknown events on the PCC calendar are commitments, not safe-to-ignore projections.
+  return events.filter(event => ["google", "agenda", "pcc"].includes(event.source))
+    .map(({start, end, allDay}) => ({start, end, allDay}));
+}
+export function plannerCalendarCoverageIssue(coverageComplete: boolean) {
+  return coverageComplete ? "" : "Calendar availability could not be fully verified.";
+}
 export function localPlannerClock(now: Date, timezone: string) {
   const parts = new Intl.DateTimeFormat("en-GB", { timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(now);
   const value = (key: string) => parts.find(part => part.type === key)?.value ?? "";
@@ -21,7 +31,7 @@ export function reviewPlannerChanges(existing: PlannerSession[], changes: Propos
     if (ids.has(id)) return "Duplicate session change.";
     ids.add(id);
     const original = existing.find(session => session.id === id);
-    if (!original || original.date < replaceFrom || !plannerSessionCanMove(original, today, time)) return "A removed session is no longer movable.";
+    if (!original || original.date < replaceFrom || !withinPlannerHorizon(original.date, today) || !plannerSessionCanMove(original, today, time)) return "A removed session is no longer movable.";
   }
   const retained = existing.filter(session => !ids.has(session.id));
   for (const session of changes.sessions) {
@@ -29,7 +39,7 @@ export function reviewPlannerChanges(existing: PlannerSession[], changes: Propos
       || [0, 6].includes(new Date(session.date + "T12:00:00Z").getUTCDay()) || !plannerSessionCanMove(session, today, time)) return "A proposed session is invalid or no longer movable.";
     ids.add(session.id);
     const original = existing.find(value => value.id === session.id);
-    if (original && (original.date < replaceFrom || !plannerSessionCanMove(original, today, time))) return "An existing session is no longer movable.";
+    if (original && (original.date < replaceFrom || !withinPlannerHorizon(original.date, today) || !plannerSessionCanMove(original, today, time))) return "An existing session is no longer movable.";
   }
   const result = applyPlannerSessionChanges(retained, changes.sessions, today, time);
   if (!result) return "A proposed change conflicts with another session.";

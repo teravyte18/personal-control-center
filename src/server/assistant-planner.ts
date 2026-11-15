@@ -8,7 +8,7 @@ import {
   type PlannerSession,
 } from "@/domain/weekly-planner";
 import { createId } from "@/domain/personal-data";
-import { conflictWithEvent, localPlannerClock, reviewPlannerChanges, withinPlannerHorizon, type ProposalChanges } from "@/domain/planner-proposal";
+import { conflictWithEvent, localPlannerClock, plannerBusyEvents, plannerCalendarCoverageIssue, reviewPlannerChanges, withinPlannerHorizon, type ProposalChanges } from "@/domain/planner-proposal";
 import { normalizePersonalDataSnapshot } from "@/domain/personal-data-snapshot";
 import { attemptCalendarSync } from "@/domain/calendar-sync-result";
 
@@ -28,10 +28,9 @@ export async function plannerAvailability(userId:string, from:string, to:string)
   const calendar = await getAgendaEvents(userId,min.toISOString(),max.toISOString());
   if (!calendar.connected || calendar.needsReconnect) throw new PlannerConflictError("Calendar is not available.");
   // Do not expose appointment titles, locations or notes to an agent.
-  const busy = calendar.events.filter(e=>e.source==="google"||e.source==="agenda")
-    .map(e=>({start:e.start,end:e.end,allDay:e.allDay}));
+  const busy = plannerBusyEvents(calendar.events);
   const state=await loadPersonalDataState(userId);
-  return {revision:state.revision,timezone:state.snapshot.plannerPreferences.timezone,
+  return {revision:state.revision,coverageComplete:calendar.coverageComplete,timezone:state.snapshot.plannerPreferences.timezone,
     preferences:state.snapshot.plannerPreferences, busy, sessions:state.snapshot.plannerSessions.filter(s=>s.date>=from&&s.date<=to),
     fetchedAt:new Date().toISOString()};
 }
@@ -155,6 +154,7 @@ export async function decidePlannerProposal(userId: string, id: unknown, decisio
     catch { issue = "Calendar availability could not be verified."; }
   }
   if (!issue && availability && availability.revision !== Number(initial.snapshot_revision)) issue = "Planner revision changed.";
+  if (!issue && availability) issue = plannerCalendarCoverageIssue(availability.coverageComplete);
   if (!issue && availability && changes.sessions.some(session => availability.busy.some(event => conflictWithEvent(session,event,zone)))) issue = "A live Calendar commitment overlaps this draft.";
   const outcome = await sql.begin(async tx => {
     const [proposal] = await tx<ProposalRow[]>`select id,request_id,snapshot_revision,replace_from,rationale,changes,status,conflict_reason,applied_revision,calendar_sync,created_at,decided_at

@@ -18,7 +18,7 @@ async function authorize(request: Request, write=false): Promise<RemConfig> {
   if(config.enabled && user.id!==config.ownerId)throw new RemError('not_authorized');
   requireRemOrigin(request,config,write);return config;
 }
-const disabled=()=>({revision:'disabled_feature_0001',state:'disabled',messages:[],truncated:false,activeRun:null});
+const disabled=()=>({revision:'disabled_feature_0001',state:'disabled',messages:[],truncated:false,activeRun:null,lifecycle:{stage:'idle',reason:'none'}});
 let activeStreams=0;
 export async function remRoute(request: Request, operation:'history'|'send'|'cancel'|'events') {
   try {

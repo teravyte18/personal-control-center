@@ -45,6 +45,7 @@ export class RemController {
     this.state='connecting'; this.messages=[]; this.revision=randomUUID(); this.generation=0; this.cursor=null; this.sessionId=null; this.leaf=undefined; this.chain=Promise.resolve(); this.recent=[];
     this.recoveryDelays=recoveryDelays; this.recoveryAttempts=0; this.recoveryTimer=null; this.recoveryRunning=false; this.recoveryEpoch=0;
     this.watchdogDelays=watchdogDelays; this.watchdogAttempts=0; this.watchdogTimer=null; this.watchdogRunning=false; this.subscribed=false;
+    this.lifecycle={stage:'idle',reason:'none'}; this.cursorRejected=false; this.persistenceFault=false;
   }
   serial(fn) { const task=this.chain.then(fn); this.chain=task.catch(()=>{}); return task; }
   address() { return { sessionKey:this.binding.sessionKey,agentId:this.binding.agentId }; }
@@ -78,7 +79,7 @@ export class RemController {
     this.recoveryTimer=setTimeout(()=> {
       this.recoveryTimer=null; this.recoveryRunning=true;
       if (epoch!==this.recoveryEpoch) { this.recoveryRunning=false; return; }
-      void this.connect({recoveryEpoch:epoch}).then(()=> { this.recoveryRunning=false; this.clearRecovery(); this.scheduleWatchdog(); },error=> { this.recoveryRunning=false; if (!immediate && error?.code==='history_unavailable' && epoch===this.recoveryEpoch) this.scheduleRecovery(); });
+      void this.connect({recoveryEpoch:epoch}).then(()=> { this.recoveryRunning=false; this.clearRecovery(); this.scheduleWatchdog(); },_error=> { this.recoveryRunning=false; if (epoch===this.recoveryEpoch) this.scheduleRecovery(); });
     },delay);
     this.recoveryTimer.unref?.();
   }
@@ -96,19 +97,19 @@ export class RemController {
   }
   async connect({recoveryEpoch}={}) { return this.serial(async()=> {
     if (recoveryEpoch!==undefined && recoveryEpoch!==this.recoveryEpoch) throw new AdapterError('history_recovery_cancelled');
-    const generation=++this.generation; this.state='connecting';
+    const generation=++this.generation; this.state='connecting'; this.lifecycle={stage:'subscribe',reason:'started'}; this.cursorRejected=false;
     try {
-      const ack=await this.rpc('sessions.messages.subscribe',{ key:this.binding.sessionKey,agentId:this.binding.agentId,subscriptionId:this.binding.id });
+      let ack;try { ack=await this.rpc('sessions.messages.subscribe',{ key:this.binding.sessionKey,agentId:this.binding.agentId,subscriptionId:this.binding.id }); } catch { this.lifecycle={stage:'subscribe',reason:'rpc_failed'}; throw new AdapterError('not_available'); }
       if (generation!==this.generation || (recoveryEpoch!==undefined && recoveryEpoch!==this.recoveryEpoch)) throw new AdapterError('history_recovery_cancelled');
-      if (ack?.key!==this.binding.sessionKey || ack?.agentId!==this.binding.agentId) fail('not_available');
+      if (ack?.key!==this.binding.sessionKey || ack?.agentId!==this.binding.agentId) { this.lifecycle={stage:'subscribe',reason:'invalid_response'}; fail('not_available'); }
       this.subscribed=true;
       // Recover cursor/receipts first. A tail below is an intentional canonical replacement, never delta concatenation.
-      if (this.cursor) { try { await this.rpc('chat.history',this.historyParams({cursor:this.cursor})); } catch { throw new AdapterError('history_unavailable'); } }
+      if (this.cursor) { this.lifecycle={stage:'cursor',reason:'started'}; try { await this.rpc('chat.history',this.historyParams({cursor:this.cursor})); } catch { this.cursor=null; this.cursorRejected=true; this.lifecycle={stage:'cursor',reason:'cursor_rejected'}; } }
       if (generation!==this.generation || (recoveryEpoch!==undefined && recoveryEpoch!==this.recoveryEpoch)) throw new AdapterError('history_recovery_cancelled');
       await this.refresh(generation);
       if (generation!==this.generation || (recoveryEpoch!==undefined && recoveryEpoch!==this.recoveryEpoch)) throw new AdapterError('history_recovery_cancelled');
       this.clearRecovery();
-    } catch (error) { if(generation!==this.generation || (recoveryEpoch!==undefined && recoveryEpoch!==this.recoveryEpoch)) throw new AdapterError('history_recovery_cancelled'); this.subscribed=false; this.clearWatchdog(); this.state=error?.code==='outcome_unknown'?'outcome_unknown':'unavailable'; this.revision=randomUUID(); throw new AdapterError(error?.code==='history_unavailable'?'history_unavailable':'not_available'); }
+    } catch (error) { if(generation!==this.generation || (recoveryEpoch!==undefined && recoveryEpoch!==this.recoveryEpoch)) throw new AdapterError('history_recovery_cancelled'); this.subscribed=false; this.clearWatchdog(); this.state=error?.code==='outcome_unknown'?'outcome_unknown':'unavailable'; if(error?.code==='outcome_unknown')this.lifecycle={stage:'ledger',reason:'persistence_failed'};else if(error?.code==='history_unavailable')this.lifecycle={stage:'history',reason:'rpc_failed'};else if(this.lifecycle.reason==='started')this.lifecycle={stage:this.lifecycle.stage,reason:'invalid_response'}; this.revision=randomUUID(); throw new AdapterError(error?.code==='history_unavailable'?'history_unavailable':'not_available'); }
   }); }
   outstanding() { return this.ledger.filter(row=>row.state!=='finished').map(row=>row.runId); }
   historyParams(extra={}) {
@@ -142,11 +143,13 @@ export class RemController {
     if(changed)await this.persist(generation);
   }
   async refresh(generation=this.generation) {
+    if(this.persistenceFault) { this.state='outcome_unknown'; this.lifecycle={stage:'ledger',reason:'persistence_failed'}; fail('outcome_unknown'); }
+    this.lifecycle={stage:'history',reason:'started'};
     let response;
     try { response=await this.rpc('chat.history',this.historyParams()); } catch { throw new AdapterError('history_unavailable'); }
     const raw=bounded(response);
-    if (generation!==this.generation) fail('not_available');
-    if (!raw || raw.kind==='delta' || raw.kind==='reset' || raw.sessionKey!==this.binding.sessionKey || typeof raw.sessionId!=='string' || !Array.isArray(raw.messages) || raw.messages.length>40 || !raw.sessionInfo || !Object.hasOwn(raw.sessionInfo,'activeLeafEntryId') || !(raw.sessionInfo.activeLeafEntryId===null || typeof raw.sessionInfo.activeLeafEntryId==='string') || typeof raw.sessionInfo.hasActiveRun!=='boolean' || !Array.isArray(raw.sessionInfo.activeRunIds) || raw.sessionInfo.activeRunIds.length>50 || raw.sessionInfo.activeRunIds.some(id=>typeof id!=='string') || raw.sessionInfo.hasActiveRun !== (raw.sessionInfo.activeRunIds.length>0)) fail('not_available');
+    if (generation!==this.generation) { this.lifecycle={stage:'validation',reason:'generation_changed'}; fail('not_available'); }
+    if (!raw || raw.kind==='delta' || raw.kind==='reset' || raw.sessionKey!==this.binding.sessionKey || typeof raw.sessionId!=='string' || !Array.isArray(raw.messages) || raw.messages.length>40 || !raw.sessionInfo || !Object.hasOwn(raw.sessionInfo,'activeLeafEntryId') || !(raw.sessionInfo.activeLeafEntryId===null || typeof raw.sessionInfo.activeLeafEntryId==='string') || typeof raw.sessionInfo.hasActiveRun!=='boolean' || !Array.isArray(raw.sessionInfo.activeRunIds) || raw.sessionInfo.activeRunIds.length>50 || raw.sessionInfo.activeRunIds.some(id=>typeof id!=='string') || raw.sessionInfo.hasActiveRun !== (raw.sessionInfo.activeRunIds.length>0)) { this.lifecycle={stage:'validation',reason:'invalid_response'}; fail('not_available'); }
     await this.recoverWindow(raw,generation);
     const active=raw.sessionInfo.activeRunIds;
     let changed=false, unknown=false;
@@ -180,17 +183,17 @@ export class RemController {
     // Revisions change only when the authoritative view changes, not for every poll.
     const view=JSON.stringify({messages,state:next,sessionId:this.sessionId,leaf:this.leaf,pending:pending?.handle,truncated:this.truncated});
     if (view!==this.view) { this.view=view; this.revision=randomUUID(); }
-    this.state=next;
+    this.state=next; this.lifecycle={stage:'reconciled',reason:this.cursorRejected?'cursor_rejected':'success'};
     if (!this.outstanding().length || next==='ready') this.clearWatchdog();
     else this.scheduleWatchdog();
     return this.snapshot();
   }
   snapshot() {
     const pending=this.ledger.find(row=>row.state!=='finished' && row.sessionId===this.sessionId);
-    return bounded({revision:this.revision,state:this.state,messages:this.messages,truncated:Boolean(this.truncated),activeRun:pending ? {handle:pending.handle,cancellable:['accepted','stopping'].includes(pending.state)} : null});
+    return bounded({revision:this.revision,state:this.state,messages:this.messages,truncated:Boolean(this.truncated),activeRun:pending ? {handle:pending.handle,cancellable:['accepted','stopping'].includes(pending.state)} : null,lifecycle:this.lifecycle});
   }
-  history() { return this.serial(async()=> { if (['connecting','reconnecting','unavailable'].includes(this.state)) return this.snapshot(); try { return await this.refresh(); } catch (error) { if(error?.code==='history_unavailable'){this.state='unavailable';this.revision=randomUUID();this.scheduleRecovery();} else if(this.state!=='outcome_unknown'){this.state='unavailable';this.revision=randomUUID();} return this.snapshot(); } }); }
-  async persist(generation=this.generation) { try { this.clockFloor=Math.max(this.clockFloor,Date.now());await this.saveLedger(this.ledger,this.clockFloor);if(generation!==this.generation)fail('not_available'); } catch { if(generation!==this.generation)fail('not_available');this.state='outcome_unknown'; fail('outcome_unknown'); } }
+  history() { return this.serial(async()=> { if (['connecting','reconnecting','unavailable'].includes(this.state)) return this.snapshot(); try { return await this.refresh(); } catch (error) { if(error?.code==='history_unavailable'){this.lifecycle={stage:'history',reason:'rpc_failed'};this.state='unavailable';this.revision=randomUUID();this.scheduleRecovery();} else if(this.state!=='outcome_unknown'){if(this.lifecycle.reason==='started')this.lifecycle={stage:this.lifecycle.stage,reason:'invalid_response'};this.state='unavailable';this.revision=randomUUID();} return this.snapshot(); } }); }
+  async persist(generation=this.generation) { try { this.clockFloor=Math.max(this.clockFloor,Date.now());await this.saveLedger(this.ledger,this.clockFloor);if(generation!==this.generation)fail('not_available'); } catch { if(generation!==this.generation)fail('not_available');this.persistenceFault=true;this.lifecycle={stage:'ledger',reason:'persistence_failed'};this.state='outcome_unknown'; fail('outcome_unknown'); } }
   send(body) { return this.serial(async()=> {
     if (!body || Object.keys(body).sort().join(',')!=='revision,submissionId,text' || !/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(body.submissionId) || !admitText(body.text)) fail('invalid_input');
     const submittedAt=Number.parseInt(body.submissionId.replaceAll('-','').slice(0,12),16), now=Math.max(Date.now(),this.clockFloor);

@@ -3,6 +3,7 @@ import { admitText } from './input-policy.mjs';
 export class AdapterError extends Error { constructor(code) { super(code); this.code = code; } }
 export const RETRY_MS = 24 * 60 * 60 * 1000;
 const NEW_ID_MS = 5 * 60 * 1000;
+const HISTORY_RECOVERY_DELAYS = [250,1000,5000];
 const fail = code => { throw new AdapterError(code); };
 const hash = value => createHash('sha256').update(value).digest('base64url');
 const bounded = value => { if (Buffer.byteLength(JSON.stringify(value)) > 131072) fail('not_available'); return value; };
@@ -25,7 +26,7 @@ function project(raw, namespace) {
 }
 /** Only this class constructs RPC arguments. The browser never supplies routing or RPC names. */
 export class RemController {
-  constructor({ rpc, binding, ledger, saveLedger, clockFloor=0 }) {
+  constructor({ rpc, binding, ledger, saveLedger, clockFloor=0, recoveryDelays=HISTORY_RECOVERY_DELAYS }) {
     const dedicatedKey = typeof binding?.agentId === 'string' && typeof binding?.sessionKey === 'string' && binding.sessionKey.slice(`agent:${binding.agentId}:`.length);
     if (!binding || !/^[a-zA-Z0-9_-]{16,128}$/.test(binding.id) || !/^[a-zA-Z0-9_-]{1,256}$/.test(binding.agentId) || !binding.sessionKey.startsWith(`agent:${binding.agentId}:`) || !/^[a-zA-Z0-9_-]{1,256}$/.test(dedicatedKey) || /^(?:main|global|subagent|cron|acp)$/i.test(dedicatedKey)) throw new AdapterError('not_available');
     if(!Number.isSafeInteger(clockFloor)||clockFloor<0)fail('not_available');this.clockFloor=clockFloor;
@@ -36,21 +37,42 @@ export class RemController {
       if(!row || typeof row!=='object' || Object.keys(row).some(k=>!['submissionId','digest','runId','handle','sessionId','state','custody','createdAt','messageId'].includes(k)) || typeof row.submissionId!=='string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(row.submissionId) || !/^[A-Za-z0-9_-]{43}$/.test(row.digest??'') || row.runId!==`pcc-${hash(`${binding.id}:${row.submissionId}`)}` || typeof row.handle!=='string' || !/^[a-zA-Z0-9_-]{16,128}$/.test(row.handle) || typeof row.sessionId!=='string' || !row.sessionId || row.sessionId.length>256 || !['prepared','unknown','accepted','stopping','finished'].includes(row.state) || !['accepted','committed'].includes(row.custody) || !Number.isSafeInteger(row.createdAt) || (row.messageId!==undefined && (typeof row.messageId!=='string'||row.messageId.length>1024)) || identities.has(row.submissionId))fail('not_available');
       identities.add(row.submissionId);
     }
+    if (!Array.isArray(recoveryDelays) || !recoveryDelays.length || recoveryDelays.length>8 || recoveryDelays.some(delay=>!Number.isSafeInteger(delay)||delay<0||delay>60000)) fail('not_available');
     this.state='connecting'; this.messages=[]; this.revision=randomUUID(); this.generation=0; this.cursor=null; this.sessionId=null; this.leaf=undefined; this.chain=Promise.resolve(); this.recent=[];
+    this.recoveryDelays=recoveryDelays; this.recoveryAttempts=0; this.recoveryTimer=null; this.recoveryRunning=false; this.recoveryEpoch=0;
   }
   serial(fn) { const task=this.chain.then(fn); this.chain=task.catch(()=>{}); return task; }
   address() { return { sessionKey:this.binding.sessionKey,agentId:this.binding.agentId }; }
-  disconnect() { this.generation++; this.state='reconnecting'; this.revision=randomUUID(); }
-  async connect() { return this.serial(async()=> {
+  disconnect() { this.generation++; this.recoveryEpoch++; this.clearRecovery(); this.state='reconnecting'; this.revision=randomUUID(); }
+  clearRecovery() {
+    if (this.recoveryTimer) clearTimeout(this.recoveryTimer);
+    this.recoveryTimer=null; this.recoveryAttempts=0;
+  }
+  scheduleRecovery() {
+    if (this.recoveryTimer || this.recoveryRunning || this.recoveryAttempts>=this.recoveryDelays.length) return;
+    const delay=this.recoveryDelays[this.recoveryAttempts++], epoch=this.recoveryEpoch;
+    this.state='reconnecting'; this.revision=randomUUID();
+    this.recoveryTimer=setTimeout(()=> {
+      this.recoveryTimer=null; this.recoveryRunning=true;
+      if (epoch!==this.recoveryEpoch) { this.recoveryRunning=false; return; }
+      void this.connect({recoveryEpoch:epoch}).then(()=> { this.recoveryRunning=false; this.clearRecovery(); },error=> { this.recoveryRunning=false; if (error?.code==='history_unavailable' && epoch===this.recoveryEpoch) this.scheduleRecovery(); });
+    },delay);
+    this.recoveryTimer.unref?.();
+  }
+  async connect({recoveryEpoch}={}) { return this.serial(async()=> {
+    if (recoveryEpoch!==undefined && recoveryEpoch!==this.recoveryEpoch) throw new AdapterError('history_recovery_cancelled');
     const generation=++this.generation; this.state='connecting';
     try {
       const ack=await this.rpc('sessions.messages.subscribe',{ key:this.binding.sessionKey,agentId:this.binding.agentId,subscriptionId:this.binding.id });
+      if (generation!==this.generation || (recoveryEpoch!==undefined && recoveryEpoch!==this.recoveryEpoch)) throw new AdapterError('history_recovery_cancelled');
       if (ack?.key!==this.binding.sessionKey || ack?.agentId!==this.binding.agentId) fail('not_available');
       // Recover cursor/receipts first. A tail below is an intentional canonical replacement, never delta concatenation.
-      if (this.cursor) await this.rpc('chat.history',this.historyParams({cursor:this.cursor}));
-      if (generation!==this.generation) fail('not_available');
+      if (this.cursor) { try { await this.rpc('chat.history',this.historyParams({cursor:this.cursor})); } catch { throw new AdapterError('history_unavailable'); } }
+      if (generation!==this.generation || (recoveryEpoch!==undefined && recoveryEpoch!==this.recoveryEpoch)) throw new AdapterError('history_recovery_cancelled');
       await this.refresh(generation);
-    } catch { this.state='unavailable'; this.revision=randomUUID(); throw new AdapterError('not_available'); }
+      if (generation!==this.generation || (recoveryEpoch!==undefined && recoveryEpoch!==this.recoveryEpoch)) throw new AdapterError('history_recovery_cancelled');
+      this.clearRecovery();
+    } catch (error) { if(generation!==this.generation || (recoveryEpoch!==undefined && recoveryEpoch!==this.recoveryEpoch)) throw new AdapterError('history_recovery_cancelled'); this.state=error?.code==='outcome_unknown'?'outcome_unknown':'unavailable'; this.revision=randomUUID(); throw new AdapterError(error?.code==='history_unavailable'?'history_unavailable':'not_available'); }
   }); }
   outstanding() { return this.ledger.filter(row=>row.state!=='finished').map(row=>row.runId); }
   historyParams(extra={}) {
@@ -59,7 +81,9 @@ export class RemController {
   }
   transcriptInputKey(row) { return `${row.runId}:user`; }
   async refresh(generation=this.generation) {
-    const raw=bounded(await this.rpc('chat.history',this.historyParams()));
+    let response;
+    try { response=await this.rpc('chat.history',this.historyParams()); } catch { throw new AdapterError('history_unavailable'); }
+    const raw=bounded(response);
     if (generation!==this.generation) fail('not_available');
     if (!raw || raw.kind==='delta' || raw.kind==='reset' || raw.sessionKey!==this.binding.sessionKey || typeof raw.sessionId!=='string' || !Array.isArray(raw.messages) || raw.messages.length>40 || !raw.sessionInfo || !Object.hasOwn(raw.sessionInfo,'activeLeafEntryId') || !(raw.sessionInfo.activeLeafEntryId===null || typeof raw.sessionInfo.activeLeafEntryId==='string') || typeof raw.sessionInfo.hasActiveRun!=='boolean' || !Array.isArray(raw.sessionInfo.activeRunIds) || raw.sessionInfo.activeRunIds.length>50 || raw.sessionInfo.activeRunIds.some(id=>typeof id!=='string') || raw.sessionInfo.hasActiveRun !== (raw.sessionInfo.activeRunIds.length>0)) fail('not_available');
     const active=raw.sessionInfo.activeRunIds;
@@ -77,7 +101,8 @@ export class RemController {
       else if (!active.includes(row.runId)) unknown=true;
       else if (row.state==='prepared' || row.state==='unknown') { row.state='accepted'; changed=true; }
     }
-    if (changed) await this.persist();
+    if (changed) await this.persist(generation);
+    if (generation!==this.generation) fail('not_available');
     const foreign=active.some(id=>!this.ledger.some(r=>r.runId===id && r.sessionId===raw.sessionId));
     this.sessionId=raw.sessionId; this.leaf=raw.sessionInfo.activeLeafEntryId; this.cursor=typeof raw.deltaCursor==='string' ? raw.deltaCursor : null;
     const messages=raw.messages.map(m=>{const projected=project(m,`${this.binding.id}:${raw.sessionId}`);if(projected?.role==='user'){const row=this.ledger.find(r=>r.sessionId===raw.sessionId && r.messageId===m.__openclaw?.id);if(row)projected.submissionId=row.submissionId;}return projected;}).filter(Boolean);
@@ -100,8 +125,8 @@ export class RemController {
     const pending=this.ledger.find(row=>row.state!=='finished' && row.sessionId===this.sessionId);
     return bounded({revision:this.revision,state:this.state,messages:this.messages,truncated:Boolean(this.truncated),activeRun:pending ? {handle:pending.handle,cancellable:['accepted','stopping'].includes(pending.state)} : null});
   }
-  history() { return this.serial(async()=> { if (['connecting','reconnecting','unavailable'].includes(this.state)) return this.snapshot(); try { return await this.refresh(); } catch { this.state='unavailable';this.revision=randomUUID();return this.snapshot(); } }); }
-  async persist() { try { this.clockFloor=Math.max(this.clockFloor,Date.now());await this.saveLedger(this.ledger,this.clockFloor); } catch { this.state='outcome_unknown'; fail('outcome_unknown'); } }
+  history() { return this.serial(async()=> { if (['connecting','reconnecting','unavailable'].includes(this.state)) return this.snapshot(); try { return await this.refresh(); } catch (error) { if(error?.code==='history_unavailable'){this.state='unavailable';this.revision=randomUUID();this.scheduleRecovery();} else if(this.state!=='outcome_unknown'){this.state='unavailable';this.revision=randomUUID();} return this.snapshot(); } }); }
+  async persist(generation=this.generation) { try { this.clockFloor=Math.max(this.clockFloor,Date.now());await this.saveLedger(this.ledger,this.clockFloor);if(generation!==this.generation)fail('not_available'); } catch { if(generation!==this.generation)fail('not_available');this.state='outcome_unknown'; fail('outcome_unknown'); } }
   send(body) { return this.serial(async()=> {
     if (!body || Object.keys(body).sort().join(',')!=='revision,submissionId,text' || !/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(body.submissionId) || !admitText(body.text)) fail('invalid_input');
     const submittedAt=Number.parseInt(body.submissionId.replaceAll('-','').slice(0,12),16), now=Math.max(Date.now(),this.clockFloor);

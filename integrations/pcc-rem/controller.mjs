@@ -6,6 +6,7 @@ const NEW_ID_MS = 5 * 60 * 1000;
 const HISTORY_RECOVERY_DELAYS = [250,1000,5000];
 const WATCHDOG_DELAYS = [30000,60000,120000];
 const TERMINAL_CHAT_STATES = new Set(['final','error','aborted']);
+const RECOVERY_HISTORY = Object.freeze({limit:200,maxBytes:524288,maxChars:8000});
 const fail = code => { throw new AdapterError(code); };
 const hash = value => createHash('sha256').update(value).digest('base64url');
 const bounded = value => { if (Buffer.byteLength(JSON.stringify(value)) > 131072) fail('not_available'); return value; };
@@ -21,7 +22,7 @@ function project(raw, namespace) {
   const id = raw.__openclaw?.id;
   if (typeof id !== 'string' || !id || id.length > 1024) return null;
   // Do not render context/reasoning/tool/injected entries or provider diagnostics.
-  if (raw.isError || raw.__openclaw?.internal || raw.__openclaw?.source === 'injected') return null;
+  if (raw.isError || (raw.role==='assistant' && raw.stopReason==='error') || raw.__openclaw?.internal || raw.__openclaw?.source === 'injected') return null;
   const text = safeText(typeof raw.content === 'string' ? raw.content : Array.isArray(raw.content) ? raw.content.filter(b => b?.type === 'text' && typeof b.text === 'string').map(b => b.text).join('\n') : '');
   if (!text || /<\/?(?:tool_call|function_call|system|analysis)\b|<\|(?:im_start|system|assistant)/i.test(text)) return null;
   return { id:hash(`${namespace}:${id}`),role:raw.role,text,status:'complete' };
@@ -115,12 +116,38 @@ export class RemController {
     return {...this.address(),limit:40,maxBytes:65536,maxChars:8000,...extra,...(inputRunIds.length ? {inputRunIds} : {})};
   }
   transcriptInputKey(row) { return `${row.runId}:user`; }
+  async recoverWindow(raw, generation) {
+    const candidates=this.ledger.filter(row=>row.state!=='finished' && row.sessionId===raw.sessionId &&
+      !raw.inputReceipts?.some(receipt=>receipt?.runId===row.runId && receipt.state==='consumed') &&
+      !raw.messages.some(message=>message?.role==='user' && message.__openclaw?.idempotencyKey===this.transcriptInputKey(row)) &&
+      !raw.sessionInfo.activeRunIds.includes(row.runId));
+    if(!candidates.length)return;
+    const inputRunIds=[...new Set(candidates.map(row=>row.runId))].filter(id=>/^[A-Za-z0-9_-]{1,256}$/.test(id)).slice(0,50);
+    if(!inputRunIds.length)return;
+    let recovered;
+    try { recovered=await this.rpc('chat.history',{...this.address(),...RECOVERY_HISTORY,inputRunIds}); } catch { return; }
+    if(generation!==this.generation)return;
+    let size;try{size=Buffer.byteLength(JSON.stringify(recovered));}catch{return;}
+    if(size>RECOVERY_HISTORY.maxBytes || !recovered || recovered.kind==='delta' || recovered.kind==='reset' || recovered.sessionKey!==this.binding.sessionKey || recovered.sessionId!==raw.sessionId || !Array.isArray(recovered.messages) || recovered.messages.length>RECOVERY_HISTORY.limit || !recovered.sessionInfo || !Array.isArray(recovered.sessionInfo.activeRunIds) || recovered.sessionInfo.activeRunIds.length>50 || recovered.sessionInfo.activeRunIds.some(id=>typeof id!=='string') || recovered.sessionInfo.hasActiveRun!==(recovered.sessionInfo.activeRunIds.length>0) || typeof recovered.sessionInfo.hasActiveRun!=='boolean')return;
+    let changed=false;
+    for(const row of candidates){
+      if(recovered.sessionInfo.activeRunIds.includes(row.runId))continue;
+      const receipt=recovered.inputReceipts?.find(item=>item?.runId===row.runId && item.state==='consumed');
+      const message=recovered.messages.find(item=>item?.role==='user' && item.__openclaw?.idempotencyKey===this.transcriptInputKey(row));
+      if(!receipt && !message)continue;
+      const eventId=receipt?.consumedByEventId ?? message?.__openclaw?.id;
+      if(typeof eventId==='string'&&eventId.length<=1024)row.messageId=eventId;
+      row.custody='committed';row.state='finished';changed=true;
+    }
+    if(changed)await this.persist(generation);
+  }
   async refresh(generation=this.generation) {
     let response;
     try { response=await this.rpc('chat.history',this.historyParams()); } catch { throw new AdapterError('history_unavailable'); }
     const raw=bounded(response);
     if (generation!==this.generation) fail('not_available');
     if (!raw || raw.kind==='delta' || raw.kind==='reset' || raw.sessionKey!==this.binding.sessionKey || typeof raw.sessionId!=='string' || !Array.isArray(raw.messages) || raw.messages.length>40 || !raw.sessionInfo || !Object.hasOwn(raw.sessionInfo,'activeLeafEntryId') || !(raw.sessionInfo.activeLeafEntryId===null || typeof raw.sessionInfo.activeLeafEntryId==='string') || typeof raw.sessionInfo.hasActiveRun!=='boolean' || !Array.isArray(raw.sessionInfo.activeRunIds) || raw.sessionInfo.activeRunIds.length>50 || raw.sessionInfo.activeRunIds.some(id=>typeof id!=='string') || raw.sessionInfo.hasActiveRun !== (raw.sessionInfo.activeRunIds.length>0)) fail('not_available');
+    await this.recoverWindow(raw,generation);
     const active=raw.sessionInfo.activeRunIds;
     let changed=false, unknown=false;
     for (const row of this.ledger) {

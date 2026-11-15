@@ -11,6 +11,7 @@ export function DataStatusBanner() {
     dataMode,
     syncing,
     syncError,
+    calendarSyncError,
     migrationRequired,
     downloadLocalBackup,
     importLocalData,
@@ -49,6 +50,7 @@ export function DataStatusBanner() {
           PostgreSQL is empty and this browser contains existing data. A JSON backup is downloaded before import.
         </p>
         {syncError ? <p className="mt-2 text-sm font-medium text-rose-700">{syncError}</p> : null}
+        {calendarSyncError ? <p className="mt-2 text-sm font-medium text-rose-700">PCC data was saved, but Google Calendar sync failed: {calendarSyncError}</p> : null}
         <div className="mt-3 flex flex-wrap gap-2">
           <button
             type="button"
@@ -79,6 +81,7 @@ export function DataStatusBanner() {
         </p>
         {pending.length > 0 ? <p className="mt-2 text-sm font-semibold text-amber-900">{pending.length} {pending.length === 1 ? "capture is" : "captures are"} waiting to sync.</p> : null}
         {captureError || syncError ? <p className="mt-2 text-sm font-medium text-rose-700">{captureError || syncError}</p> : null}
+        {calendarSyncError ? <p className="mt-2 text-sm font-medium text-rose-700">PCC data was saved, but Google Calendar sync failed: {calendarSyncError}</p> : null}
         <button
           type="button"
           onClick={() => void retry()}
@@ -111,10 +114,11 @@ export function DataStatusBanner() {
     );
   }
 
-  if (syncError) {
+  if (syncError || calendarSyncError) {
     return (
       <section className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm font-medium text-amber-900" aria-live="polite">
-        {syncError}
+        {syncError ? <p>{syncError}</p> : null}
+        {calendarSyncError ? <p>{syncError ? null : "PCC data was saved, but "}Google Calendar sync failed: {calendarSyncError}</p> : null}
       </section>
     );
   }

@@ -14,9 +14,10 @@ The integration deliberately keeps ownership simple. Tasks and Project Actions r
 The projection includes:
 
 - open Tasks with a check-in date;
-- every dated open action belonging to an active project.
+- every dated open action belonging to an active project;
+- planned sessions without an outcome, including sessions not linked to a Task or Project Action.
 
-Each projected record becomes an all-day event. Undated, completed, Waiting-only, archived, or completed-project records do not appear. Editing a projected Task or Project Action in Google does not update the application; a later Personal Control Center change may overwrite or recreate that projection.
+Tasks and Project Actions remain all-day events. Planner sessions become timed events using the planner's configured timezone and their local start/duration. Each session mapping is keyed by its stable session ID, so moving or editing it updates the same Calendar event; deleting or completing the session removes the mapped event. PCC remains canonical. Editing a projected event in Google does not update the application; a later PCC change may overwrite or recreate that projection. External Google events remain read-only in Agenda and are never mutated by projection reconciliation.
 
 ### Google → Agenda
 
@@ -109,7 +110,7 @@ Each Personal Control Center user repeats this independently.
 - Adding or reopening dated project actions creates their projections independently.
 - Several dated open actions from one project may exist simultaneously.
 - Unchanged entries are skipped through a content hash.
-- Stable source IDs and stored event IDs prevent duplicates across retries.
+- Stable Task, Project Action, and Planner Session source IDs plus stored event IDs prevent duplicates across retries.
 - Relevant personal-data mutations and imports trigger reconciliation.
 - **Sync now** retries the Personal Control Center projection. It does not import edits made directly to projected Task or Project Action events.
 
@@ -125,11 +126,11 @@ Each Personal Control Center user repeats this independently.
 
 1. Reconnect an existing Calendar integration and confirm Google requests the additional read-only permission.
 2. Accept an invitation on the connected Google account and confirm the event appears in Agenda with its time and Meet link when present.
-3. Confirm existing dated Tasks and Project Actions appear in Agenda as all-day Personal Control Center entries.
+3. Confirm existing dated Tasks and Project Actions appear in Agenda as all-day Personal Control Center entries, and a planner session appears as a timed read-only entry in the configured timezone.
 4. Create a timed standalone event in Agenda and confirm it appears both in Agenda and in the Personal Control Center Google calendar.
 5. Edit the standalone event in Agenda and confirm the Google event changes without duplication.
 6. Delete the standalone event in Agenda and confirm it disappears from Google.
-7. Confirm projected Tasks and Project Actions do not show Agenda edit/delete controls.
+7. Confirm projected Tasks, Project Actions, and Planner Sessions do not show Agenda edit/delete controls.
 8. Confirm external Google events do not show Agenda edit/delete controls.
 9. Create an all-day Agenda event and confirm the date is correct in both places.
 10. Confirm unrelated manual events and invitations remain untouched.

@@ -1,4 +1,4 @@
-export type GoogleCalendarSourceType = "task" | "project-action";
+export type GoogleCalendarSourceType = "task" | "project-action" | "planner-session";
 
 export type GoogleCalendarProjection = {
   sourceType: GoogleCalendarSourceType;
@@ -7,13 +7,16 @@ export type GoogleCalendarProjection = {
   summary: string;
   description: string;
   date: string;
+  start?: string;
+  minutes?: number;
+  timezone?: string;
 };
 
 export type GoogleCalendarEventBody = {
   summary: string;
   description: string;
-  start: { date: string };
-  end: { date: string };
+  start: { date: string } | { dateTime: string; timeZone: string };
+  end: { date: string } | { dateTime: string; timeZone: string };
   extendedProperties: {
     private: {
       pccSourceType: GoogleCalendarSourceType;
@@ -41,7 +44,19 @@ type CalendarItem = {
   actions: CalendarAction[];
 };
 
-type CalendarSnapshot = { items: CalendarItem[] };
+type CalendarPlannerSession = {
+  id: string;
+  date: string;
+  start: string;
+  minutes: number;
+  title: string;
+  outcome?: string;
+};
+type CalendarSnapshot = {
+  items: CalendarItem[];
+  plannerSessions?: CalendarPlannerSession[];
+  plannerPreferences?: { timezone?: string };
+};
 type MutationLike = { type: string };
 
 function isActiveItem(item: CalendarItem) {
@@ -88,6 +103,24 @@ export function buildGoogleCalendarProjections(snapshot: CalendarSnapshot): Goog
     }
   }
 
+  // Planner sessions are canonical PCC records. Their stable session ID is the
+  // Calendar mapping key, including unlinked sessions such as a daily check-in.
+  const timezone = snapshot.plannerPreferences?.timezone ?? "Europe/Lisbon";
+  for (const session of snapshot.plannerSessions ?? []) {
+    if (session.outcome) continue;
+    projections.push({
+      sourceType: "planner-session",
+      sourceId: session.id,
+      itemId: session.id,
+      summary: session.title,
+      description: "Planner session from Personal Control Center",
+      date: session.date,
+      start: session.start,
+      minutes: session.minutes,
+      timezone,
+    });
+  }
+
   return projections.sort((left, right) => {
     const byDate = left.date.localeCompare(right.date);
     return byDate || left.summary.localeCompare(right.summary) || left.sourceId.localeCompare(right.sourceId);
@@ -95,6 +128,25 @@ export function buildGoogleCalendarProjections(snapshot: CalendarSnapshot): Goog
 }
 
 export function buildGoogleCalendarEventBody(projection: GoogleCalendarProjection): GoogleCalendarEventBody {
+  if (projection.sourceType === "planner-session") {
+    const [hour, minute] = (projection.start ?? "09:00").split(":").map(Number);
+    const finish = hour * 60 + minute + (projection.minutes ?? 30);
+    const endDate = finish === 1440 ? nextDate(projection.date) : projection.date;
+    const end = finish === 1440 ? "00:00:00" : `${String(Math.floor(finish / 60)).padStart(2, "0")}:${String(finish % 60).padStart(2, "0")}:00`;
+    return {
+      summary: projection.summary,
+      description: projection.description,
+      start: { dateTime: `${projection.date}T${projection.start ?? "09:00"}:00`, timeZone: projection.timezone ?? "Europe/Lisbon" },
+      end: { dateTime: `${endDate}T${end}`, timeZone: projection.timezone ?? "Europe/Lisbon" },
+      extendedProperties: {
+        private: {
+          pccSourceType: projection.sourceType,
+          pccSourceId: projection.sourceId,
+          pccItemId: projection.itemId,
+        },
+      },
+    };
+  }
   return {
     summary: projection.summary,
     description: projection.description,

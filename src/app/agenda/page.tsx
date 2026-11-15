@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 
-type AgendaEventSource = "google" | "agenda" | "task" | "project-action" | "pcc";
+type AgendaEventSource = "google" | "agenda" | "task" | "project-action" | "planner-session" | "pcc";
 
 type AgendaEvent = {
   id: string;
@@ -100,6 +100,7 @@ function sourceLabel(source: AgendaEventSource) {
   if (source === "agenda") return "Agenda";
   if (source === "task") return "Task";
   if (source === "project-action") return "Project action";
+  if (source === "planner-session") return "Planner session";
   if (source === "pcc") return "Personal Control Center";
   return "Google Calendar";
 }

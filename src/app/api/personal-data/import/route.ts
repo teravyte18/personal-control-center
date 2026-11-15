@@ -19,12 +19,16 @@ export async function POST(request: Request) {
   try {
     const user = await resolveRequestUser(request);
     const state = await importPersonalData(user.id, body);
+    let calendarSyncError = "";
     try {
       await reconcileGoogleCalendar(user.id, state.snapshot);
     } catch (calendarError) {
+      calendarSyncError = calendarError instanceof Error
+        ? calendarError.message
+        : "Google Calendar synchronisation failed.";
       console.error("Personal data was imported, but Google Calendar synchronisation failed.", calendarError);
     }
-    return Response.json(state, {
+    return Response.json({ ...state, calendarSyncAttempted: true, calendarSyncError }, {
       headers: { "Cache-Control": "no-store" },
     });
   } catch (error) {

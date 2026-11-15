@@ -20,8 +20,8 @@ test('host refuses an OpenClaw package outside the verified exact pin',async()=>
 test('host uses official version-pinned client, dedicated rotated storage and read/write-only fixture handshake',{skip:!packagePath},async()=>{
   const require=createRequire(packagePath);const {WebSocketServer}=require('ws');const wss=new WebSocketServer({host:'127.0.0.1',port:0});await once(wss,'listening');
   const dir=await mkdtemp(join(tmpdir(),'pcc-rem-host-'));const key=generateKeyPairSync('ed25519');const publicKeyPem=key.publicKey.export({type:'spki',format:'pem'});const identity={deviceId:createHash('sha256').update(key.publicKey.export({type:'spki',format:'der'}).subarray(-32)).digest('hex'),publicKeyPem,privateKeyPem:key.privateKey.export({type:'pkcs8',format:'pem'})};
-  const binding={id:'fictional_binding_0001',agentId:'fixture',sessionKey:'agent:fixture:pcc-fictional'};const frames=[],failures=[];
-  wss.on('connection',socket=>{socket.send(JSON.stringify({type:'event',event:'connect.challenge',payload:{nonce:'fictional',ts:Date.now()}}));socket.on('message',raw=>{try{const frame=JSON.parse(raw);frames.push(frame);const p=frame.params;let payload;
+  const binding={id:'fictional_binding_0001',agentId:'fixture',sessionKey:'agent:fixture:pcc-fictional'};const frames=[],failures=[];let gatewaySocket;
+  wss.on('connection',socket=>{gatewaySocket=socket;socket.send(JSON.stringify({type:'event',event:'connect.challenge',payload:{nonce:'fictional',ts:Date.now()}}));socket.on('message',raw=>{try{const frame=JSON.parse(raw);frames.push(frame);const p=frame.params;let payload;
     if(frame.method==='connect'){assert.deepEqual(p.scopes,['operator.read','operator.write']);assert.equal(p.auth.deviceToken,'fictional-device-token');payload={type:'hello-ok',protocol:4,server:{version:'2026.11.3',connId:'fictional'},features:{methods:['sessions.messages.subscribe','chat.history','chat.send','chat.abort'],events:['chat']},snapshot:{},auth:{role:'operator',scopes:['operator.read','operator.write'],deviceToken:'fictional-rotated-device-token'},policy:{maxPayload:1048576,tickIntervalMs:30000}};}
     else if(frame.method==='sessions.messages.subscribe'){assert.equal(p.key,binding.sessionKey);payload={key:binding.sessionKey,agentId:binding.agentId};}
     else if(frame.method==='chat.history'){assert.equal(p.sessionKey,binding.sessionKey);payload={sessionKey:binding.sessionKey,sessionId:'physical-fixture',messages:[],sessionInfo:{hasActiveRun:false,activeRunIds:[],activeLeafEntryId:null}};}
@@ -35,6 +35,10 @@ test('host uses official version-pinned client, dedicated rotated storage and re
     host=await startHost(configPath);
     for(let i=0;i<100&&host.controller.snapshot().state!=='ready';i++)await new Promise(resolve=>setTimeout(resolve,20));
     assert.equal(host.controller.snapshot().state,'ready');assert.equal(failures.length,0,failures[0]?.message);assert.equal(frames[1].method,'sessions.messages.subscribe');assert.equal(JSON.parse(await readFile(devicePath,'utf8')).token,'fictional-rotated-device-token');
+    const events=[];host.controller.onGatewayEvent=event=>events.push(event);
+    gatewaySocket.send(JSON.stringify({type:'event',event:'chat',seq:1,payload:{sessionKey:binding.sessionKey,agentId:binding.agentId,runId:'fictional-run',state:'final'}}));
+    for(let i=0;i<100&&!events.length;i++)await new Promise(resolve=>setTimeout(resolve,5));
+    assert.deepEqual(events,[{type:'event',event:'chat',seq:1,payload:{sessionKey:binding.sessionKey,agentId:binding.agentId,runId:'fictional-run',state:'final'}}]);
     await assert.rejects(startHost(configPath)); // Same writer lock cannot be adopted.
   }finally{if(host)await host.close();for(const socket of wss.clients)socket.terminate();await new Promise(resolve=>wss.close(resolve));await rm(dir,{recursive:true,force:true});}
 });

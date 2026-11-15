@@ -69,6 +69,13 @@ reconciliation. If neither exact identity is returned, leave the submission in
 `outcome_unknown`; do not resend it, create a replacement ledger, or delete the
 row. Escalate with sanitized run/session identifiers and Gateway version instead.
 
+Subscribed terminal `chat` events are wake-up hints only: the adapter accepts
+only its exact binding and unresolved owned run, then reconnects and reads
+authoritative history. An outstanding owned run also gets one bounded liveness
+watchdog sequence (30 seconds, then 60, then 120) while the connection remains
+subscribed. Neither mechanism edits the ledger or proves delivery; disconnects,
+gaps, a ready reconciliation, and an empty ledger cancel the watchdog.
+
 ```sh
 node --test integrations/pcc-rem/*.test.mjs
 PCC_REM_TEST_OPENCLAW_PACKAGE=/absolute/installed/openclaw/package.json node --test integrations/pcc-rem/*.test.mjs

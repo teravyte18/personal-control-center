@@ -29,9 +29,15 @@ test('exact fixed subscribe precedes history and guarded send; duplicate no seco
   const f=fixture();await f.controller.connect();const input=body(f.controller);const first=await f.controller.send(input);assert.equal(first.custody,'accepted');
   assert.deepEqual(await f.controller.send(input),first);assert.equal(f.frames.filter(f=>f.method==='chat.send').length,1);
   assert.equal(f.frames[0].method,'sessions.messages.subscribe');
+  assert.equal(Object.hasOwn(f.frames.find(f=>f.method==='chat.history').p,'inputRunIds'),false);
   const sent=f.frames.find(f=>f.method==='chat.send').p;assert.deepEqual(Object.keys(sent).sort(),['agentId','expectedLeafEntryId','idempotencyKey','message','sessionId','sessionKey']);assert.equal(sent.expectedLeafEntryId,null);
   await assert.rejects(f.controller.send({...input,text:'Different'}),{code:'invalid_input'});
   await assert.rejects(f.controller.send(body(f.controller)),{code:'busy'});
+});
+test('accepts a dedicated agent:main session but rejects reserved dedicated suffixes',()=>{
+  const options={rpc:async()=>{},ledger:[],saveLedger:async()=>{}};
+  assert.doesNotThrow(()=>new RemController({...options,binding:{...binding,agentId:'main',sessionKey:'agent:main:pcc-fictional'}}));
+  assert.throws(()=>new RemController({...options,binding:{...binding,agentId:'main',sessionKey:'agent:main:main'}}),{code:'not_available'});
 });
 test('lost ACK never resends, survives restart, reconciles exact active run and custody separately',async()=>{
   const f=fixture({loseAck:true});await f.controller.connect();const input=body(f.controller);
@@ -42,6 +48,20 @@ test('lost ACK never resends, survives restart, reconciles exact active run and 
   await assert.rejects(restarted.controller.send(body(restarted.controller)),{code:'outcome_unknown'});
   f.receipts.push({runId:f.active[0],state:'consumed'});f.active.length=0;await f.controller.history();assert.equal(f.controller.snapshot().state,'ready');
   assert.equal((await f.controller.send(input)).custody,'committed');
+});
+test('lost ACK recovers after restart from the exact transcript source identity when receipts and active runs are absent',async()=>{
+  const f=fixture({loseAck:true});await f.controller.connect();const input=body(f.controller);
+  await assert.rejects(f.controller.send(input),{code:'outcome_unknown'});const saved=structuredClone(f.rows);
+  const committed=[{role:'user',content:input.text,__openclaw:{id:'canonical-one',idempotencyKey:`${saved[0].runId}:user`}}];
+  const restarted=fixture({ledger:saved,loseAck:true});restarted.setMessages(committed);await restarted.controller.connect();
+  assert.equal(restarted.controller.snapshot().state,'ready');assert.equal(restarted.rows[0].state,'finished');assert.equal(restarted.rows[0].messageId,'canonical-one');
+  assert.equal(restarted.frames.filter(f=>f.method==='chat.send').length,0);
+});
+test('an inactive run or identical text without its exact transcript source identity remains unknown',async()=>{
+  const f=fixture({loseAck:true});await f.controller.connect();const input=body(f.controller);
+  await assert.rejects(f.controller.send(input),{code:'outcome_unknown'});f.active.length=0;
+  f.setMessages([{role:'user',content:input.text,__openclaw:{id:'unrelated',idempotencyKey:'another-run:user'}}]);
+  await f.controller.history();assert.equal(f.controller.snapshot().state,'outcome_unknown');
 });
 test('durable preparation failure prevents inference; foreign activity blocks admission',async()=>{
   const f=fixture({saveFails:true});await f.controller.connect();await assert.rejects(f.controller.send(body(f.controller)),{code:'outcome_unknown'});assert.equal(f.frames.filter(f=>f.method==='chat.send').length,0);

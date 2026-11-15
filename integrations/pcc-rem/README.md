@@ -50,6 +50,25 @@ to24 hours. Up to2048 identities are retained; only finished entries past the
 retry window expire. Uncertain entries never expire implicitly; do not reset
 the journal to bypass custody.
 
+## Recovering a stuck submission
+
+Keep the adapter stopped and preserve its ledger. First verify the dedicated
+binding still names the same physical Gateway session. On OpenClaw `2026.11.3`,
+`chat.history` returns an input receipt only when `inputRunIds` is a non-empty
+exact list, the request is for the current physical session, and it is not a
+page-by-message request. Receipt rows are durable Gateway pending-input records:
+`consumed` includes the canonical event ID; `activeRunIds` is live-only and is
+never proof that a finished submission was delivered.
+
+The adapter therefore reconciles an outstanding ledger row only by one of two
+exact identities: its requested `runId` receipt, or the canonical user transcript
+message whose `__openclaw.idempotencyKey` is `${runId}:user`. It never uses message
+text, timestamps, an inactive run, or an assistant reply as proof. Restore the
+unchanged ledger, start the adapter once, and let it perform that read-only
+reconciliation. If neither exact identity is returned, leave the submission in
+`outcome_unknown`; do not resend it, create a replacement ledger, or delete the
+row. Escalate with sanitized run/session identifiers and Gateway version instead.
+
 ```sh
 node --test integrations/pcc-rem/*.test.mjs
 PCC_REM_TEST_OPENCLAW_PACKAGE=/absolute/installed/openclaw/package.json node --test integrations/pcc-rem/*.test.mjs

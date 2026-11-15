@@ -26,7 +26,8 @@ function project(raw, namespace) {
 /** Only this class constructs RPC arguments. The browser never supplies routing or RPC names. */
 export class RemController {
   constructor({ rpc, binding, ledger, saveLedger, clockFloor=0 }) {
-    if (!binding || !/^[a-zA-Z0-9_-]{16,128}$/.test(binding.id) || typeof binding.sessionKey !== 'string' || !binding.sessionKey.startsWith(`agent:${binding.agentId}:`) || /:(?:main|global|subagent|cron|acp)(?::|$)/i.test(binding.sessionKey)) throw new AdapterError('not_available');
+    const dedicatedKey = typeof binding?.agentId === 'string' && typeof binding?.sessionKey === 'string' && binding.sessionKey.slice(`agent:${binding.agentId}:`.length);
+    if (!binding || !/^[a-zA-Z0-9_-]{16,128}$/.test(binding.id) || !/^[a-zA-Z0-9_-]{1,256}$/.test(binding.agentId) || !binding.sessionKey.startsWith(`agent:${binding.agentId}:`) || !/^[a-zA-Z0-9_-]{1,256}$/.test(dedicatedKey) || /^(?:main|global|subagent|cron|acp)$/i.test(dedicatedKey)) throw new AdapterError('not_available');
     if(!Number.isSafeInteger(clockFloor)||clockFloor<0)fail('not_available');this.clockFloor=clockFloor;
     this.rpc=rpc; this.binding=binding; this.ledger=ledger ?? []; this.saveLedger=saveLedger;
     if (!Array.isArray(this.ledger) || this.ledger.length > 2048) fail('not_available');
@@ -46,14 +47,19 @@ export class RemController {
       const ack=await this.rpc('sessions.messages.subscribe',{ key:this.binding.sessionKey,agentId:this.binding.agentId,subscriptionId:this.binding.id });
       if (ack?.key!==this.binding.sessionKey || ack?.agentId!==this.binding.agentId) fail('not_available');
       // Recover cursor/receipts first. A tail below is an intentional canonical replacement, never delta concatenation.
-      if (this.cursor) await this.rpc('chat.history',{...this.address(),limit:40,maxBytes:65536,maxChars:8000,cursor:this.cursor,inputRunIds:this.outstanding()});
+      if (this.cursor) await this.rpc('chat.history',this.historyParams({cursor:this.cursor}));
       if (generation!==this.generation) fail('not_available');
       await this.refresh(generation);
     } catch { this.state='unavailable'; this.revision=randomUUID(); throw new AdapterError('not_available'); }
   }); }
   outstanding() { return this.ledger.filter(row=>row.state!=='finished').map(row=>row.runId); }
+  historyParams(extra={}) {
+    const inputRunIds=this.outstanding();
+    return {...this.address(),limit:40,maxBytes:65536,maxChars:8000,...extra,...(inputRunIds.length ? {inputRunIds} : {})};
+  }
+  transcriptInputKey(row) { return `${row.runId}:user`; }
   async refresh(generation=this.generation) {
-    const raw=bounded(await this.rpc('chat.history',{...this.address(),limit:40,maxBytes:65536,maxChars:8000,inputRunIds:this.outstanding()}));
+    const raw=bounded(await this.rpc('chat.history',this.historyParams()));
     if (generation!==this.generation) fail('not_available');
     if (!raw || raw.kind==='delta' || raw.kind==='reset' || raw.sessionKey!==this.binding.sessionKey || typeof raw.sessionId!=='string' || !Array.isArray(raw.messages) || raw.messages.length>40 || !raw.sessionInfo || !Object.hasOwn(raw.sessionInfo,'activeLeafEntryId') || !(raw.sessionInfo.activeLeafEntryId===null || typeof raw.sessionInfo.activeLeafEntryId==='string') || typeof raw.sessionInfo.hasActiveRun!=='boolean' || !Array.isArray(raw.sessionInfo.activeRunIds) || raw.sessionInfo.activeRunIds.length>50 || raw.sessionInfo.activeRunIds.some(id=>typeof id!=='string') || raw.sessionInfo.hasActiveRun !== (raw.sessionInfo.activeRunIds.length>0)) fail('not_available');
     const active=raw.sessionInfo.activeRunIds;
@@ -62,8 +68,12 @@ export class RemController {
       if (row.state==='finished') continue;
       if (row.sessionId!==raw.sessionId) { unknown=true; continue; }
       const receipt=raw.inputReceipts?.find(r=>r.runId===row.runId);
+      // The transcript projection preserves the Gateway's deterministic source key
+      // (`<client run id>:user`). It is an exact identity fallback when a receipt
+      // cannot be returned after a restart; message text is never used as proof.
+      const transcriptMessage=raw.messages.find(m=>m?.role==='user' && m.__openclaw?.idempotencyKey===this.transcriptInputKey(row));
       // Consumed is the only established transcript custody proof. Unknown/omitted receipts never imply absence.
-      if (receipt?.state==='consumed') { if(typeof receipt.consumedByEventId==='string'&&receipt.consumedByEventId.length<=1024)row.messageId=receipt.consumedByEventId; row.custody='committed'; changed=true; if (!active.includes(row.runId)) { row.state='finished'; changed=true; } }
+      if (receipt?.state==='consumed' || transcriptMessage) { const eventId=receipt?.consumedByEventId ?? transcriptMessage?.__openclaw?.id;if(typeof eventId==='string'&&eventId.length<=1024)row.messageId=eventId; row.custody='committed'; changed=true; if (!active.includes(row.runId)) { row.state='finished'; changed=true; } }
       else if (!active.includes(row.runId)) unknown=true;
       else if (row.state==='prepared' || row.state==='unknown') { row.state='accepted'; changed=true; }
     }

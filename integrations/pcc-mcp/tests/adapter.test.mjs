@@ -39,16 +39,16 @@ test("planner POST uses a distinct opt-in credential, scoped URL and JSON schema
       assert.equal(init.headers["Content-Type"], "application/json");
       assert.equal(init.headers.Authorization, "Bearer " + plannerToken);
       assert.equal(JSON.parse(init.body).replaceFrom, "2026-11-16");
-      return Response.json({saved:true,revision:5,count:1,calendarCheckedAt:"2026-11-14T16:00:00.000Z"});
+      return Response.json({draft:{id:"00000000-0000-4000-8000-000000000001",status:"draft",revision:4,createdAt:"2026-11-14T16:00:00.000Z"}});
     },
   });
-  const proposal = {revision:4,replaceFrom:"2026-11-16",
-    sessions:[{date:"2026-11-16",start:"10:30",minutes:120,title:"Fictional analysis",work:[]}]};
+  const proposal = {revision:4,replaceFrom:"2026-11-16",rationale:"Focus on open work.",removeSessionIds:[],
+    sessions:[{date:"2026-11-16",start:"10:30",minutes:120,title:"Fictional analysis",work:[],priorityReason:"Highest current priority."}]};
   const tool=tools.find(item=>item.operation==="planner-submit");
   assert.ok(tool);
   assert.equal(tool.schema.safeParse(proposal).success,true);
   assert.equal(tool.schema.safeParse({...proposal,sessions:[{...proposal.sessions[0],admin:true}]}).success,false);
-  assert.equal((await call("planner-submit",proposal)).saved,true);
+  assert.equal((await call("planner-submit",proposal)).draft.status,"draft");
   const calendar = createPccClient({origin:"http://127.0.0.1:3107",token:plannerToken,fetchImpl:async (url,init)=>{
     assert.equal(init.method,"GET");
     assert.equal(url.pathname,"/api/assistant/planner");

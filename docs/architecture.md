@@ -392,3 +392,7 @@ cookie-owner-bound private routes and a host-only Unix-socket adapter. It adds
 no automatic context collection, transcript archive or live configuration. It
 remains off until separately authorized provisioning and rollout verification. See
 [Rem chat](rem-chat.md) for the contract, restrictions and remaining gates.
+
+## Reviewable planner proposals
+
+Assistant planner submissions write only to `planner_proposals`, a user-scoped durable draft table, and acknowledge optional `planner_requests`. No assistant route changes canonical sessions. An authenticated same-origin browser decision checks revision, source references, mobility and fresh Google Calendar busy intervals. A transaction locks the draft and `personal_data_state`, applies only explicit reviewed session changes, and records the applied revision. The existing Calendar projection runs afterward and its result is stored on the proposal; projection failure does not reverse the canonical approval. Drafts are included in full PostgreSQL backups but not the personal-data snapshot export.

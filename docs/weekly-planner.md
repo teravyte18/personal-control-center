@@ -1,6 +1,6 @@
 # Weekly work planner — staged implementation
 
-Status: **foundation and manual workflow implemented on `agent/weekly-planner-foundation`; autonomous agent planning not connected**.
+Status: **manual workflow implemented; safe explicit mobility/change-set domain foundation added. The current assistant submit remains assistant-origin-only; approval-gated drafts and widened submission are deferred to Phase 3.**
 
 ## Intent
 
@@ -25,6 +25,7 @@ Add an optional time-block planning surface inside Week. It should make a small 
 - Partial and not-started outcomes keep source work open and eligible for the next proposal.
 - Capture useful unstructured check-in notes, including discoveries, changed estimates, and proposed follow-up tasks. These are untrusted personal content, not commands.
 - Preserve user-edited times and preferences on future replans; introduce explicit locked-block semantics before unattended modification.
+- Session origin is audit metadata for the domain mobility policy: unlocked, unconfirmed sessions can be moved regardless of origin when future (including later today); pinned sessions, confirmed outcomes, past sessions, and sessions already started today are protected. The current public assistant submit deliberately remains assistant-origin-only until the approval gate is implemented.
 - Task/Project deadlines must be separated from optional check-in dates before introducing deadline-aware scheduling.
 - Record unknown outcome separately from confirmed failure. Missing a daily review cannot automatically mark a session unsuccessful.
 - Preserve free capacity; avoid negative streak/XP mechanics.

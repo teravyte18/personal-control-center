@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
  createPlannerSession, defaultPlannerPreferences, normalizePlannerSession, normalizePlannerState,
- plannerSessionInReplacementWindow,
+ applyPlannerSessionChanges, plannerSessionCanMove, plannerSessionInReplacementWindow,
  plannerWeekDays, reconcileSession, sessionOverlaps, validatePlannerSession,
 } from "../src/domain/weekly-planner.ts";
 import { applyPersonalDataMutation, emptyPersonalDataSnapshot, normalizePersonalDataMutation, normalizePersonalDataSnapshot } from "../src/domain/personal-data-snapshot.ts";
@@ -34,6 +34,30 @@ test("assistant replacement is bounded to the proposal window and future dates",
  assert.equal(plannerSessionInReplacementWindow(sample({origin:"manual"}),from,to,today),false);
  assert.equal(plannerSessionInReplacementWindow(sample({locked:true}),from,to,today),false);
  assert.equal(plannerSessionInReplacementWindow(sample({outcome:"partial"}),from,to,today),false);
+});
+test("mobility policy treats origin as audit-only but protects locked, past, current and outcome sessions",()=>{
+ const sample=(date:string,start="10:30",overrides:Partial<ReturnType<typeof make>>={})=>({...make(date,start),...overrides});
+ assert.equal(plannerSessionCanMove(sample("2026-11-17", "14:00", {origin:"manual"}),"2026-11-17","13:00"),true);
+ assert.equal(plannerSessionCanMove(sample("2026-11-17", "13:00"),"2026-11-17","13:00"),false);
+ assert.equal(plannerSessionCanMove(sample("2026-11-17", "12:45"),"2026-11-17","13:00"),false);
+ assert.equal(plannerSessionCanMove(sample("2026-11-16"),"2026-11-17","09:00"),false);
+ assert.equal(plannerSessionCanMove(sample("2026-11-18", "10:30", {locked:true}),"2026-11-17","09:00"),false);
+ assert.equal(plannerSessionCanMove(sample("2026-11-18", "10:30", {outcome:"not-started"}),"2026-11-17","09:00"),false);
+});
+test("explicit change sets preserve stable IDs and untouched sessions and reject protected/conflicting moves",()=>{
+ const manual={...make("2026-11-18"),origin:"manual" as const};
+ const untouched={...make("2026-11-19"),id:"untouched"};
+ const moved={...manual,date:"2026-11-17",start:"14:00",title:"Moved block"};
+ const applied=applyPlannerSessionChanges([manual,untouched],[moved],"2026-11-17","13:00");
+ assert.equal(applied?.length,2);
+ assert.equal(applied?.[0].id,manual.id);
+ assert.equal(applied?.[0].origin,"manual");
+ assert.equal(applied?.[0].createdAt,manual.createdAt);
+ assert.equal(applied?.[1],untouched);
+ assert.equal(applyPlannerSessionChanges([manual],[{...moved,id:"different-id"}],"2026-11-17","13:00")?.length,2);
+ const blocker={...make("2026-11-17","15:00"),id:"blocker"};
+ assert.equal(applyPlannerSessionChanges([manual,blocker],[moved],"2026-11-17","13:00"),null);
+ assert.equal(applyPlannerSessionChanges([{...manual,locked:true}],[moved],"2026-11-17","13:00"),null);
 });
 test("planner normalization rejects invalid dates, times, duration and malformed references",()=>{
  const valid=make();

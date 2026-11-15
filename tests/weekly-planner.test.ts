@@ -54,6 +54,10 @@ test("explicit change sets preserve stable IDs and untouched sessions and reject
  assert.equal(applied?.[0].origin,"manual");
  assert.equal(applied?.[0].createdAt,manual.createdAt);
  assert.equal(applied?.[1],untouched);
+ const forged={...moved,extraField:"discard me",outcomeAt:"forged timestamp"} as typeof moved;
+ const sanitized=applyPlannerSessionChanges([manual],[forged],"2026-11-17","13:00");
+ assert.equal((sanitized?.[0] as unknown as Record<string,unknown>).extraField,undefined);
+ assert.equal(sanitized?.[0].outcomeAt,undefined);
  assert.equal(applyPlannerSessionChanges([manual],[{...moved,id:"different-id"}],"2026-11-17","13:00")?.length,2);
  const blocker={...make("2026-11-17","15:00"),id:"blocker"};
  assert.equal(applyPlannerSessionChanges([manual,blocker],[moved],"2026-11-17","13:00"),null);

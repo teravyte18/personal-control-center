@@ -42,15 +42,16 @@ export function applyPlannerSessionChanges(
   const replacements = new Map<string, PlannerSession>();
   const additions: PlannerSession[] = [];
   for (const change of changes) {
-    if (!normalizePlannerSession(change) || ids.has(change.id) || !plannerSessionCanMove(change, today, currentTime)) return null;
-    ids.add(change.id);
-    const original = existing.find(session => session.id === change.id);
+    const normalized = normalizePlannerSession(change);
+    if (!normalized || ids.has(normalized.id) || !plannerSessionCanMove(normalized, today, currentTime)) return null;
+    ids.add(normalized.id);
+    const original = existing.find(session => session.id === normalized.id);
     if (original) {
       if (!plannerSessionCanMove(original, today, currentTime)) return null;
       // Keep identity and audit metadata canonical; a move cannot rewrite origin or creation time.
-      replacements.set(change.id, { ...change, id: original.id, origin: original.origin, createdAt: original.createdAt, locked: original.locked });
+      replacements.set(normalized.id, { ...normalized, id: original.id, origin: original.origin, createdAt: original.createdAt, locked: original.locked });
     } else {
-      additions.push(change);
+      additions.push(normalized);
     }
   }
   const result = [...existing.map(session => replacements.get(session.id) ?? session), ...additions];

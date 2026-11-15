@@ -17,7 +17,7 @@ test('enabled Rem routes enforce real cookies, binding, schemas, stream caps and
   const sql=postgres(process.env.PCC_TEST_REM_FICTIONAL_DATABASE_URL,{max:2});
   const socket=join(directory,'adapter.sock');const credential='fictional-uds-credential-0000000000000000';
   const owner='00000000-0000-4000-8000-000000000001';
-  let polls=0;const snapshot={revision:'fictional_revision_0001',state:'ready',messages:[{id:'fictional_message_0001',role:'assistant',text:'Fictional reply',status:'complete'}],truncated:false,activeRun:null};
+  let polls=0;const snapshot={revision:'fictional_revision_0001',state:'ready',messages:[{id:'fictional_message_0001',role:'assistant',text:'Fictional reply',status:'complete'}],truncated:false,activeRun:null,lifecycle:{stage:'reconciled',reason:'success'}};
   const adapter=createServer(async(req,res)=>{
     assert.equal(req.headers.authorization,`Bearer ${credential}`);polls++;
     let raw='';for await(const chunk of req)raw+=chunk;

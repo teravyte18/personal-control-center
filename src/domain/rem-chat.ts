@@ -1,7 +1,9 @@
 /** Browser-safe contract. Routing, Gateway IDs and credentials never belong here. */
 export type RemState = 'disabled' | 'connecting' | 'ready' | 'busy' | 'reconnecting' | 'stopping' | 'unavailable' | 'outcome_unknown';
 export type RemMessage = { id: string; role: 'user' | 'assistant'; text: string; status: 'pending' | 'streaming' | 'complete' | 'stopped' | 'failed'; submissionId?: string };
-export type RemSnapshot = { revision: string; state: RemState; messages: RemMessage[]; truncated: boolean; activeRun: { handle: string; cancellable: boolean } | null };
+/** Fixed, content-free adapter lifecycle diagnostics. They expose no Gateway identifiers or error text. */
+export type RemLifecycle = { stage: 'idle' | 'subscribe' | 'cursor' | 'history' | 'validation' | 'ledger' | 'reconciled'; reason: 'none' | 'started' | 'success' | 'cursor_rejected' | 'rpc_failed' | 'invalid_response' | 'generation_changed' | 'persistence_failed' };
+export type RemSnapshot = { revision: string; state: RemState; messages: RemMessage[]; truncated: boolean; activeRun: { handle: string; cancellable: boolean } | null; lifecycle: RemLifecycle };
 export type RemSendBody = { submissionId: string; text: string; revision: string };
 export type RemSendReceipt = { submissionId: string; runHandle: string; custody: 'accepted' | 'committed' };
 export type RemCancelBody = { runHandle: string };
@@ -39,7 +41,7 @@ export function parseRemCancel(value: unknown): RemCancelBody {
   return { runHandle: v.runHandle };
 }
 export function parseRemSnapshot(value: unknown): RemSnapshot {
-  const v = remObject(value); remExact(v, ['revision', 'state', 'messages', 'truncated', 'activeRun']);
+  const v = remObject(value); remExact(v, ['revision', 'state', 'messages', 'truncated', 'activeRun', 'lifecycle']);
   if (!remOpaque(v.revision) || !['disabled','connecting','ready','busy','reconnecting','stopping','unavailable','outcome_unknown'].includes(String(v.state)) || typeof v.truncated !== 'boolean' || !Array.isArray(v.messages) || v.messages.length > REM_LIMITS.messages) throw new RemError('not_available');
   const messages = v.messages.map(raw => {
     const m = remObject(raw); remExact(m, m.submissionId === undefined ? ['id','role','text','status'] : ['id','role','text','status','submissionId']);
@@ -48,10 +50,12 @@ export function parseRemSnapshot(value: unknown): RemSnapshot {
   });
   let activeRun: RemSnapshot['activeRun'] = null;
   if (v.activeRun !== null) { const a = remObject(v.activeRun); remExact(a, ['handle','cancellable']); if (!remOpaque(a.handle) || typeof a.cancellable !== 'boolean') throw new RemError('not_available'); activeRun = { handle:a.handle,cancellable:a.cancellable }; }
-  return { revision:v.revision,state:v.state as RemState,messages,truncated:v.truncated,activeRun };
+  const lifecycle=remObject(v.lifecycle);remExact(lifecycle,['stage','reason']);
+  if(!['idle','subscribe','cursor','history','validation','ledger','reconciled'].includes(String(lifecycle.stage)) || !['none','started','success','cursor_rejected','rpc_failed','invalid_response','generation_changed','persistence_failed'].includes(String(lifecycle.reason)))throw new RemError('not_available');
+  return { revision:v.revision,state:v.state as RemState,messages,truncated:v.truncated,activeRun,lifecycle:lifecycle as RemLifecycle };
 }
 export const remFictionalSnapshots: RemSnapshot[] = ['disabled','ready','busy','reconnecting','stopping','unavailable','outcome_unknown'].map(state => ({
   revision: 'fictional_revision_0001', state: state as RemState,
   messages: state === 'disabled' ? [] : [{ id: 'fictional_message_0001', role: 'assistant', text: 'What would you like to work on?', status: 'complete' }],
-  truncated: false, activeRun: ['busy','stopping'].includes(state) ? { handle:'fictional_run_handle_001',cancellable:true } : null,
+  truncated: false, activeRun: ['busy','stopping'].includes(state) ? { handle:'fictional_run_handle_001',cancellable:true } : null, lifecycle:{stage:'reconciled',reason:'success'},
 }));

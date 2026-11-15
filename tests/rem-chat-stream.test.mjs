@@ -26,7 +26,7 @@ test('SSE backpressure, idle lifetime, lease failure and pre-aborted cleanup',as
       export function remConfig(){return config;}
       export function requireRemOrigin(){}
       export async function readRemJson(){throw new RemError('invalid_input');}
-      export async function remAdapter(){polls++;return {revision:'fictional_revision_0001',state:'ready',messages:[],truncated:false,activeRun:null};}
+      export async function remAdapter(){polls++;return {revision:'fictional_revision_0001',state:'ready',messages:[],truncated:false,activeRun:null,lifecycle:{stage:'reconciled',reason:'success'}};}
     `);
     let source=await readFile('src/server/rem-chat.ts','utf8');
     for(const name of ['@/server/auth','@/server/rem-chat-policy','@/server/rem-chat-adapter'])source=source.replaceAll(JSON.stringify(name),JSON.stringify('./dependencies.mjs')).replaceAll(`'${name}'`,"'./dependencies.mjs'");

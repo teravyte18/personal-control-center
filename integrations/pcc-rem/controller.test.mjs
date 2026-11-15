@@ -5,10 +5,10 @@ import { RemController } from './controller.mjs';
 import { admitText, ABORT_TRIGGERS } from './input-policy.mjs';
 const binding={id:'fictional_binding_0001',agentId:'fixture',sessionKey:'agent:fixture:pcc-fictional'};
 function fixture({ledger=[],loseAck=false,saveFails=false,clockFloor=0,recoveryDelays=undefined,watchdogDelays=undefined}={}) {
-  const frames=[],active=[],receipts=[];let physical='fictional-physical-1',recoveryPhysical=null,recoveryKey=null,leaf=null,rows=[],snapshotMessages=[],recoveryMessages=null,recoveryReceipts=null,historyFailures=0,historyGate=null,historyInFlight=0,maxHistoryInFlight=0,saveGate=null,saveInFlight=0;
+  const frames=[],active=[],receipts=[];let physical='fictional-physical-1',recoveryPhysical=null,recoveryKey=null,leaf=null,rows=[],snapshotMessages=[],recoveryMessages=null,recoveryReceipts=null,subscribeFailures=0,historyFailures=0,historyGate=null,historyInFlight=0,maxHistoryInFlight=0,saveGate=null,saveInFlight=0;
   const rpc=async(method,p)=> {
     frames.push({method,p});
-    if(method==='sessions.messages.subscribe')return {key:binding.sessionKey,agentId:binding.agentId};
+    if(method==='sessions.messages.subscribe'){if(subscribeFailures-->0)throw new Error('fictional subscribe timeout');return {key:binding.sessionKey,agentId:binding.agentId};}
     assert.equal(p.sessionKey,binding.sessionKey);assert.equal(p.agentId,binding.agentId);
     if(method==='chat.history'){historyInFlight++;maxHistoryInFlight=Math.max(maxHistoryInFlight,historyInFlight);try{if(historyGate)await historyGate;if(historyFailures-->0)throw new Error('fictional history timeout');if(p.limit===200)return {sessionKey:recoveryKey??binding.sessionKey,sessionId:recoveryPhysical??physical,messages:recoveryMessages??snapshotMessages,sessionInfo:{hasActiveRun:active.length>0,activeRunIds:[...active],activeLeafEntryId:leaf},inputReceipts:recoveryReceipts??receipts};return {sessionKey:binding.sessionKey,sessionId:physical,messages:snapshotMessages,deltaCursor:'fictional-cursor',sessionInfo:{hasActiveRun:active.length>0,activeRunIds:[...active],activeLeafEntryId:leaf},inputReceipts:receipts};}finally{historyInFlight--;}}
     if(method==='chat.send'){active.push(p.idempotencyKey);if(loseAck)throw new Error('fictional private provider error');return {runId:p.idempotencyKey,status:'started'};}
@@ -16,7 +16,7 @@ function fixture({ledger=[],loseAck=false,saveFails=false,clockFloor=0,recoveryD
     throw new Error('unexpected method');
   };
   const controller=new RemController({binding,rpc,ledger,clockFloor,recoveryDelays,watchdogDelays,saveLedger:async value=>{saveInFlight++;try{if(saveGate)await saveGate;if(saveFails)throw new Error('fictional storage failure');rows=structuredClone(value);}finally{saveInFlight--;}}});
-  return {controller,frames,active,receipts,get saveInFlight(){return saveInFlight;},get maxHistoryInFlight(){return maxHistoryInFlight;},get rows(){return rows;},setHistoryFailures:value=>{historyFailures=value;},setHistoryGate:value=>{historyGate=value;},setSaveGate:value=>{saveGate=value;},setSaveFails:value=>{saveFails=value;},setPhysical:value=>{physical=value;},setLeaf:value=>{leaf=value;},setMessages:value=>{snapshotMessages=value;},setRecoveryMessages:value=>{recoveryMessages=value;},setRecoveryReceipts:value=>{recoveryReceipts=value;},setRecoveryAddress:(key,id)=>{recoveryKey=key;recoveryPhysical=id;}};
+  return {controller,frames,active,receipts,get saveInFlight(){return saveInFlight;},get maxHistoryInFlight(){return maxHistoryInFlight;},get rows(){return rows;},setSubscribeFailures:value=>{subscribeFailures=value;},setHistoryFailures:value=>{historyFailures=value;},setHistoryGate:value=>{historyGate=value;},setSaveGate:value=>{saveGate=value;},setSaveFails:value=>{saveFails=value;},setPhysical:value=>{physical=value;},setLeaf:value=>{leaf=value;},setMessages:value=>{snapshotMessages=value;},setRecoveryMessages:value=>{recoveryMessages=value;},setRecoveryReceipts:value=>{recoveryReceipts=value;},setRecoveryAddress:(key,id)=>{recoveryKey=key;recoveryPhysical=id;}};
 }
 const body=(c,text='A fictional question')=>({submissionId:newRemSubmissionId(),text,revision:c.snapshot().revision});
 async function eventually(check) {
@@ -27,6 +27,10 @@ test('command-free guard rejects all pinned abort forms, aliases, inline directi
   for(const input of ['/model a','Please answer /model a','prefix /custom_alias value','! ls','hello !ls','ok\u200b/model','a／model','stop\u0000','a\\b','folder/file','https://example.test/\n/model'])assert.equal(admitText(input),false,input);
   for(const input of ['A fictional question','See https://example.test/path?q=one','What is next?','A multiline\nquestion'])assert.equal(admitText(input),true,input);
   assert.equal(admitText('🙂'.repeat(8001)),false);
+});
+test('sanitized lifecycle identifies subscription and direct-history RPC failures',async()=>{
+  const subscribe=fixture();subscribe.setSubscribeFailures(1);await assert.rejects(subscribe.controller.connect(),{code:'not_available'});assert.deepEqual(subscribe.controller.snapshot().lifecycle,{stage:'subscribe',reason:'rpc_failed'});
+  const history=fixture();await history.controller.connect();history.setHistoryFailures(1);await history.controller.history();assert.deepEqual(history.controller.snapshot().lifecycle,{stage:'history',reason:'rpc_failed'});
 });
 test('exact fixed subscribe precedes history and guarded send; duplicate no second turn; payload conflict rejected',async()=>{
   const f=fixture();await f.controller.connect();const input=body(f.controller);const first=await f.controller.send(input);assert.equal(first.custody,'accepted');
@@ -126,6 +130,15 @@ test('exact cancel never retargets; disconnect does not cancel; reconnect subscr
   f.controller.disconnect();assert.equal(f.frames.filter(f=>f.method==='chat.abort').length,1);await f.controller.connect();
   const reconnect=f.frames.slice(f.frames.findLastIndex(f=>f.method==='sessions.messages.subscribe'));assert.equal(reconnect[1].p.cursor,'fictional-cursor');
 });
+test('rejected cursor is discarded and full canonical snapshot reconciles identity',async()=>{
+  const f=fixture();await f.controller.connect();const input=body(f.controller);await f.controller.send(input);const row=f.rows[0];
+  f.receipts.push({runId:row.runId,state:'consumed',consumedByEventId:'canonical-event'});f.active.length=0;
+  f.setHistoryFailures(1);await f.controller.connect();
+  assert.equal(f.controller.snapshot().state,'ready');assert.equal(f.rows[0].messageId,'canonical-event');
+  assert.deepEqual(f.controller.snapshot().lifecycle,{stage:'reconciled',reason:'cursor_rejected'});
+  const cursor=f.frames.findIndex(frame=>frame.method==='chat.history'&&frame.p.cursor);
+  assert.ok(cursor>=0);assert.ok(f.frames.slice(cursor+1).some(frame=>frame.method==='chat.history'&&!frame.p.cursor));
+});
 test('projection drops tools, reasoning, raw errors/internal entries and replaces by stable identity',async()=>{
   const f=fixture();f.setMessages([{role:'tool',content:'secret',__openclaw:{id:'tool'}},{role:'assistant',content:[{type:'thinking',text:'reasoning'},{type:'text',text:'Visible /home/example/private.txt'}],__openclaw:{id:'one'}},{role:'assistant',isError:true,content:'provider credential',__openclaw:{id:'error'}}]);
   await f.controller.connect();const snapshot=f.controller.snapshot();assert.equal(snapshot.messages.length,1);assert.equal(snapshot.messages[0].text,'Visible [private path]');const revision=snapshot.revision;await f.controller.history();assert.equal(f.controller.snapshot().revision,revision);
@@ -208,6 +221,13 @@ test('a terminal event still gets one authoritative recovery after fast retries 
   await eventually(()=>assert.equal(f.controller.snapshot().state,'ready'));
   assert.equal(f.frames.filter(frame=>frame.method==='sessions.messages.subscribe').length,2);assert.equal(f.rows[0].state,'finished');
 });
+test('failed immediate terminal recovery makes bounded progress without a new hello',async()=>{
+  const f=fixture({recoveryDelays:[0,0]});await f.controller.connect();const input=body(f.controller);await f.controller.send(input);const row=f.rows[0];
+  f.active.length=0;f.setMessages([{role:'user',content:input.text,__openclaw:{id:'canonical-retry',idempotencyKey:`${row.runId}:user`}}]);
+  f.setHistoryFailures(2);f.controller.onGatewayEvent({event:'chat',payload:{sessionKey:binding.sessionKey,agentId:binding.agentId,runId:row.runId,state:'final'}});
+  await eventually(()=>assert.equal(f.controller.snapshot().state,'ready'));
+  assert.equal(f.rows[0].state,'finished');assert.equal(f.frames.filter(frame=>frame.method==='sessions.messages.subscribe').length,3);
+});
 
 test('the bounded watchdog recovers a long active owned run without overlapping work',async()=>{
   const f=fixture({recoveryDelays:[0,0,0],watchdogDelays:[0,0,0]});await f.controller.connect();const input=body(f.controller);await f.controller.send(input);
@@ -257,6 +277,14 @@ test('ledger persistence failure remains outcome-unknown and does not start reco
   await f.controller.history();assert.equal(f.controller.snapshot().state,'outcome_unknown');
   await new Promise(resolve=>setTimeout(resolve,5));assert.equal(f.frames.filter(frame=>frame.method==='sessions.messages.subscribe').length,1);
   await assert.rejects(f.controller.send(body(f.controller)),{code:'outcome_unknown'});assert.equal(f.frames.filter(frame=>frame.method==='chat.send').length,1);
+});
+test('failed reconciliation persistence permanently prevents later ready publication',async()=>{
+  const f=fixture({loseAck:true,recoveryDelays:[0]});await f.controller.connect();const input=body(f.controller);
+  await assert.rejects(f.controller.send(input),{code:'outcome_unknown'});const row=f.rows[0];
+  f.receipts.push({runId:row.runId,state:'consumed',consumedByEventId:'canonical-event'});f.active.length=0;
+  f.setSaveFails(true);await f.controller.history();assert.equal(f.controller.snapshot().state,'outcome_unknown');
+  f.setSaveFails(false);await f.controller.connect().catch(()=>{});await f.controller.history();
+  assert.equal(f.controller.snapshot().state,'outcome_unknown');assert.equal(f.controller.snapshot().lifecycle.reason,'persistence_failed');
 });
 
 test('disconnect cancels a recovery queued behind serialized work before it subscribes',async()=>{

@@ -22,6 +22,7 @@ test('strict shared schemas reject routing/identity/run injection and oversized 
   await assert.rejects(readRemJson(new Request('http://localhost',{method:'POST',body:new Uint8Array([0xff])})),{code:'invalid_input'});
   for(const fixture of remFictionalSnapshots)assert.deepEqual(parseRemSnapshot(fixture),fixture);
   assert.throws(()=>parseRemSnapshot({...remFictionalSnapshots[1],secret:'fictional'}));
+  assert.throws(()=>parseRemSnapshot({...remFictionalSnapshots[1],lifecycle:{stage:'history',reason:'private provider error'}}));
 });
 test('body deadline rejects even valid partial JSON when the sender never finishes',async()=>{
   const body=new ReadableStream({start(controller){controller.enqueue(new TextEncoder().encode('{}'));}});

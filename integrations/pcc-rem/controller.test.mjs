@@ -4,21 +4,24 @@ import { newRemSubmissionId } from '../../src/domain/rem-chat.ts';
 import { RemController } from './controller.mjs';
 import { admitText, ABORT_TRIGGERS } from './input-policy.mjs';
 const binding={id:'fictional_binding_0001',agentId:'fixture',sessionKey:'agent:fixture:pcc-fictional'};
-function fixture({ledger=[],loseAck=false,saveFails=false,clockFloor=0}={}) {
-  const frames=[],active=[],receipts=[];let physical='fictional-physical-1',leaf=null,rows=[],snapshotMessages=[];
+function fixture({ledger=[],loseAck=false,saveFails=false,clockFloor=0,recoveryDelays=undefined}={}) {
+  const frames=[],active=[],receipts=[];let physical='fictional-physical-1',leaf=null,rows=[],snapshotMessages=[],historyFailures=0,historyGate=null,historyInFlight=0,maxHistoryInFlight=0,saveGate=null,saveInFlight=0;
   const rpc=async(method,p)=> {
     frames.push({method,p});
     if(method==='sessions.messages.subscribe')return {key:binding.sessionKey,agentId:binding.agentId};
     assert.equal(p.sessionKey,binding.sessionKey);assert.equal(p.agentId,binding.agentId);
-    if(method==='chat.history')return {sessionKey:binding.sessionKey,sessionId:physical,messages:snapshotMessages,deltaCursor:'fictional-cursor',sessionInfo:{hasActiveRun:active.length>0,activeRunIds:[...active],activeLeafEntryId:leaf},inputReceipts:receipts};
+    if(method==='chat.history'){historyInFlight++;maxHistoryInFlight=Math.max(maxHistoryInFlight,historyInFlight);try{if(historyGate)await historyGate;if(historyFailures-->0)throw new Error('fictional history timeout');return {sessionKey:binding.sessionKey,sessionId:physical,messages:snapshotMessages,deltaCursor:'fictional-cursor',sessionInfo:{hasActiveRun:active.length>0,activeRunIds:[...active],activeLeafEntryId:leaf},inputReceipts:receipts};}finally{historyInFlight--;}}
     if(method==='chat.send'){active.push(p.idempotencyKey);if(loseAck)throw new Error('fictional private provider error');return {runId:p.idempotencyKey,status:'started'};}
     if(method==='chat.abort'){return {ok:true,aborted:true,runIds:[p.runId]};}
     throw new Error('unexpected method');
   };
-  const controller=new RemController({binding,rpc,ledger,clockFloor,saveLedger:async value=>{if(saveFails)throw new Error('fictional storage failure');rows=structuredClone(value);}});
-  return {controller,frames,active,receipts,get rows(){return rows;},setPhysical:value=>{physical=value;},setLeaf:value=>{leaf=value;},setMessages:value=>{snapshotMessages=value;}};
+  const controller=new RemController({binding,rpc,ledger,clockFloor,recoveryDelays,saveLedger:async value=>{saveInFlight++;try{if(saveGate)await saveGate;if(saveFails)throw new Error('fictional storage failure');rows=structuredClone(value);}finally{saveInFlight--;}}});
+  return {controller,frames,active,receipts,get saveInFlight(){return saveInFlight;},get maxHistoryInFlight(){return maxHistoryInFlight;},get rows(){return rows;},setHistoryFailures:value=>{historyFailures=value;},setHistoryGate:value=>{historyGate=value;},setSaveGate:value=>{saveGate=value;},setSaveFails:value=>{saveFails=value;},setPhysical:value=>{physical=value;},setLeaf:value=>{leaf=value;},setMessages:value=>{snapshotMessages=value;}};
 }
 const body=(c,text='A fictional question')=>({submissionId:newRemSubmissionId(),text,revision:c.snapshot().revision});
+async function eventually(check) {
+  for(let attempt=0;attempt<40;attempt++) { try { check(); return; } catch (error) { if(attempt===39)throw error; await new Promise(resolve=>setTimeout(resolve,0)); } }
+}
 test('command-free guard rejects all pinned abort forms, aliases, inline directives, bang and hidden controls',()=>{
   for(const trigger of ABORT_TRIGGERS)assert.equal(admitText(trigger.toUpperCase()+'...'),false,trigger);
   for(const input of ['/model a','Please answer /model a','prefix /custom_alias value','! ls','hello !ls','ok\u200b/model','a／model','stop\u0000','a\\b','folder/file','https://example.test/\n/model'])assert.equal(admitText(input),false,input);
@@ -101,4 +104,69 @@ test('exact consumed event identity maps canonical user message to submission (n
   f.receipts.push({runId:f.active[0],state:'consumed',consumedByEventId:'canonical-one'});f.active.length=0;
   f.setMessages([{role:'user',content:input.text,__openclaw:{id:'other'}},{role:'user',content:input.text,__openclaw:{id:'canonical-one'}}]);
   await f.controller.history();const snapshot=f.controller.snapshot();assert.equal(snapshot.messages[0].submissionId,undefined);assert.equal(snapshot.messages[1].submissionId,input.submissionId);
+});
+
+test('a transient history timeout reconnects through the serialized subscription path',async()=>{
+  const f=fixture({recoveryDelays:[0,0,0]});await f.controller.connect();
+  f.setHistoryFailures(1);await f.controller.history();assert.equal(f.controller.snapshot().state,'reconnecting');
+  await eventually(()=>assert.equal(f.frames.filter(frame=>frame.method==='sessions.messages.subscribe').length,2));
+  assert.equal(f.controller.snapshot().state,'ready');
+});
+
+test('recovery reconciles outstanding custody only from exact transcript identity',async()=>{
+  const f=fixture({loseAck:true,recoveryDelays:[0,0,0]});await f.controller.connect();const input=body(f.controller);
+  await assert.rejects(f.controller.send(input),{code:'outcome_unknown'});const row=f.rows[0];f.active.length=0;
+  f.setMessages([{role:'user',content:input.text,__openclaw:{id:'canonical-after-recovery',idempotencyKey:`${row.runId}:user`}}]);
+  f.setHistoryFailures(1);await f.controller.history();
+  await eventually(()=>assert.equal(f.controller.snapshot().state,'ready'));
+  assert.equal(f.rows[0].state,'finished');assert.equal(f.rows[0].messageId,'canonical-after-recovery');
+  assert.equal(f.frames.filter(frame=>frame.method==='chat.send').length,1);
+});
+
+test('repeated recovery failures are bounded and never overlap reconnects',async()=>{
+  const f=fixture({recoveryDelays:[0,0,0]});await f.controller.connect();
+  f.setHistoryFailures(10);await f.controller.history();
+  let releaseHistory;f.setHistoryGate(new Promise(resolve=>{releaseHistory=resolve;}));
+  await eventually(()=>assert.equal(f.frames.filter(frame=>frame.method==='sessions.messages.subscribe').length,2));
+  const queuedHistory=f.controller.history();assert.equal(f.maxHistoryInFlight,1);
+  releaseHistory();
+  await queuedHistory;
+  await eventually(()=>assert.equal(f.frames.filter(frame=>frame.method==='sessions.messages.subscribe').length,4));
+  await new Promise(resolve=>setTimeout(resolve,5));
+  assert.equal(f.frames.filter(frame=>frame.method==='sessions.messages.subscribe').length,4);
+  assert.equal(f.maxHistoryInFlight,1);
+  assert.equal(f.controller.snapshot().state,'unavailable');
+});
+
+test('ledger persistence failure remains outcome-unknown and does not start recovery',async()=>{
+  const f=fixture({loseAck:true,recoveryDelays:[0,0,0]});await f.controller.connect();const input=body(f.controller);
+  await assert.rejects(f.controller.send(input),{code:'outcome_unknown'});f.receipts.push({runId:f.active[0],state:'consumed'});f.active.length=0;f.setSaveFails(true);
+  await f.controller.history();assert.equal(f.controller.snapshot().state,'outcome_unknown');
+  await new Promise(resolve=>setTimeout(resolve,5));assert.equal(f.frames.filter(frame=>frame.method==='sessions.messages.subscribe').length,1);
+  await assert.rejects(f.controller.send(body(f.controller)),{code:'outcome_unknown'});assert.equal(f.frames.filter(frame=>frame.method==='chat.send').length,1);
+});
+
+test('disconnect cancels a recovery queued behind serialized work before it subscribes',async()=>{
+  const f=fixture({recoveryDelays:[5]});await f.controller.connect();
+  f.controller.scheduleRecovery();let release;f.controller.serial(()=>new Promise(resolve=>{release=resolve;}));
+  await eventually(()=>assert.equal(f.controller.recoveryRunning,true));f.controller.disconnect();release();
+  await new Promise(resolve=>setTimeout(resolve,10));
+  assert.equal(f.frames.filter(frame=>frame.method==='sessions.messages.subscribe').length,1);
+  assert.equal(f.frames.filter(frame=>frame.method==='chat.history').length,1);
+});
+
+test('disconnect during an in-flight recovery history request cannot publish ready',async()=>{
+  const f=fixture({recoveryDelays:[0]});await f.controller.connect();f.setHistoryFailures(1);await f.controller.history();
+  let releaseHistory;f.setHistoryGate(new Promise(resolve=>{releaseHistory=resolve;}));
+  await eventually(()=>assert.equal(f.frames.filter(frame=>frame.method==='sessions.messages.subscribe').length,2));
+  f.controller.disconnect();releaseHistory();await new Promise(resolve=>setTimeout(resolve,10));
+  assert.equal(f.controller.snapshot().state,'reconnecting');assert.equal(f.frames.filter(frame=>frame.method==='sessions.messages.subscribe').length,2);
+});
+
+test('disconnect during recovery reconciliation persistence cannot publish ready',async()=>{
+  const f=fixture({loseAck:true,recoveryDelays:[0]});await f.controller.connect();const input=body(f.controller);
+  await assert.rejects(f.controller.send(input),{code:'outcome_unknown'});f.receipts.push({runId:f.active[0],state:'consumed'});f.active.length=0;
+  f.setHistoryFailures(1);await f.controller.history();let releaseSave;f.setSaveGate(new Promise(resolve=>{releaseSave=resolve;}));
+  await eventually(()=>assert.equal(f.saveInFlight,1));f.controller.disconnect();releaseSave();await new Promise(resolve=>setTimeout(resolve,10));
+  assert.equal(f.controller.snapshot().state,'reconnecting');assert.equal(f.frames.filter(frame=>frame.method==='sessions.messages.subscribe').length,2);
 });

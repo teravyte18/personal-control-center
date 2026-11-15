@@ -4,7 +4,7 @@ import { summarizePlannerSessions } from "@/domain/planner-insights";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { getOpenProjectActions, isOpenTask, usePersonalData, usePlannerData } from "@/lib/personal-data";
+import { getOpenProjectActions, isOpenTask, useDataConnection, usePersonalData, usePlannerData } from "@/lib/personal-data";
 import { getRhythmPeriod } from "@/domain/weekly-rhythm";
 import { useCalendarCommitments } from "@/hooks/use-calendar-commitments";
 import {
@@ -27,6 +27,7 @@ function dateDisplay(value: string) {
 function minuteLabel(n: number) {
   return n < 60 ? n+" min" : (n / 60).toLocaleString(undefined,{maximumFractionDigits:1})+" h";
 }
+type PlannerDraft = {id:string;revision:number;replaceFrom:string;rationale:string;status:"draft"|"approved"|"rejected"|"conflict";conflictReason:string;appliedRevision:number|null;calendarSync:{attempted:boolean;succeeded:boolean;error:string}|null;createdAt:string;changes:{sessions:Array<PlannerSession & {priorityReason:string}>;removeSessionIds:string[]}};
 const statuses: {value:PlannerOutcome;label:string}[] = [
   {value:"completed",label:"Completed"},
   {value:"partial",label:"In progress"},
@@ -35,6 +36,7 @@ const statuses: {value:PlannerOutcome;label:string}[] = [
 ];
 export default function PlannerPage() {
   const {items,loaded:itemsLoaded} = usePersonalData();
+  const {refreshServerData} = useDataConnection();
   const {plannerSessions,plannerPreferences,upsertPlannerSession,deletePlannerSession,updatePlannerPreferences,loaded} = usePlannerData();
   const [weeksAhead,setWeeksAhead] = useState(0);
   const period = useMemo(() => selectedPeriod(weeksAhead), [weeksAhead]);
@@ -51,6 +53,9 @@ export default function PlannerPage() {
   const [showPreferences,setShowPreferences] = useState(false);
   const [instruction,setInstruction] = useState("");
   const [pendingRequests,setPendingRequests] = useState<Array<{id:string;weekStart:string;intent:string;instructions:string;processedAt:string|null}>>([]);
+  const [proposals,setProposals] = useState<PlannerDraft[]>([]);
+  const [draftBusy,setDraftBusy] = useState("");
+  const [draftError,setDraftError] = useState("");
   const [queueBusy,setQueueBusy] = useState(false);
   const [queueError,setQueueError] = useState("");
   useEffect(()=>{
@@ -58,15 +63,36 @@ export default function PlannerPage() {
     const refresh=async()=>{
       try{
         const response=await fetch("/api/planner/requests",{cache:"no-store"});
-        if(!response.ok) return;
-        const data=await response.json() as {requests:typeof pendingRequests};
-        if(active)setPendingRequests(data.requests);
+        if(response.ok) {
+          const data=await response.json() as {requests:typeof pendingRequests};
+          if(active)setPendingRequests(data.requests);
+        }
+        const draftResponse=await fetch("/api/planner/proposals",{cache:"no-store"});
+        if(draftResponse.ok) {
+          const data=await draftResponse.json() as {proposals:PlannerDraft[]};
+          if(active)setProposals(data.proposals);
+        }
       }catch{/* Do not obscure locally saved sessions when request status is offline. */}
     };
     void refresh();
     const id=window.setInterval(()=>{void refresh();},30000);
     return ()=>{active=false;window.clearInterval(id);};
   },[]);
+  async function decideDraft(id:string,decision:"approve"|"reject") {
+    if(draftBusy)return;
+    setDraftBusy(id);setDraftError("");
+    try {
+      const response=await fetch("/api/planner/proposals",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id,decision})});
+      const data=await response.json() as {proposal?:PlannerDraft;error?:string};
+      if(!response.ok || !data.proposal) throw new Error(data.error||"Could not update draft.");
+      setProposals(current=>current.map(proposal=>proposal.id===id?data.proposal!:proposal));
+      if(data.proposal.status==="approved") {
+        await refreshServerData();
+        setMessage(data.proposal.calendarSync?.succeeded?"Draft approved and Calendar synced.":"Draft approved, but Calendar sync failed. Check the connection status.");
+      }
+    } catch(error) {setDraftError(error instanceof Error?error.message:"Could not update draft.");}
+    finally {setDraftBusy("");}
+  }
   async function queuePlan() {
     if(queueBusy||!days[0])return;
     setQueueBusy(true);setQueueError("");
@@ -227,9 +253,28 @@ export default function PlannerPage() {
       {insight.effort.ratio!==null&&<p className="pcc-context">Actual / estimated effort (recorded sessions only): {insight.effort.ratio.toFixed(2)}×. Interpret cautiously if only a few sessions have actual effort.</p>}
       {insight.suggestions.length>0&&<div className="space-y-2"><h4 className="font-semibold text-sm">Possible adjustments to test</h4>{insight.suggestions.map(s=><p key={s} className="pcc-context">{s}</p>)}</div>}
     </div>
+    <div className="rounded-2xl border p-4 space-y-3">
+      <h3 className="font-semibold">Assistant plan drafts</h3>
+      {proposals.length===0&&<p className="pcc-context">No assistant drafts yet. Submissions appear here for your review before any session changes.</p>}
+      {draftError&&<p role="alert" className="text-sm">{draftError}</p>}
+      {proposals.map(proposal=><article key={proposal.id} className="rounded-xl border p-3 space-y-2">
+        <div className="flex flex-wrap items-baseline justify-between gap-2"><h4 className="font-semibold">{proposal.status==="draft"?"Ready to review":proposal.status==="approved"?"Approved":proposal.status==="rejected"?"Rejected":"Needs a new plan"} · {proposal.replaceFrom}</h4><p className="pcc-context">Snapshot {proposal.revision}</p></div>
+        <p className="text-sm">{proposal.rationale}</p>
+        {proposal.changes.sessions.map(session=><div key={session.id} className="rounded-lg border p-2 text-sm">
+          <p className="font-semibold">{dateDisplay(session.date)} · {session.start} · {minuteLabel(session.minutes)} · {session.title}</p>
+          <p>Estimated effort: {minuteLabel(session.estimateMinutes)}. {session.priorityReason}</p>
+          <p className="pcc-context">{session.work.length?session.work.map(ref=>work.find(option=>workId(option.ref)===workId(ref))?.title||`${ref.sourceType} ${ref.sourceItemId}`).join(", "):"No linked Task or Project Action"}</p>
+          <p className="pcc-context">{plannerSessions.some(existing=>existing.id===session.id)?"Move or update existing session":"New session"}</p>
+        </div>)}
+        {proposal.changes.removeSessionIds.length>0&&<p className="text-sm">Remove {proposal.changes.removeSessionIds.length} existing session(s): {proposal.changes.removeSessionIds.map(id=>plannerSessions.find(session=>session.id===id)?.title||id).join(", ")}</p>}
+        {proposal.status==="conflict"&&<p role="status" className="text-sm">{proposal.conflictReason} No changes were applied. This draft remains available for reference.</p>}
+        {proposal.status==="approved"&&<p role="status" className="text-sm">{proposal.calendarSync?.succeeded?"Calendar synced.":proposal.calendarSync?`Calendar sync failed: ${proposal.calendarSync.error}`:"Calendar sync result pending. Refresh to check."}</p>}
+        {proposal.status==="draft"&&<div className="flex flex-wrap gap-2"><button type="button" disabled={Boolean(draftBusy)} onClick={()=>{void decideDraft(proposal.id,"approve");}} className="min-h-11 rounded-xl border px-4 text-sm font-semibold disabled:opacity-50">{draftBusy===proposal.id?"Checking…":"Approve changes"}</button><button type="button" disabled={Boolean(draftBusy)} onClick={()=>{void decideDraft(proposal.id,"reject");}} className="min-h-11 rounded-xl border px-4 text-sm disabled:opacity-50">Reject</button></div>}
+      </article>)}
+    </div>
     <div className="rounded-2xl border p-4 space-y-2">
       <h3 className="font-semibold">OpenClaw planning requests</h3>
-      <p className="pcc-context">Queue a plan or replan for this week. Once the private Rem automation is enabled, it can read this request, check current tasks and Calendar, and submit a revised schedule. It will not run immediately from the browser.</p>
+      <p className="pcc-context">Queue a plan or replan for this week. Once the private Rem automation is enabled, it can read this request, check current tasks and Calendar, and submit a draft for your review. It will not run immediately from the browser or change sessions until you approve.</p>
       <textarea value={instruction} onChange={e=>setInstruction(e.target.value)} maxLength={2000} className="w-full rounded-lg border p-2" placeholder="Optional: Keep unfinished work from the same project first; move my deep work later tomorrow…" rows={3}/>
       <button type="button" disabled={queueBusy} onClick={()=>{void queuePlan();}} className="min-h-11 rounded-xl border px-4 text-sm disabled:opacity-50">{queueBusy?"Queuing…":"Request plan / replan"}</button>
       {queueError&&<p role="alert" className="text-sm">{queueError}</p>}

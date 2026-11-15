@@ -15,6 +15,7 @@ const proposedSession = z.object({
   title: z.string().min(1).max(300),
   estimateMinutes: z.number().int().min(15).max(1440).optional(),
   work: z.array(workRef).max(10),
+  priorityReason: z.string().trim().min(1).max(1000),
 }).strict();
 export const tools = [
   { name: "pcc_library_list", operation: "library", description: "Read PCC Library books/media, ratings, reflections, reading state and ownership. Paginate to inspect more than one page; do not infer absence from an incomplete page.", schema: z.object({
@@ -34,12 +35,14 @@ export const tools = [
     description: "Read privacy-minimised busy intervals, planner preferences and current work sessions for at most 21 days. Requires opt-in planner-only grant. No event titles are returned. Never claim free time from unverified calendar state.",
     schema: z.object({ from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) }).strict() },
   { name: "pcc_submit_planner_plan", operation: "planner-submit",
-    description: "Replace only future, unlocked, unconfirmed assistant-origin sessions. Preserves manual sessions and original Tasks. Requires explicit planner-write grant, fresh revision, and validation against live Calendar. Does not create Tasks or modify Projects.",
+    description: "Store a durable reviewable PCC draft; no canonical sessions or Calendar events change until the owner approves in PCC. Include exact upserts/removals, estimates, source refs and priority reasoning. Requires a planner-write grant and current revision.",
     schema: z.object({
       revision: z.number().int().nonnegative(),
       requestId: z.string().uuid().optional(),
       replaceFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-      sessions: z.array(proposedSession).min(1).max(20),
+      rationale: z.string().trim().min(1).max(4000),
+      sessions: z.array(proposedSession).max(20),
+      removeSessionIds: z.array(z.string().min(1).max(100)).max(20),
     }).strict() },
   { name: "pcc_get_planning", operation: "planning", description: "Read current PCC tasks, open project actions, project attention and weekly intentions using an explicit IANA timezone. Paginate for all records. Meaningful dates differ from flexible focus. Calendar is NOT included: never infer free time from this result. asOf groups current state, not a historical snapshot.", schema: z.object({
     timezone: z.string().min(1).max(100), asOf: z.string().max(40).optional(), ...page }).strict() },
@@ -64,5 +67,5 @@ export const responses = {
     sessions:z.array(z.object({id:z.string(),date:z.string(),start:z.string(),minutes:z.number(),title:z.string()}).passthrough()),
     fetchedAt:z.string(),
   }).passthrough(),
-  "planner-submit": z.object({saved:z.literal(true),revision:z.number().int().nonnegative(),count:z.number().int(),calendarCheckedAt:z.string()}).passthrough(),
+  "planner-submit": z.object({draft:z.object({id:z.string(),status:z.enum(["draft","approved","rejected","conflict"]),revision:z.number().int().nonnegative(),createdAt:z.string()}).passthrough()}).strict(),
 };

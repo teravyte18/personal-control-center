@@ -118,7 +118,7 @@ Each Personal Control Center user repeats this independently.
 
 - Agenda reads live from Google Calendar rather than duplicating external events into PostgreSQL.
 - Recurring Google events are expanded into individual upcoming occurrences by the Calendar API.
-- Events from inaccessible/deleted secondary calendars are skipped rather than blocking the whole Agenda.
+- Events from inaccessible/deleted secondary calendars are skipped rather than blocking the whole Agenda. The events response reports incomplete coverage in this case; planner approval blocks until all visible calendars can be checked.
 - Standalone Agenda events use the Personal Control Center calendar as their canonical store.
 - Disconnect deletes the app-created secondary calendar and removes projection mappings. External Google calendars and their events are untouched.
 

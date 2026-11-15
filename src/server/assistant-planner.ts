@@ -1,12 +1,14 @@
 import "server-only";
+import { randomUUID } from "node:crypto";
 import { getDatabase } from "@/server/database";
 import { getAgendaEvents, reconcileGoogleCalendar } from "@/server/google-calendar";
 import { loadPersonalDataState } from "@/server/personal-data-store";
 import {
-  normalizePlannerSession, plannerSessionInReplacementWindow, timeToMinutes, validatePlannerSession,
+  normalizePlannerSession,
   type PlannerSession,
 } from "@/domain/weekly-planner";
 import { createId } from "@/domain/personal-data";
+import { conflictWithEvent, localPlannerClock, plannerBusyEvents, plannerCalendarCoverageIssue, reviewPlannerChanges, withinPlannerHorizon, type ProposalChanges } from "@/domain/planner-proposal";
 import { normalizePersonalDataSnapshot } from "@/domain/personal-data-snapshot";
 import { attemptCalendarSync } from "@/domain/calendar-sync-result";
 
@@ -15,42 +17,6 @@ export class PlannerInputError extends Error {}
 
 function record(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
-}
-function isoLocal(value: string, zone: string) {
-  const date = new Date(value);
-  if (!Number.isFinite(date.getTime())) throw new PlannerInputError("Invalid calendar event timestamp.");
-  const parts = new Intl.DateTimeFormat("en-GB", {
-    timeZone: zone, year: "numeric", month: "2-digit", day: "2-digit",
-    hour: "2-digit", minute: "2-digit", hourCycle: "h23",
-  }).formatToParts(date);
-  const get = (key: string) => parts.find(p => p.type === key)?.value ?? "";
-  return get("year") + "-" + get("month") + "-" + get("day") + "T" + get("hour") + ":" + get("minute");
-}
-type BusyEvent = { start: string; end: string; allDay: boolean };
-function conflictWithEvent(session: PlannerSession, event: BusyEvent, timezone: string) {
-  const from = session.date + "T" + session.start;
-  const finish = timeToMinutes(session.start) + session.minutes;
-  const end = finish === 1440
-    ? (() => { const d = new Date(session.date + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() + 1); return d.toISOString().slice(0, 10) + "T00:00"; })()
-    : session.date + "T" + String(Math.floor(finish/60)).padStart(2, "0") + ":" + String(finish%60).padStart(2, "0");
-  const eventStart = event.allDay ? event.start.slice(0,10) + "T00:00" : isoLocal(event.start, timezone);
-  const eventEnd = event.allDay ? event.end.slice(0,10) + "T00:00" : isoLocal(event.end, timezone);
-  return from < eventEnd && eventStart < end;
-}
-function withinHorizon(date: string, timezone: string, now = new Date()) {
-  const today = new Intl.DateTimeFormat("en-CA", { timeZone: timezone, year:"numeric",month:"2-digit",day:"2-digit" }).formatToParts(now);
-  const get = (part:string)=>today.find(x=>x.type===part)?.value ?? "";
-  const start = get("year")+"-"+get("month")+"-"+get("day");
-  const endDate = new Date(start+"T12:00:00Z");
-  endDate.setUTCDate(endDate.getUTCDate()+21);
-  return date >= start && date <= endDate.toISOString().slice(0,10);
-}
-function localDate(now: Date, timezone: string) {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit",
-  }).formatToParts(now);
-  const get = (part: string) => parts.find(x => x.type === part)?.value ?? "";
-  return get("year") + "-" + get("month") + "-" + get("day");
 }
 export async function plannerAvailability(userId:string, from:string, to:string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to) || to < from) throw new PlannerInputError("Invalid date range.");
@@ -62,91 +28,161 @@ export async function plannerAvailability(userId:string, from:string, to:string)
   const calendar = await getAgendaEvents(userId,min.toISOString(),max.toISOString());
   if (!calendar.connected || calendar.needsReconnect) throw new PlannerConflictError("Calendar is not available.");
   // Do not expose appointment titles, locations or notes to an agent.
-  const busy = calendar.events.filter(e=>e.source==="google"||e.source==="agenda")
-    .map(e=>({start:e.start,end:e.end,allDay:e.allDay}));
+  const busy = plannerBusyEvents(calendar.events);
   const state=await loadPersonalDataState(userId);
-  return {revision:state.revision,timezone:state.snapshot.plannerPreferences.timezone,
+  return {revision:state.revision,coverageComplete:calendar.coverageComplete,timezone:state.snapshot.plannerPreferences.timezone,
     preferences:state.snapshot.plannerPreferences, busy, sessions:state.snapshot.plannerSessions.filter(s=>s.date>=from&&s.date<=to),
     fetchedAt:new Date().toISOString()};
 }
-export async function submitPlannerProposal(userId:string,input:unknown) {
-  if (!record(input) || Object.keys(input).some(k=>!["revision","replaceFrom","sessions","requestId"].includes(k))
-    || !Number.isSafeInteger(input.revision) || typeof input.replaceFrom !== "string"
-    || !Array.isArray(input.sessions) || input.sessions.length<1 || input.sessions.length>20)
-    throw new PlannerInputError("Invalid proposed plan.");
-  if (input.requestId !== undefined && (typeof input.requestId !== "string" || !/^[0-9a-f-]{36}$/.test(input.requestId))) throw new PlannerInputError("Invalid request ID.");
-  const current = await loadPersonalDataState(userId);
-  if (current.revision !== input.revision) throw new PlannerConflictError("Plan changed; retrieve fresh availability.");
-  const zone=current.snapshot.plannerPreferences.timezone;
-  const now=new Date();
-  const replaceFrom=input.replaceFrom as string;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(replaceFrom)||!withinHorizon(replaceFrom,zone,now))
-    throw new PlannerInputError("Invalid replan start date.");
-  const rows:PlannerSession[]=[];
+
+type ProposalStatus = "draft" | "approved" | "rejected" | "conflict";
+type ProposalRow = {
+  id: string; request_id: string | null; snapshot_revision: number | string;
+  replace_from: Date | string; rationale: string; changes: unknown; status: ProposalStatus;
+  conflict_reason: string; applied_revision: number | string | null; calendar_sync: unknown;
+  created_at: Date | string; decided_at: Date | string | null;
+};
+function dateOnly(value: Date | string) { return value instanceof Date ? value.toISOString().slice(0,10) : String(value).slice(0,10); }
+function stamp(value: Date | string | null) { return value === null ? null : new Date(value).toISOString(); }
+function mapProposal(row: ProposalRow) {
+  return { id: row.id, requestId: row.request_id, revision: Number(row.snapshot_revision),
+    replaceFrom: dateOnly(row.replace_from), rationale: row.rationale, changes: row.changes as ProposalChanges,
+    status: row.status, conflictReason: row.conflict_reason, appliedRevision: row.applied_revision === null ? null : Number(row.applied_revision),
+    calendarSync: row.calendar_sync, createdAt: stamp(row.created_at), decidedAt: stamp(row.decided_at) };
+}
+function proposalInput(input: unknown, now: Date, today: string) {
+  if (!record(input) || Object.keys(input).some(k => !["revision","replaceFrom","sessions","removeSessionIds","requestId","rationale"].includes(k))
+    || !Number.isSafeInteger(input.revision) || (input.revision as number) < 0
+    || typeof input.replaceFrom !== "string" || !withinPlannerHorizon(input.replaceFrom, today)
+    || typeof input.rationale !== "string" || !input.rationale.trim() || input.rationale.length > 4000
+    || !Array.isArray(input.sessions) || input.sessions.length > 20
+    || !Array.isArray(input.removeSessionIds) || input.removeSessionIds.length > 20
+    || input.sessions.length + input.removeSessionIds.length < 1
+    || (input.requestId !== undefined && (typeof input.requestId !== "string" || !/^[0-9a-f-]{36}$/.test(input.requestId)))) throw new PlannerInputError("Invalid proposed plan.");
+  const removeSessionIds = input.removeSessionIds as unknown[];
+  if (removeSessionIds.some(id => typeof id !== "string" || !id || id.length > 100)) throw new PlannerInputError("Invalid removal ID.");
+  const sessions: PlannerSession[] = [];
   for (const candidate of input.sessions) {
-    if (!record(candidate) || Object.keys(candidate).some(k=>!["id","date","start","minutes","title","work","estimateMinutes"].includes(k))) throw new PlannerInputError("Invalid session.");
-    const session = normalizePlannerSession({
-      id: typeof candidate.id==="string"&&candidate.id.length<=100 ? candidate.id : createId(),
-      date:candidate.date, start:candidate.start, minutes:candidate.minutes, title:candidate.title,
-      estimateMinutes:candidate.estimateMinutes ?? candidate.minutes,
-      work:candidate.work, locked:false,origin:"assistant",createdAt:new Date().toISOString(),
-    });
-    if (!session || !withinHorizon(session.date,zone,now) || session.date<replaceFrom
-      || [0,6].includes(new Date(session.date+"T12:00:00Z").getUTCDay()))
-      throw new PlannerInputError("Invalid proposed workday or session.");
-    if (rows.some(s=>s.id===session.id)) throw new PlannerInputError("Duplicate session ID.");
-    rows.push(session);
+    if (!record(candidate) || Object.keys(candidate).some(k => !["id","date","start","minutes","title","work","estimateMinutes","priorityReason"].includes(k))
+      || typeof candidate.priorityReason !== "string" || !candidate.priorityReason.trim() || candidate.priorityReason.length > 1000
+      || (candidate.id !== undefined && (typeof candidate.id !== "string" || !candidate.id || candidate.id.length > 100))) throw new PlannerInputError("Invalid proposed session.");
+    const session = normalizePlannerSession({id: candidate.id ?? createId(), date: candidate.date, start: candidate.start,
+      minutes: candidate.minutes, title: candidate.title, estimateMinutes: candidate.estimateMinutes ?? candidate.minutes,
+      work: candidate.work, locked: false, origin: "assistant", createdAt: now.toISOString()});
+    if (!session) throw new PlannerInputError("Invalid proposed session.");
+    sessions.push(session);
   }
-  const to=rows.reduce((max,s)=>s.date>max?s.date:max,replaceFrom);
-  const today=localDate(now,zone);
-  const availability=await plannerAvailability(userId,replaceFrom,to);
-  if (availability.revision!==input.revision) throw new PlannerConflictError("Calendar or plan changed; retry.");
-  const existing=current.snapshot.plannerSessions.filter(s=>!plannerSessionInReplacementWindow(s,replaceFrom,to,today));
-  for (const session of rows) {
-    const issue=validatePlannerSession(session,[...existing,...rows.filter(s=>s.id!==session.id)],current.snapshot.items,[]);
-    if (issue) throw new PlannerInputError(issue);
-    if (availability.busy.some(e=>conflictWithEvent(session,e,zone))) throw new PlannerInputError("Fixed calendar commitment overlaps a proposed session.");
+  return { revision: input.revision as number, replaceFrom: input.replaceFrom as string,
+    rationale: (input.rationale as string).trim(), requestId: input.requestId as string | undefined,
+    changes: {sessions: sessions.map((session, i) => ({...session, priorityReason: (input.sessions as Record<string, unknown>[])[i].priorityReason as string})), removeSessionIds: removeSessionIds as string[]} };
+}
+function canonicalChanges(value: unknown): ProposalChanges {
+  if (!record(value) || !Array.isArray(value.sessions) || !Array.isArray(value.removeSessionIds)) throw new PlannerConflictError("Stored draft is invalid.");
+  const sessions = value.sessions.map(candidate => normalizePlannerSession(candidate));
+  if (sessions.some(session => !session)) throw new PlannerConflictError("Stored draft is invalid.");
+  return {sessions: sessions as PlannerSession[], removeSessionIds: value.removeSessionIds as string[]};
+}
+export async function listPlannerProposals(userId: string) {
+  const sql = getDatabase();
+  const rows = await sql<ProposalRow[]>`select id,request_id,snapshot_revision,replace_from,rationale,changes,status,conflict_reason,applied_revision,calendar_sync,created_at,decided_at
+    from planner_proposals where user_id=${userId} order by created_at desc limit 30`;
+  return rows.map(mapProposal);
+}
+export async function submitPlannerProposal(userId: string, input: unknown) {
+  const current = await loadPersonalDataState(userId);
+  const now = new Date();
+  const clock = localPlannerClock(now, current.snapshot.plannerPreferences.timezone);
+  const parsed = proposalInput(input, now, clock.today);
+  const sql = getDatabase();
+  // A lost MCP response must not create a second draft or acknowledge a request twice.
+  if (parsed.requestId) {
+    const [previous] = await sql<ProposalRow[]>`select id,request_id,snapshot_revision,replace_from,rationale,changes,status,conflict_reason,applied_revision,calendar_sync,created_at,decided_at
+      from planner_proposals where user_id=${userId} and request_id=${parsed.requestId}`;
+    if (previous) return {draft: mapProposal(previous)};
   }
-  const sql=getDatabase();
-  const saved = await sql.begin(async tx=>{
-    const [row]=await tx<{revision:number|string;snapshot:unknown}[]>`
-      select revision,snapshot from personal_data_state where user_id=${userId} for update
-    `;
-    if(!row || Number(row.revision)!==input.revision) throw new PlannerConflictError("State changed; retrieve a new plan.");
-    if(input.requestId) {
-      const [queued]=await tx<{week_start:Date|string}[]>`
-        select week_start from planner_requests where user_id=${userId} and id=${input.requestId as string} and processed_at is null for update
-      `;
-      if(!queued) throw new PlannerConflictError("Requested planning job is not pending.");
-      const start=new Date(replaceFrom+"T12:00:00Z");
-      start.setUTCDate(start.getUTCDate() - (start.getUTCDay()+6)%7);
-      const target=queued.week_start instanceof Date ? queued.week_start.toISOString().slice(0,10) : String(queued.week_start).slice(0,10);
-      if(start.toISOString().slice(0,10)!==target) throw new PlannerInputError("Request week does not match proposal.");
+  if (current.revision !== parsed.revision) throw new PlannerConflictError("Plan changed; retrieve current context.");
+  const changes = canonicalChanges(parsed.changes);
+  const reviewed = reviewPlannerChanges(current.snapshot.plannerSessions, changes, current.snapshot.items, parsed.replaceFrom, clock.today, clock.time);
+  if (typeof reviewed === "string") throw new PlannerInputError(reviewed);
+  return sql.begin(async tx => {
+    const [state] = await tx<{revision: number | string}[]>`select revision from personal_data_state where user_id=${userId} for update`;
+    if (!state || Number(state.revision) !== parsed.revision) throw new PlannerConflictError("Plan changed; retrieve current context.");
+    if (parsed.requestId) {
+      const [queued] = await tx<{week_start: Date | string}[]>`select week_start from planner_requests where user_id=${userId} and id=${parsed.requestId} and processed_at is null for update`;
+      if (!queued) {
+        const [previous] = await tx<ProposalRow[]>`select id,request_id,snapshot_revision,replace_from,rationale,changes,status,conflict_reason,applied_revision,calendar_sync,created_at,decided_at
+          from planner_proposals where user_id=${userId} and request_id=${parsed.requestId}`;
+        if (previous) return {draft: mapProposal(previous)};
+        throw new PlannerConflictError("Planning request is no longer pending.");
+      }
+      const start = new Date(parsed.replaceFrom + "T12:00:00Z"); start.setUTCDate(start.getUTCDate() - (start.getUTCDay()+6)%7);
+      if (dateOnly(queued.week_start) !== start.toISOString().slice(0,10)) throw new PlannerInputError("Request week does not match proposal.");
     }
-    if (localDate(new Date(), zone) !== today) throw new PlannerConflictError("Day changed; retrieve a new plan.");
-    const snapshot=normalizePersonalDataSnapshot(row.snapshot);
-    const retained=snapshot.plannerSessions.filter(s=>!plannerSessionInReplacementWindow(s,replaceFrom,to,today));
-    // Recheck against the transactional version, never erase protected sessions.
-    for(const session of rows) {
-      const issue=validatePlannerSession(session,[...retained,...rows.filter(s=>s.id!==session.id)],snapshot.items,[]);
-      if(issue) throw new PlannerConflictError(issue);
-    }
-    const next={...snapshot,plannerSessions:[...retained,...rows]};
-    const [saved]=await tx<{revision:number|string}[]>`
-      update personal_data_state set snapshot=${tx.json(next)},revision=revision+1,updated_at=now()
-      where user_id=${userId} returning revision
-    `;
-    if(input.requestId) await tx`
-      update planner_requests set processed_at=now() where user_id=${userId} and id=${input.requestId as string} and processed_at is null
-    `;
-    return {saved:true,revision:Number(saved.revision),count:rows.length,calendarCheckedAt:availability.fetchedAt,snapshot:next};
+    const [row] = await tx<ProposalRow[]>`insert into planner_proposals(id,user_id,request_id,snapshot_revision,replace_from,rationale,changes)
+      values(${randomUUID()},${userId},${parsed.requestId ?? null},${parsed.revision},${parsed.replaceFrom},${parsed.rationale},${tx.json(parsed.changes)})
+      returning id,request_id,snapshot_revision,replace_from,rationale,changes,status,conflict_reason,applied_revision,calendar_sync,created_at,decided_at`;
+    if (parsed.requestId) await tx`update planner_requests set processed_at=now() where user_id=${userId} and id=${parsed.requestId}`;
+    return {draft: mapProposal(row)};
   });
-  const calendarSync = await attemptCalendarSync(() => reconcileGoogleCalendar(userId, saved.snapshot));
-  return {
-    saved: saved.saved,
-    revision: saved.revision,
-    count: saved.count,
-    calendarCheckedAt: saved.calendarCheckedAt,
-    calendarSync,
-  };
+}
+export async function decidePlannerProposal(userId: string, id: unknown, decision: unknown) {
+  if (typeof id !== "string" || !/^[0-9a-f-]{36}$/.test(id) || !["approve","reject"].includes(String(decision))) throw new PlannerInputError("Invalid draft decision.");
+  const sql = getDatabase();
+  const [initial] = await sql<ProposalRow[]>`select id,request_id,snapshot_revision,replace_from,rationale,changes,status,conflict_reason,applied_revision,calendar_sync,created_at,decided_at
+    from planner_proposals where user_id=${userId} and id=${id}`;
+  if (!initial) throw new PlannerInputError("Draft not found.");
+  if (initial.status !== "draft") return {proposal: mapProposal(initial)};
+  if (decision === "reject") {
+    const [row] = await sql<ProposalRow[]>`update planner_proposals set status='rejected',decided_at=now()
+      where user_id=${userId} and id=${id} and status='draft'
+      returning id,request_id,snapshot_revision,replace_from,rationale,changes,status,conflict_reason,applied_revision,calendar_sync,created_at,decided_at`;
+    return {proposal: mapProposal(row ?? initial)};
+  }
+  const current = await loadPersonalDataState(userId);
+  const zone = current.snapshot.plannerPreferences.timezone;
+  const clock = localPlannerClock(new Date(), zone);
+  const changes = canonicalChanges(initial.changes);
+  const to = changes.sessions.reduce((max, session) => session.date > max ? session.date : max, dateOnly(initial.replace_from));
+  let issue = current.revision !== Number(initial.snapshot_revision) ? "Planner revision changed." : "";
+  let availability: Awaited<ReturnType<typeof plannerAvailability>> | undefined;
+  if (!issue) {
+    const result = reviewPlannerChanges(current.snapshot.plannerSessions, changes, current.snapshot.items, dateOnly(initial.replace_from), clock.today, clock.time);
+    if (typeof result === "string") issue = result;
+  }
+  if (!issue) {
+    try { availability = await plannerAvailability(userId, dateOnly(initial.replace_from), to); }
+    catch { issue = "Calendar availability could not be verified."; }
+  }
+  if (!issue && availability && availability.revision !== Number(initial.snapshot_revision)) issue = "Planner revision changed.";
+  if (!issue && availability) issue = plannerCalendarCoverageIssue(availability.coverageComplete);
+  if (!issue && availability && changes.sessions.some(session => availability.busy.some(event => conflictWithEvent(session,event,zone)))) issue = "A live Calendar commitment overlaps this draft.";
+  const outcome = await sql.begin(async tx => {
+    const [proposal] = await tx<ProposalRow[]>`select id,request_id,snapshot_revision,replace_from,rationale,changes,status,conflict_reason,applied_revision,calendar_sync,created_at,decided_at
+      from planner_proposals where user_id=${userId} and id=${id} for update`;
+    if (!proposal || proposal.status !== "draft") return {row: proposal, snapshot: null};
+    const [state] = await tx<{revision: number | string; snapshot: unknown}[]>`select revision,snapshot from personal_data_state where user_id=${userId} for update`;
+    const snapshot = state ? normalizePersonalDataSnapshot(state.snapshot) : null;
+    const liveClock = snapshot ? localPlannerClock(new Date(), snapshot.plannerPreferences.timezone) : clock;
+    let conflict = issue || (!state || Number(state.revision) !== Number(proposal.snapshot_revision) ? "Planner revision changed." : "");
+    if (liveClock.today !== clock.today || liveClock.time < clock.time) conflict = "Approval time changed; review again.";
+    const next = !conflict && snapshot ? reviewPlannerChanges(snapshot.plannerSessions, changes, snapshot.items, dateOnly(proposal.replace_from), liveClock.today, liveClock.time) : null;
+    if (typeof next === "string") conflict = next;
+    if (conflict || !snapshot || !Array.isArray(next)) {
+      const [row] = await tx<ProposalRow[]>`update planner_proposals set status='conflict', conflict_reason=${conflict || "Draft could not be applied."}, decided_at=now()
+        where user_id=${userId} and id=${id} returning id,request_id,snapshot_revision,replace_from,rationale,changes,status,conflict_reason,applied_revision,calendar_sync,created_at,decided_at`;
+      return {row, snapshot: null};
+    }
+    const updated = {...snapshot, plannerSessions: next};
+    const [saved] = await tx<{revision: number | string}[]>`update personal_data_state set snapshot=${tx.json(updated)}, revision=revision+1, updated_at=now()
+      where user_id=${userId} returning revision`;
+    const [row] = await tx<ProposalRow[]>`update planner_proposals set status='approved',applied_revision=${Number(saved.revision)},decided_at=now()
+      where user_id=${userId} and id=${id} returning id,request_id,snapshot_revision,replace_from,rationale,changes,status,conflict_reason,applied_revision,calendar_sync,created_at,decided_at`;
+    return {row, snapshot: updated};
+  });
+  if (!outcome.row) throw new PlannerInputError("Draft not found.");
+  if (!outcome.snapshot) return {proposal: mapProposal(outcome.row)};
+  const calendarSync = await attemptCalendarSync(() => reconcileGoogleCalendar(userId, outcome.snapshot!));
+  const [synced] = await sql<ProposalRow[]>`update planner_proposals set calendar_sync=${sql.json(calendarSync)}
+    where user_id=${userId} and id=${id} returning id,request_id,snapshot_revision,replace_from,rationale,changes,status,conflict_reason,applied_revision,calendar_sync,created_at,decided_at`;
+  return {proposal: mapProposal(synced)};
 }

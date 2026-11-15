@@ -1,5 +1,5 @@
 import { listPlannerRequests } from "@/server/planner-requests";
-import { AssistantAccessError, readAssistantJson, recordInput } from "@/domain/assistant-access";
+import { AssistantAccessError, AssistantInputError, readAssistantJson, recordInput } from "@/domain/assistant-access";
 import { requireAssistantGrant } from "@/server/assistant-grants";
 import { plannerAvailability, PlannerConflictError, PlannerInputError, submitPlannerProposal } from "@/server/assistant-planner";
 
@@ -10,7 +10,7 @@ const headers={"Cache-Control":"private, no-store","Referrer-Policy":"no-referre
 function failure(error:unknown,hasAuth:boolean) {
   const status=error instanceof AssistantAccessError ? (hasAuth?403:401)
     : error instanceof PlannerConflictError ? 409
-    : error instanceof PlannerInputError ? 400 : 503;
+    : error instanceof PlannerInputError || error instanceof AssistantInputError ? 400 : 503;
   return Response.json({error:status===409?"Planner state or Calendar availability changed; retrieve current context."
     : status===400?"Invalid planner request."
     : status===503?"Planner is temporarily unavailable.":"Planning access denied."},{status,headers});
@@ -37,7 +37,7 @@ export async function POST(request:Request) {
   try{
     const grant=await grantForPlanner(request);
     if(!(request.headers.get("content-type")??"").startsWith("application/json")) throw new PlannerInputError("JSON required.");
-    const body=recordInput(await readAssistantJson(request, 32768),["revision","replaceFrom","sessions","requestId"]);
+    const body=recordInput(await readAssistantJson(request, 32768),["revision","replaceFrom","sessions","removeSessionIds","requestId","rationale"]);
     const result=await submitPlannerProposal(grant.userId,body);
     return Response.json(result,{headers});
   }catch(error){return failure(error,request.headers.has("authorization"));}

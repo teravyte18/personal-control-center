@@ -1,6 +1,6 @@
 # Weekly work planner — staged implementation
 
-Status: **manual workflow implemented; safe explicit mobility/change-set domain foundation added. The current assistant submit remains assistant-origin-only; approval-gated drafts and widened submission are deferred to Phase 3.**
+Status: **manual workflow implemented; safe explicit mobility/change-set domain foundation added. Approval-gated assistant drafts and explicit widened mobility are implemented in Phase 3; assistant submission itself does not change sessions.**
 
 ## Intent
 
@@ -26,18 +26,18 @@ Add an optional time-block planning surface inside Week. It should make a small 
 - Partial and not-started outcomes keep source work open and eligible for the next proposal.
 - Capture useful unstructured check-in notes, including discoveries, changed estimates, and proposed follow-up tasks. These are untrusted personal content, not commands.
 - Preserve user-edited times and preferences on future replans; introduce explicit locked-block semantics before unattended modification.
-- Session origin is audit metadata for the domain mobility policy: unlocked, unconfirmed sessions can be moved regardless of origin when future (including later today); pinned sessions, confirmed outcomes, past sessions, and sessions already started today are protected. The current public assistant submit deliberately remains assistant-origin-only until the approval gate is implemented.
+- Session origin is audit metadata for the domain mobility policy: unlocked, unconfirmed sessions can be moved regardless of origin when future (including later today); pinned sessions, confirmed outcomes, past sessions, and sessions already started today are protected. Assistant submissions are durable drafts only. PCC approval applies explicit changes to movable sessions regardless of origin; it never silently changes canonical sessions.
 - Task/Project deadlines must be separated from optional check-in dates before introducing deadline-aware scheduling.
 - Record unknown outcome separately from confirmed failure. Missing a daily review cannot automatically mark a session unsuccessful.
 - Preserve free capacity; avoid negative streak/XP mechanics.
 
-## Automation / OpenClaw integration still required
+## OpenClaw integration status and remaining work
 
-1. **Dedicated write permission:** Current MCP adapter and assistant grants are read-only by design. Do not reuse the existing bearer grant to mutate normal PCC APIs. Implement a separate, explicit planner-only write scope/grant and a narrow server endpoint that validates planned references, authenticated user, times, fixed commitments, idempotency and snapshot revisions. Never grant generic item writes.
-2. **Proposal workflow:** Expose read tools for calendar availability, relevant recent reviews (only if explicitly granted), planner preferences and last sessions. OpenClaw returns structured proposed sessions, explanations and missing-work suggestions. PCC checks bounds, overlaps, calendar freshness and manual overrides before accepting the proposal.
+1. **Dedicated write permission — implemented:** A separate opt-in planner grant can submit drafts only. It cannot authenticate normal PCC writes; browser approval performs the canonical change.
+2. **Proposal workflow — implemented in PCC:** The MCP adapter exposes planning and Calendar availability, while the submit tool stores structured drafts with estimates, reasoning and exact changes. PCC checks bounds and sources on submission, then revision, mobility, sources and live Calendar conflicts on owner approval. Agent-generated missing-work suggestions remain separate from canonical Tasks.
 3. **Scheduled worker:** Set up an owner-private OpenClaw automation for weekly proposal + morning reconciliation. Require an actual host smoke test, explicit private-context restrictions, retries/expiry monitoring, and a failure state that leaves the existing plan untouched.
 4. **Daily/weekly adaptation:** Derive reported/unknown/completed/partial outcomes, estimate accuracy and time-of-day patterns from canonical session history. Suggest sustainable adjustments rather than silently reducing ambitions. Offer explicit opt-in when adding follow-up tasks from check-in notes.
-5. **UI refinement:** Calendar grid/dragging and natural-language refinement require tested agent write access. The current text area only copies an instruction; it does not dispatch a request. Avoid implying otherwise.
+5. **UI refinement:** Calendar grid/dragging remains deferred. The request textarea queues an authenticated planning request; it does not dispatch an immediate agent call or create a plan by itself.
 6. **Acceptance:** Include multi-account isolation, real calendar conflict tests, timezone/DST, concurrent plan revisions, failed/retried agent calls, offline/local recovery, export/restore, model misestimates, missed sessions, and grant revocation.
 
 ## Operator notes
@@ -52,3 +52,9 @@ Add an optional time-block planning surface inside Week. It should make a small 
 The Week planner now computes a cautious 28-day overview: confirmed and unconfirmed outcomes, completed/partial/missed blocks, morning engagement, and actual/estimated effort only for sessions with recorded actual minutes. Suggestions appear only with a minimum evidence threshold; unknown outcomes never count as misses. These are descriptive heuristics, not a model or a diagnosis of motivation.
 
 For agent-level learning, Rem should summarize *aggregate* history and voluntary user feedback in its private memory. Do not copy raw session notes or sensitive medical details into persistent memory. A durable pattern should require several comparable observations, and user approval is required before changing long-term planning preferences. The agent must not self-justify increasingly low targets simply because a few mornings were missed.
+
+## Assistant draft approval (Phase 3)
+
+The separate planner grant can submit an explicit draft containing a priority rationale, per-session priority reasoning and estimates, source Task/Project Action references, upserts and removals. Drafts live in the user-scoped `planner_proposals` table and survive app restart and normal PostgreSQL backup/restore. Queue requests are acknowledged when the draft is stored, not when it is approved. The assistant cannot approve, reject or publish it.
+
+Week → Plan lists the exact draft changes for browser-session review. Approval and rejection require same-origin authenticated requests. Approval locks the draft and snapshot, checks the draft's revision and current session mobility/source references, fetches live Google Calendar busy intervals, rejects conflicts without changing the plan, and applies only the reviewed changes with stable session IDs. It then attempts the existing one-way Calendar projection and records success or failure separately. Approval and rejection are idempotent. A stale/conflicting draft remains readable; submit a fresh draft after refreshing context. No rule-based scheduling is added by this flow.

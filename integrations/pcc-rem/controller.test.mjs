@@ -4,7 +4,7 @@ import { newRemSubmissionId } from '../../src/domain/rem-chat.ts';
 import { RemController } from './controller.mjs';
 import { admitText, ABORT_TRIGGERS } from './input-policy.mjs';
 const binding={id:'fictional_binding_0001',agentId:'fixture',sessionKey:'agent:fixture:pcc-fictional'};
-function fixture({ledger=[],loseAck=false,saveFails=false,clockFloor=0,recoveryDelays=undefined}={}) {
+function fixture({ledger=[],loseAck=false,saveFails=false,clockFloor=0,recoveryDelays=undefined,watchdogDelays=undefined}={}) {
   const frames=[],active=[],receipts=[];let physical='fictional-physical-1',leaf=null,rows=[],snapshotMessages=[],historyFailures=0,historyGate=null,historyInFlight=0,maxHistoryInFlight=0,saveGate=null,saveInFlight=0;
   const rpc=async(method,p)=> {
     frames.push({method,p});
@@ -15,7 +15,7 @@ function fixture({ledger=[],loseAck=false,saveFails=false,clockFloor=0,recoveryD
     if(method==='chat.abort'){return {ok:true,aborted:true,runIds:[p.runId]};}
     throw new Error('unexpected method');
   };
-  const controller=new RemController({binding,rpc,ledger,clockFloor,recoveryDelays,saveLedger:async value=>{saveInFlight++;try{if(saveGate)await saveGate;if(saveFails)throw new Error('fictional storage failure');rows=structuredClone(value);}finally{saveInFlight--;}}});
+  const controller=new RemController({binding,rpc,ledger,clockFloor,recoveryDelays,watchdogDelays,saveLedger:async value=>{saveInFlight++;try{if(saveGate)await saveGate;if(saveFails)throw new Error('fictional storage failure');rows=structuredClone(value);}finally{saveInFlight--;}}});
   return {controller,frames,active,receipts,get saveInFlight(){return saveInFlight;},get maxHistoryInFlight(){return maxHistoryInFlight;},get rows(){return rows;},setHistoryFailures:value=>{historyFailures=value;},setHistoryGate:value=>{historyGate=value;},setSaveGate:value=>{saveGate=value;},setSaveFails:value=>{saveFails=value;},setPhysical:value=>{physical=value;},setLeaf:value=>{leaf=value;},setMessages:value=>{snapshotMessages=value;}};
 }
 const body=(c,text='A fictional question')=>({submissionId:newRemSubmissionId(),text,revision:c.snapshot().revision});
@@ -121,6 +121,74 @@ test('recovery reconciles outstanding custody only from exact transcript identit
   await eventually(()=>assert.equal(f.controller.snapshot().state,'ready'));
   assert.equal(f.rows[0].state,'finished');assert.equal(f.rows[0].messageId,'canonical-after-recovery');
   assert.equal(f.frames.filter(frame=>frame.method==='chat.send').length,1);
+});
+
+test('a validated terminal chat event wakes serialized recovery and settles only from the exact transcript',async()=>{
+  const f=fixture({recoveryDelays:[0,0,0]});await f.controller.connect();const input=body(f.controller);await f.controller.send(input);
+  const row=f.rows[0];f.active.length=0;f.setMessages([{role:'user',content:input.text,__openclaw:{id:'canonical-event',idempotencyKey:`${row.runId}:user`}}]);
+  f.controller.onGatewayEvent({event:'chat',payload:{sessionKey:binding.sessionKey,agentId:binding.agentId,runId:row.runId,state:'final'}});
+  await eventually(()=>assert.equal(f.controller.snapshot().state,'ready'));
+  assert.equal(f.rows[0].state,'finished');assert.equal(f.rows[0].messageId,'canonical-event');
+  assert.equal(f.frames.filter(frame=>frame.method==='sessions.messages.subscribe').length,2);
+  assert.equal(f.frames.filter(frame=>frame.method==='chat.send').length,1);
+});
+
+test('wrong or duplicate terminal events neither mutate custody nor start overlapping recovery',async()=>{
+  const f=fixture({recoveryDelays:[0,0,0]});await f.controller.connect();await f.controller.send(body(f.controller));const row=f.rows[0];
+  for(const event of [
+    {event:'chat',payload:{sessionKey:'agent:other:fictional',agentId:binding.agentId,runId:row.runId,state:'final'}},
+    {event:'chat',payload:{sessionKey:binding.sessionKey,agentId:'other',runId:row.runId,state:'final'}},
+    {event:'chat',payload:{sessionKey:binding.sessionKey,agentId:binding.agentId,runId:'foreign',state:'final'}},
+    {event:'chat',payload:{sessionKey:binding.sessionKey,agentId:binding.agentId,runId:row.runId,state:'delta'}},
+  ]) f.controller.onGatewayEvent(event);
+  assert.equal(f.frames.filter(frame=>frame.method==='sessions.messages.subscribe').length,1);assert.equal(row.state,'accepted');
+  const terminal={event:'chat',payload:{sessionKey:binding.sessionKey,agentId:binding.agentId,runId:row.runId,state:'final'}};
+  f.controller.onGatewayEvent(terminal);f.controller.onGatewayEvent(terminal);f.controller.onGatewayEvent(terminal);
+  await eventually(()=>assert.equal(f.frames.filter(frame=>frame.method==='sessions.messages.subscribe').length,2));
+  assert.equal(row.state,'accepted');assert.equal(f.frames.filter(frame=>frame.method==='chat.send').length,1);
+});
+
+test('late terminal events after disconnect are ignored',async()=>{
+  const f=fixture({recoveryDelays:[0,0,0]});await f.controller.connect();await f.controller.send(body(f.controller));const row=f.rows[0];
+  f.controller.disconnect();
+  f.controller.onGatewayEvent({event:'chat',payload:{sessionKey:binding.sessionKey,agentId:binding.agentId,runId:row.runId,state:'error'}});
+  await new Promise(resolve=>setTimeout(resolve,5));
+  assert.equal(f.frames.filter(frame=>frame.method==='sessions.messages.subscribe').length,1);assert.equal(row.state,'accepted');
+});
+
+test('a terminal event still gets one authoritative recovery after fast retries are exhausted',async()=>{
+  const f=fixture({recoveryDelays:[0]});await f.controller.connect();const input=body(f.controller);await f.controller.send(input);const row=f.rows[0];
+  f.controller.recoveryAttempts=f.controller.recoveryDelays.length;f.active.length=0;f.setMessages([{role:'user',content:input.text,__openclaw:{id:'canonical-exhausted-event',idempotencyKey:`${row.runId}:user`}}]);
+  f.controller.onGatewayEvent({event:'chat',payload:{sessionKey:binding.sessionKey,agentId:binding.agentId,runId:row.runId,state:'final'}});
+  await eventually(()=>assert.equal(f.controller.snapshot().state,'ready'));
+  assert.equal(f.frames.filter(frame=>frame.method==='sessions.messages.subscribe').length,2);assert.equal(f.rows[0].state,'finished');
+});
+
+test('the bounded watchdog recovers a long active owned run without overlapping work',async()=>{
+  const f=fixture({recoveryDelays:[0,0,0],watchdogDelays:[0,0,0]});await f.controller.connect();const input=body(f.controller);await f.controller.send(input);
+  const row=f.rows[0];f.active.length=0;f.setMessages([{role:'user',content:input.text,__openclaw:{id:'canonical-watchdog',idempotencyKey:`${row.runId}:user`}}]);
+  await eventually(()=>assert.equal(f.controller.snapshot().state,'ready'));
+  assert.equal(f.rows[0].state,'finished');assert.equal(f.frames.filter(frame=>frame.method==='sessions.messages.subscribe').length,2);assert.equal(f.maxHistoryInFlight,1);
+});
+
+test('the watchdog uses its bounded sequence and remains single-flight when a run stays active',async()=>{
+  const f=fixture({recoveryDelays:[0,0,0],watchdogDelays:[0,0,0]});await f.controller.connect();await f.controller.send(body(f.controller));
+  await eventually(()=>assert.equal(f.frames.filter(frame=>frame.method==='sessions.messages.subscribe').length,4));
+  await new Promise(resolve=>setTimeout(resolve,10));
+  assert.equal(f.frames.filter(frame=>frame.method==='sessions.messages.subscribe').length,4);assert.equal(f.maxHistoryInFlight,1);
+});
+
+test('the watchdog gets an authoritative recovery after fast retries are exhausted',async()=>{
+  const f=fixture({recoveryDelays:[0],watchdogDelays:[10]});await f.controller.connect();const input=body(f.controller);await f.controller.send(input);const row=f.rows[0];
+  f.controller.recoveryAttempts=f.controller.recoveryDelays.length;f.active.length=0;f.setMessages([{role:'user',content:input.text,__openclaw:{id:'canonical-exhausted-watchdog',idempotencyKey:`${row.runId}:user`}}]);
+  await eventually(()=>assert.equal(f.controller.snapshot().state,'ready'));
+  assert.equal(f.frames.filter(frame=>frame.method==='sessions.messages.subscribe').length,2);assert.equal(f.rows[0].state,'finished');
+});
+
+test('disconnect cancels an armed watchdog before it can reconnect',async()=>{
+  const f=fixture({recoveryDelays:[0,0,0],watchdogDelays:[10,10,10]});await f.controller.connect();await f.controller.send(body(f.controller));
+  f.controller.disconnect();await new Promise(resolve=>setTimeout(resolve,20));
+  assert.equal(f.frames.filter(frame=>frame.method==='sessions.messages.subscribe').length,1);
 });
 
 test('repeated recovery failures are bounded and never overlap reconnects',async()=>{

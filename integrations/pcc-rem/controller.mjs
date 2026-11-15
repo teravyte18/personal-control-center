@@ -4,6 +4,8 @@ export class AdapterError extends Error { constructor(code) { super(code); this.
 export const RETRY_MS = 24 * 60 * 60 * 1000;
 const NEW_ID_MS = 5 * 60 * 1000;
 const HISTORY_RECOVERY_DELAYS = [250,1000,5000];
+const WATCHDOG_DELAYS = [30000,60000,120000];
+const TERMINAL_CHAT_STATES = new Set(['final','error','aborted']);
 const fail = code => { throw new AdapterError(code); };
 const hash = value => createHash('sha256').update(value).digest('base64url');
 const bounded = value => { if (Buffer.byteLength(JSON.stringify(value)) > 131072) fail('not_available'); return value; };
@@ -26,7 +28,7 @@ function project(raw, namespace) {
 }
 /** Only this class constructs RPC arguments. The browser never supplies routing or RPC names. */
 export class RemController {
-  constructor({ rpc, binding, ledger, saveLedger, clockFloor=0, recoveryDelays=HISTORY_RECOVERY_DELAYS }) {
+  constructor({ rpc, binding, ledger, saveLedger, clockFloor=0, recoveryDelays=HISTORY_RECOVERY_DELAYS, watchdogDelays=WATCHDOG_DELAYS }) {
     const dedicatedKey = typeof binding?.agentId === 'string' && typeof binding?.sessionKey === 'string' && binding.sessionKey.slice(`agent:${binding.agentId}:`.length);
     if (!binding || !/^[a-zA-Z0-9_-]{16,128}$/.test(binding.id) || !/^[a-zA-Z0-9_-]{1,256}$/.test(binding.agentId) || !binding.sessionKey.startsWith(`agent:${binding.agentId}:`) || !/^[a-zA-Z0-9_-]{1,256}$/.test(dedicatedKey) || /^(?:main|global|subagent|cron|acp)$/i.test(dedicatedKey)) throw new AdapterError('not_available');
     if(!Number.isSafeInteger(clockFloor)||clockFloor<0)fail('not_available');this.clockFloor=clockFloor;
@@ -38,26 +40,58 @@ export class RemController {
       identities.add(row.submissionId);
     }
     if (!Array.isArray(recoveryDelays) || !recoveryDelays.length || recoveryDelays.length>8 || recoveryDelays.some(delay=>!Number.isSafeInteger(delay)||delay<0||delay>60000)) fail('not_available');
+    if (!Array.isArray(watchdogDelays) || !watchdogDelays.length || watchdogDelays.length>3 || watchdogDelays.some(delay=>!Number.isSafeInteger(delay)||delay<0||delay>120000)) fail('not_available');
     this.state='connecting'; this.messages=[]; this.revision=randomUUID(); this.generation=0; this.cursor=null; this.sessionId=null; this.leaf=undefined; this.chain=Promise.resolve(); this.recent=[];
     this.recoveryDelays=recoveryDelays; this.recoveryAttempts=0; this.recoveryTimer=null; this.recoveryRunning=false; this.recoveryEpoch=0;
+    this.watchdogDelays=watchdogDelays; this.watchdogAttempts=0; this.watchdogTimer=null; this.watchdogRunning=false; this.subscribed=false;
   }
   serial(fn) { const task=this.chain.then(fn); this.chain=task.catch(()=>{}); return task; }
   address() { return { sessionKey:this.binding.sessionKey,agentId:this.binding.agentId }; }
-  disconnect() { this.generation++; this.recoveryEpoch++; this.clearRecovery(); this.state='reconnecting'; this.revision=randomUUID(); }
+  disconnect() { this.generation++; this.recoveryEpoch++; this.subscribed=false; this.clearRecovery(); this.clearWatchdog(); this.state='reconnecting'; this.revision=randomUUID(); }
   clearRecovery() {
     if (this.recoveryTimer) clearTimeout(this.recoveryTimer);
     this.recoveryTimer=null; this.recoveryAttempts=0;
   }
-  scheduleRecovery() {
-    if (this.recoveryTimer || this.recoveryRunning || this.recoveryAttempts>=this.recoveryDelays.length) return;
-    const delay=this.recoveryDelays[this.recoveryAttempts++], epoch=this.recoveryEpoch;
+  clearWatchdog() {
+    if (this.watchdogTimer) clearTimeout(this.watchdogTimer);
+    this.watchdogTimer=null; this.watchdogAttempts=0;
+  }
+  scheduleWatchdog() {
+    if (!this.subscribed || !this.outstanding().length || this.watchdogTimer || this.watchdogRunning || this.recoveryTimer || this.recoveryRunning || this.watchdogAttempts>=this.watchdogDelays.length) return;
+    const delay=this.watchdogDelays[this.watchdogAttempts++], epoch=this.recoveryEpoch;
+    this.watchdogTimer=setTimeout(()=> {
+      this.watchdogTimer=null;
+      if (epoch!==this.recoveryEpoch || !this.subscribed || !this.outstanding().length) return;
+      this.watchdogRunning=true;
+      this.requestRecovery();
+      this.watchdogRunning=false;
+    },delay);
+    this.watchdogTimer.unref?.();
+  }
+  scheduleRecovery({immediate=false}={}) {
+    // Terminal/watchdog hints get one serialized authoritative read. They are
+    // deliberately not an extension of the bounded fast-retry loop.
+    if (this.recoveryTimer || this.recoveryRunning || (!immediate && this.recoveryAttempts>=this.recoveryDelays.length)) return;
+    const delay=immediate ? 0 : this.recoveryDelays[this.recoveryAttempts++], epoch=this.recoveryEpoch;
     this.state='reconnecting'; this.revision=randomUUID();
     this.recoveryTimer=setTimeout(()=> {
       this.recoveryTimer=null; this.recoveryRunning=true;
       if (epoch!==this.recoveryEpoch) { this.recoveryRunning=false; return; }
-      void this.connect({recoveryEpoch:epoch}).then(()=> { this.recoveryRunning=false; this.clearRecovery(); },error=> { this.recoveryRunning=false; if (error?.code==='history_unavailable' && epoch===this.recoveryEpoch) this.scheduleRecovery(); });
+      void this.connect({recoveryEpoch:epoch}).then(()=> { this.recoveryRunning=false; this.clearRecovery(); this.scheduleWatchdog(); },error=> { this.recoveryRunning=false; if (!immediate && error?.code==='history_unavailable' && epoch===this.recoveryEpoch) this.scheduleRecovery(); });
     },delay);
     this.recoveryTimer.unref?.();
+  }
+  requestRecovery({event=false}={}) {
+    // Events and watchdogs are wake-up hints only. They never settle ledger custody.
+    if (!this.outstanding().length || (!this.subscribed && !event)) return;
+    this.scheduleRecovery({immediate:true});
+  }
+  onGatewayEvent(event) {
+    const payload=event?.payload;
+    if (!event || event.event!=='chat' || !payload || typeof payload!=='object' || !TERMINAL_CHAT_STATES.has(payload.state) || payload.sessionKey!==this.binding.sessionKey || payload.agentId!==this.binding.agentId || typeof payload.runId!=='string') return;
+    const row=this.ledger.find(candidate=>candidate.state!=='finished' && candidate.runId===payload.runId && candidate.sessionId===this.sessionId);
+    if (!row || !this.subscribed) return;
+    this.requestRecovery({event:true});
   }
   async connect({recoveryEpoch}={}) { return this.serial(async()=> {
     if (recoveryEpoch!==undefined && recoveryEpoch!==this.recoveryEpoch) throw new AdapterError('history_recovery_cancelled');
@@ -66,13 +100,14 @@ export class RemController {
       const ack=await this.rpc('sessions.messages.subscribe',{ key:this.binding.sessionKey,agentId:this.binding.agentId,subscriptionId:this.binding.id });
       if (generation!==this.generation || (recoveryEpoch!==undefined && recoveryEpoch!==this.recoveryEpoch)) throw new AdapterError('history_recovery_cancelled');
       if (ack?.key!==this.binding.sessionKey || ack?.agentId!==this.binding.agentId) fail('not_available');
+      this.subscribed=true;
       // Recover cursor/receipts first. A tail below is an intentional canonical replacement, never delta concatenation.
       if (this.cursor) { try { await this.rpc('chat.history',this.historyParams({cursor:this.cursor})); } catch { throw new AdapterError('history_unavailable'); } }
       if (generation!==this.generation || (recoveryEpoch!==undefined && recoveryEpoch!==this.recoveryEpoch)) throw new AdapterError('history_recovery_cancelled');
       await this.refresh(generation);
       if (generation!==this.generation || (recoveryEpoch!==undefined && recoveryEpoch!==this.recoveryEpoch)) throw new AdapterError('history_recovery_cancelled');
       this.clearRecovery();
-    } catch (error) { if(generation!==this.generation || (recoveryEpoch!==undefined && recoveryEpoch!==this.recoveryEpoch)) throw new AdapterError('history_recovery_cancelled'); this.state=error?.code==='outcome_unknown'?'outcome_unknown':'unavailable'; this.revision=randomUUID(); throw new AdapterError(error?.code==='history_unavailable'?'history_unavailable':'not_available'); }
+    } catch (error) { if(generation!==this.generation || (recoveryEpoch!==undefined && recoveryEpoch!==this.recoveryEpoch)) throw new AdapterError('history_recovery_cancelled'); this.subscribed=false; this.clearWatchdog(); this.state=error?.code==='outcome_unknown'?'outcome_unknown':'unavailable'; this.revision=randomUUID(); throw new AdapterError(error?.code==='history_unavailable'?'history_unavailable':'not_available'); }
   }); }
   outstanding() { return this.ledger.filter(row=>row.state!=='finished').map(row=>row.runId); }
   historyParams(extra={}) {
@@ -119,6 +154,8 @@ export class RemController {
     const view=JSON.stringify({messages,state:next,sessionId:this.sessionId,leaf:this.leaf,pending:pending?.handle,truncated:this.truncated});
     if (view!==this.view) { this.view=view; this.revision=randomUUID(); }
     this.state=next;
+    if (!this.outstanding().length || next==='ready') this.clearWatchdog();
+    else this.scheduleWatchdog();
     return this.snapshot();
   }
   snapshot() {
@@ -148,9 +185,9 @@ export class RemController {
     try {
       const result=await this.rpc('chat.send',{...this.address(),sessionId:row.sessionId,expectedLeafEntryId:this.leaf,message:body.text,idempotencyKey:row.runId});
       if (result?.runId!==row.runId || !['started','accepted','queued'].includes(result?.status)) fail('outcome_unknown');
-      row.state='accepted'; if(Number.isInteger(result.messageSeq)&&result.messageSeq>0)row.custody='committed'; await this.persist();
+      row.state='accepted'; if(Number.isInteger(result.messageSeq)&&result.messageSeq>0)row.custody='committed'; await this.persist(); this.scheduleWatchdog();
       return {submissionId:row.submissionId,runHandle:row.handle,custody:row.custody};
-    } catch { row.state='unknown';this.state='outcome_unknown';await this.persist();fail('outcome_unknown'); }
+    } catch { row.state='unknown';this.state='outcome_unknown';await this.persist();this.scheduleWatchdog();fail('outcome_unknown'); }
   }); }
   cancel(body) { return this.serial(async()=> {
     if (!body || Object.keys(body).join(',')!=='runHandle' || typeof body.runHandle!=='string') fail('invalid_input');

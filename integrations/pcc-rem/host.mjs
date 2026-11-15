@@ -69,8 +69,8 @@ export async function startHost(configPath) {
         if(hello.protocol!==4||hello.server?.version!==SUPPORTED_OPENCLAW||hello.auth?.role!=='operator'||!verifyScopes(hello.auth?.scopes)||!['sessions.messages.subscribe','chat.history','chat.send','chat.abort'].every(m=>hello.features?.methods?.includes(m))){controller.disconnect();void client.stopAndWait({timeoutMs:1000});return;}
         void controller.connect().catch(()=>{});
       },onClose:()=>controller.disconnect(),onGap:()=>controller.disconnect(),onConnectError:()=>controller.disconnect(),onReconnectPaused:()=>controller.disconnect(),
-      // Canonical history including the owned in-flight snapshot is the sole text projection.
-      onEvent:()=>{},
+      // Terminal chat events are non-durable wake-up hints; controller reconciliation stays authoritative.
+      onEvent:event=>controller.onGatewayEvent(event),
     });
     server=createAdapterServer({controller,credential:config.credential});
     // Never unlink an unknown inode. Existing socket requires operator recovery/verification.

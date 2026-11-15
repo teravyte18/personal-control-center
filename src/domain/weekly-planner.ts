@@ -20,12 +20,46 @@ export type PlannerSession = {
   actualMinutes?: number;
 };
 
-/** Assistant replans only replace unconfirmed future sessions inside the submitted window. */
+/** Assistant's current public submit remains assistant-origin-only until approval-gated drafts ship. */
 export function plannerSessionInReplacementWindow(
   session: PlannerSession, from: string, to: string, today: string,
 ) {
-  return session.origin === "assistant" && !session.locked && !session.outcome
+  return session.origin === "assistant" && plannerSessionCanMove(session, today, "23:59")
     && session.date > today && session.date >= from && session.date <= to;
+}
+
+/** Origin is audit metadata, not an editability boundary. Sessions already started today are immovable. */
+export function plannerSessionCanMove(session: PlannerSession, today: string, currentTime: string) {
+  return !session.locked && !session.outcome
+    && (session.date > today || (session.date === today && timeToMinutes(session.start) > timeToMinutes(currentTime)));
+}
+
+/** Safely apply an explicit change set without deleting or replacing unmentioned sessions. */
+export function applyPlannerSessionChanges(
+  existing: PlannerSession[], changes: PlannerSession[], today: string, currentTime: string,
+): PlannerSession[] | null {
+  const ids = new Set<string>();
+  const replacements = new Map<string, PlannerSession>();
+  const additions: PlannerSession[] = [];
+  for (const change of changes) {
+    const normalized = normalizePlannerSession(change);
+    if (!normalized || ids.has(normalized.id) || !plannerSessionCanMove(normalized, today, currentTime)) return null;
+    ids.add(normalized.id);
+    const original = existing.find(session => session.id === normalized.id);
+    if (original) {
+      if (!plannerSessionCanMove(original, today, currentTime)) return null;
+      // Keep identity and audit metadata canonical; a move cannot rewrite origin or creation time.
+      replacements.set(normalized.id, { ...normalized, id: original.id, origin: original.origin, createdAt: original.createdAt, locked: original.locked });
+    } else {
+      additions.push(normalized);
+    }
+  }
+  const result = [...existing.map(session => replacements.get(session.id) ?? session), ...additions];
+  const changedIds = new Set([...replacements.keys(), ...additions.map(session => session.id)]);
+  for (const session of result.filter(item => changedIds.has(item.id))) {
+    if (result.some(other => other.id !== session.id && !other.outcome && sessionOverlaps(session, other))) return null;
+  }
+  return result;
 }
 export type PlannerPreferences = {
   timezone: string;

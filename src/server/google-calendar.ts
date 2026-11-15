@@ -117,7 +117,7 @@ export type GoogleCalendarStatus = {
   syncedEventCount: number;
 };
 
-export type AgendaEventSource = "google" | "agenda" | "task" | "project-action" | "pcc";
+export type AgendaEventSource = "google" | "agenda" | "task" | "project-action" | "planner-session" | "pcc";
 
 export type AgendaEvent = {
   id: string;
@@ -319,7 +319,7 @@ async function createCalendar(accessToken: string) {
     method: "POST",
     body: JSON.stringify({
       summary: DEFAULT_CALENDAR_NAME,
-      description: "Tasks, project actions, and Agenda events from Personal Control Center.",
+      description: "Tasks, project actions, planner sessions, and Agenda events from Personal Control Center.",
     }),
   });
   if (!calendar?.id) throw new Error("Google Calendar was created without an identifier.");
@@ -570,6 +570,7 @@ function agendaSource(event: GoogleEventResource, calendarId: string, pccCalenda
   if (privateProperties?.[AGENDA_EVENT_MARKER] === "true") return "agenda";
   if (privateProperties?.pccSourceType === "task") return "task";
   if (privateProperties?.pccSourceType === "project-action") return "project-action";
+  if (privateProperties?.pccSourceType === "planner-session") return "planner-session";
   return "pcc";
 }
 

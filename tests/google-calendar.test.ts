@@ -90,6 +90,75 @@ test("builds an all-day Google event with an exclusive next-day end", () => {
   });
 });
 
+test("projects unlinked planner check-ins as timed events keyed by stable session ID", () => {
+  const session = {
+    id: "session-check-in",
+    date: "2026-11-18",
+    start: "09:00",
+    minutes: 30,
+    title: "Daily check-in",
+    work: [],
+    estimateMinutes: 30,
+    locked: false,
+    createdAt: "2026-11-01T09:00:00.000Z",
+  };
+  const first = buildGoogleCalendarProjections({
+    items: [],
+    plannerPreferences: { timezone: "Europe/Lisbon" },
+    plannerSessions: [session],
+  });
+  const moved = buildGoogleCalendarProjections({
+    items: [],
+    plannerPreferences: { timezone: "Europe/Lisbon" },
+    plannerSessions: [{ ...session, date: "2026-11-19", start: "10:00" }],
+  });
+
+  assert.equal(first[0]?.sourceType, "planner-session");
+  assert.equal(first[0]?.sourceId, "session-check-in");
+  assert.equal(moved[0]?.sourceId, first[0]?.sourceId, "rescheduling preserves the Calendar mapping key");
+  assert.deepEqual(buildGoogleCalendarEventBody(first[0]!).start, {
+    dateTime: "2026-11-18T09:00:00",
+    timeZone: "Europe/Lisbon",
+  });
+  assert.deepEqual(buildGoogleCalendarEventBody(first[0]!).end, {
+    dateTime: "2026-11-18T09:30:00",
+    timeZone: "Europe/Lisbon",
+  });
+  assert.equal(buildGoogleCalendarEventBody(first[0]!).extendedProperties.private.pccSourceId, "session-check-in");
+  assert.deepEqual(buildGoogleCalendarProjections({ items: [], plannerSessions: [{ ...session, outcome: "completed" }] }), [],
+    "completed sessions are absent from the desired projection");
+  assert.deepEqual(buildGoogleCalendarProjections({ items: [], plannerSessions: [] }), [],
+    "deleted sessions are absent from the desired projection and reconciler removes their mapped event");
+});
+
+test("keeps planner session wall times and timezone across Lisbon DST transition dates", () => {
+  const session = (date: string, start: string) => ({
+    id: `dst-${date}`,
+    date,
+    start,
+    minutes: 45,
+    title: "DST session",
+    work: [],
+    estimateMinutes: 45,
+    locked: false,
+    createdAt: "2026-01-01T09:00:00.000Z",
+  });
+
+  for (const [date, start, end] of [
+    ["2026-03-29", "03:15", "04:00"],
+    ["2026-10-25", "03:15", "04:00"],
+  ]) {
+    const projection = buildGoogleCalendarProjections({
+      items: [],
+      plannerPreferences: { timezone: "Europe/Lisbon" },
+      plannerSessions: [session(date, start)],
+    })[0];
+    const body = buildGoogleCalendarEventBody(projection!);
+    assert.deepEqual(body.start, { dateTime: `${date}T${start}:00`, timeZone: "Europe/Lisbon" });
+    assert.deepEqual(body.end, { dateTime: `${date}T${end}:00`, timeZone: "Europe/Lisbon" });
+  }
+});
+
 test("ignores review and expense mutations but reacts to Calendar-backed item changes", () => {
   assert.equal(mutationAffectsGoogleCalendar({ type: "update-review-draft" }), false);
   assert.equal(mutationAffectsGoogleCalendar({ type: "complete-review" }), false);
@@ -103,4 +172,6 @@ test("ignores review and expense mutations but reacts to Calendar-backed item ch
   assert.equal(mutationAffectsGoogleCalendar({ type: "add-weekly-focus" }), false);
   assert.equal(mutationAffectsGoogleCalendar({ type: "update-item" }), true);
   assert.equal(mutationAffectsGoogleCalendar({ type: "complete-project-action" }), true);
+  assert.equal(mutationAffectsGoogleCalendar({ type: "upsert-planner-session" }), true);
+  assert.equal(mutationAffectsGoogleCalendar({ type: "delete-planner-session" }), true);
 });

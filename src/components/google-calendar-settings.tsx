@@ -134,7 +134,7 @@ export function GoogleCalendarSettings() {
         <div className="max-w-xl">
           <p className="text-sm font-semibold">Google Calendar</p>
           <p className="mt-2 text-sm leading-6 text-slate-500">
-            Dated Tasks and project actions are projected into a separate Personal Control Center calendar. Agenda can also read your visible Google calendars and create standalone events in the Personal Control Center calendar.
+            Dated Tasks, project actions, and planned sessions are projected into a separate Personal Control Center calendar. Agenda can also read your visible Google calendars and create standalone events in the Personal Control Center calendar.
           </p>
         </div>
         {status?.connected ? (

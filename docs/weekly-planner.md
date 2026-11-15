@@ -14,6 +14,7 @@ Add an optional time-block planning surface inside Week. It should make a small 
 - Manual session entry, removal and end-of-day completion/reconciliation, with unconfirmed sessions preserved.
 - Optional rule-based morning starter proposal that refuses to claim availability when Calendar is disconnected, and skips fixed Google/Agenda commitments.
 - Server persistence via the existing user-scoped personal-data snapshot, browser fallback and the standard export/restore path.
+- Planned sessions are projected to the user's PCC Google Calendar as timed, read-only events in the configured timezone. Session IDs provide stable Calendar mappings, so rescheduling updates the same event; external appointments remain protected and are not treated as PCC-owned. An unlinked session such as a check-in projects in the same way. The planned daily 09:00 check-in itself is a later approved planning step; Phase 2 does not create sessions automatically.
 - Read-only `pcc_get_planning` projection of recent sessions and bounded check-in notes, only for the existing explicit Projects+Tasks+Rhythm grant.
 
 **Limitations of the starter proposal:** It deliberately is not AI; it assumes the first open Project Actions (or Tasks) are useful candidates. It does not infer thesis priority, estimate duration with an LLM, review historical preferences, or create calendar events. Inspect proposals before using them.

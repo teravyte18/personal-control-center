@@ -25,16 +25,21 @@ export async function POST(request: Request) {
   try {
     const user = await resolveRequestUser(request);
     const state = await applyStoredPersonalDataMutation(user.id, mutation);
+    const calendarSyncAttempted = mutationAffectsGoogleCalendar(mutation);
+    let calendarSyncError = "";
 
-    if (mutationAffectsGoogleCalendar(mutation)) {
+    if (calendarSyncAttempted) {
       try {
         await reconcileGoogleCalendar(user.id, state.snapshot);
       } catch (calendarError) {
+        calendarSyncError = calendarError instanceof Error
+          ? calendarError.message
+          : "Google Calendar synchronisation failed.";
         console.error("Personal data was saved, but Google Calendar synchronisation failed.", calendarError);
       }
     }
 
-    return Response.json(state, {
+    return Response.json({ ...state, calendarSyncAttempted, calendarSyncError }, {
       headers: { "Cache-Control": "no-store" },
     });
   } catch (error) {

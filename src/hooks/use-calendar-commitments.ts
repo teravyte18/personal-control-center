@@ -11,7 +11,7 @@ export type CalendarCommitment = {
   start: string;
   end: string;
   allDay: boolean;
-  source: "google" | "agenda" | "task" | "project-action" | "pcc";
+  source: "google" | "agenda" | "task" | "project-action" | "planner-session" | "pcc";
 };
 
 export function useCalendarCommitments(period: RhythmPeriod) {

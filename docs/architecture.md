@@ -327,9 +327,10 @@ The optional Calendar integration stores one encrypted refresh-token connection 
 The projection includes:
 
 - dated open Tasks;
-- every dated open project action whose project is active and not archived or completed.
+- every dated open project action whose project is active and not archived or completed;
+- planned Planner Sessions that do not have a recorded outcome.
 
-Each becomes an all-day event in a separate application-created calendar. Relevant item/project mutations trigger reconciliation; review-only and expense-only mutations do not. Calendar failure is recorded but never rolls back a successful canonical Personal Control Center mutation.
+Tasks and Project Actions become all-day events. Planner Sessions become timed events in the planner's configured timezone. The existing user-scoped mapping stores each session ID as its source key, so a reschedule updates the mapped event and deletion/outcome removes it. Relevant item/project/planner mutations trigger reconciliation; review-only and expense-only mutations do not. Calendar failure is recorded and surfaced to the user, but never rolls back a successful canonical Personal Control Center mutation. Planner projections are excluded from fixed-commitment availability so they cannot block their own rescheduling.
 
 The integration is one-way. Direct Google-side edits are not imported, and the app does not write to the user's primary calendar.
 

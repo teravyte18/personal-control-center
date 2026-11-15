@@ -116,6 +116,7 @@ type PersonalDataContextValue = {
   dataMode: DataMode;
   syncing: boolean;
   syncError: string;
+  calendarSyncError: string;
   migrationRequired: boolean;
   downloadLocalBackup: () => void;
   importLocalData: () => Promise<boolean>;
@@ -166,6 +167,7 @@ export function PersonalDataProvider({ children }: { children: ReactNode }) {
   const [revision, setRevision] = useState(0);
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState("");
+  const [calendarSyncError, setCalendarSyncError] = useState("");
 
   const snapshotRef = useRef(snapshot);
   const modeRef = useRef<DataMode>(dataMode);
@@ -330,11 +332,14 @@ export function PersonalDataProvider({ children }: { children: ReactNode }) {
           body: JSON.stringify(mutation),
         });
         if (!response.ok) throw new Error("A change could not be saved to the server.");
-        const server = parseServerState(await response.json());
+        const payload = await response.json() as unknown;
+        const server = parseServerState(payload);
         if (!server) throw new Error("Server persistence returned an invalid response.");
         replaceSnapshot(server.snapshot);
         replaceRevision(server.revision);
-        setSyncError("");
+        if (isRecord(payload) && payload.calendarSyncAttempted === true) {
+          setCalendarSyncError(typeof payload.calendarSyncError === "string" ? payload.calendarSyncError.trim() : "");
+        }
       })
       .catch((error) => {
         replaceMode("local-fallback");
@@ -380,6 +385,7 @@ export function PersonalDataProvider({ children }: { children: ReactNode }) {
 
       replaceSnapshot(server.snapshot);
       replaceRevision(server.revision);
+      setCalendarSyncError(isRecord(body) && typeof body.calendarSyncError === "string" ? body.calendarSyncError.trim() : "");
       replaceMode("server");
       return true;
     } catch (error) {
@@ -588,6 +594,7 @@ export function PersonalDataProvider({ children }: { children: ReactNode }) {
     dataMode,
     syncing,
     syncError,
+    calendarSyncError,
     migrationRequired: dataMode === "local-migration",
     downloadLocalBackup,
     importLocalData,
@@ -629,6 +636,7 @@ export function PersonalDataProvider({ children }: { children: ReactNode }) {
     dataMode,
     syncing,
     syncError,
+    calendarSyncError,
     downloadLocalBackup,
     importLocalData,
     refreshServerData,
@@ -724,6 +732,7 @@ export function useDataConnection() {
     dataMode,
     syncing,
     syncError,
+    calendarSyncError,
     migrationRequired,
     downloadLocalBackup,
     importLocalData,
@@ -733,6 +742,7 @@ export function useDataConnection() {
     dataMode,
     syncing,
     syncError,
+    calendarSyncError,
     migrationRequired,
     downloadLocalBackup,
     importLocalData,

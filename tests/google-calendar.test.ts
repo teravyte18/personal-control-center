@@ -131,6 +131,34 @@ test("projects unlinked planner check-ins as timed events keyed by stable sessio
     "deleted sessions are absent from the desired projection and reconciler removes their mapped event");
 });
 
+test("keeps planner session wall times and timezone across Lisbon DST transition dates", () => {
+  const session = (date: string, start: string) => ({
+    id: `dst-${date}`,
+    date,
+    start,
+    minutes: 45,
+    title: "DST session",
+    work: [],
+    estimateMinutes: 45,
+    locked: false,
+    createdAt: "2026-01-01T09:00:00.000Z",
+  });
+
+  for (const [date, start, end] of [
+    ["2026-03-29", "03:15", "04:00"],
+    ["2026-10-25", "03:15", "04:00"],
+  ]) {
+    const projection = buildGoogleCalendarProjections({
+      items: [],
+      plannerPreferences: { timezone: "Europe/Lisbon" },
+      plannerSessions: [session(date, start)],
+    })[0];
+    const body = buildGoogleCalendarEventBody(projection!);
+    assert.deepEqual(body.start, { dateTime: `${date}T${start}:00`, timeZone: "Europe/Lisbon" });
+    assert.deepEqual(body.end, { dateTime: `${date}T${end}:00`, timeZone: "Europe/Lisbon" });
+  }
+});
+
 test("ignores review and expense mutations but reacts to Calendar-backed item changes", () => {
   assert.equal(mutationAffectsGoogleCalendar({ type: "update-review-draft" }), false);
   assert.equal(mutationAffectsGoogleCalendar({ type: "complete-review" }), false);

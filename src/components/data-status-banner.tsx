@@ -101,6 +101,7 @@ export function DataStatusBanner() {
           <p className="text-sm font-semibold">{pending.length} offline {pending.length === 1 ? "capture is" : "captures are"} pending</p>
           <p className="mt-1 text-sm text-amber-800">They remain stored on this device until the server confirms them.</p>
           {captureError ? <p className="mt-1 text-xs font-medium text-rose-700">{captureError}</p> : null}
+          {calendarSyncError ? <p className="mt-1 text-xs font-medium text-rose-700">PCC data was saved, but Google Calendar sync failed: {calendarSyncError}</p> : null}
         </div>
         <button
           type="button"

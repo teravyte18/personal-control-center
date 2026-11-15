@@ -1,6 +1,6 @@
 import "server-only";
 import { getDatabase } from "@/server/database";
-import { getAgendaEvents } from "@/server/google-calendar";
+import { getAgendaEvents, reconcileGoogleCalendar } from "@/server/google-calendar";
 import { loadPersonalDataState } from "@/server/personal-data-store";
 import {
   normalizePlannerSession, plannerSessionInReplacementWindow, timeToMinutes, validatePlannerSession,
@@ -8,6 +8,7 @@ import {
 } from "@/domain/weekly-planner";
 import { createId } from "@/domain/personal-data";
 import { normalizePersonalDataSnapshot } from "@/domain/personal-data-snapshot";
+import { attemptCalendarSync } from "@/domain/calendar-sync-result";
 
 export class PlannerConflictError extends Error {}
 export class PlannerInputError extends Error {}
@@ -107,7 +108,7 @@ export async function submitPlannerProposal(userId:string,input:unknown) {
     if (availability.busy.some(e=>conflictWithEvent(session,e,zone))) throw new PlannerInputError("Fixed calendar commitment overlaps a proposed session.");
   }
   const sql=getDatabase();
-  return sql.begin(async tx=>{
+  const saved = await sql.begin(async tx=>{
     const [row]=await tx<{revision:number|string;snapshot:unknown}[]>`
       select revision,snapshot from personal_data_state where user_id=${userId} for update
     `;
@@ -138,6 +139,14 @@ export async function submitPlannerProposal(userId:string,input:unknown) {
     if(input.requestId) await tx`
       update planner_requests set processed_at=now() where user_id=${userId} and id=${input.requestId as string} and processed_at is null
     `;
-    return {saved:true,revision:Number(saved.revision),count:rows.length,calendarCheckedAt:availability.fetchedAt};
+    return {saved:true,revision:Number(saved.revision),count:rows.length,calendarCheckedAt:availability.fetchedAt,snapshot:next};
   });
+  const calendarSync = await attemptCalendarSync(() => reconcileGoogleCalendar(userId, saved.snapshot));
+  return {
+    saved: saved.saved,
+    revision: saved.revision,
+    count: saved.count,
+    calendarCheckedAt: saved.calendarCheckedAt,
+    calendarSync,
+  };
 }

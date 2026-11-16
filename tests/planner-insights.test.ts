@@ -20,7 +20,26 @@ test("partial sessions count as engagement; long actual sessions inform estimate
  assert.equal(r.effort.recorded,4);assert.equal(r.effort.ratio,800/480);
  assert.ok(r.suggestions.some(x=>x.includes("exceeding their estimates")));
 });
+test("skipped and postponed outcomes inform counts and heuristics while legacy outcomes remain compatible",()=>{
+ const sessions=[
+  session("1","2026-11-09","skipped"),session("2","2026-11-10","skipped"),
+  session("3","2026-11-11","not-started"),session("4","2026-11-12","skipped"),
+  session("5","2026-11-13","postponed"),session("6","2026-11-14","postponed"),
+  session("7","2026-11-14","postponed"),session("8","2026-11-15","cancelled"),
+ ];
+ const r=summarizePlannerSessions(sessions,"2026-11-09","2026-11-15");
+ assert.equal(r.skipped,3);assert.equal(r.notStarted,1);assert.equal(r.postponed,3);assert.equal(r.missed,4);assert.equal(r.cancelled,1);
+ assert.ok(r.suggestions.some(value=>value.includes("skipped or marked not started")));
+ assert.ok(r.suggestions.some(value=>value.includes("postponed")));
+});
 test("reporting excludes dates outside window",()=>{
  const r=summarizePlannerSessions([session("x","2026-11-01","completed")],"2026-11-09","2026-11-15");
  assert.equal(r.total,0);
+});
+test("postponed and cancelled morning outcomes do not count as missed morning starts",()=>{
+ const sessions=["postponed","cancelled","postponed","cancelled","postponed"].map((outcome,index)=>
+  session(String(index),`2026-11-${String(9+index).padStart(2,"0")}`,outcome as PlannerSession["outcome"],"09:00"));
+ const r=summarizePlannerSessions(sessions,"2026-11-09","2026-11-15");
+ assert.equal(r.morning.confirmed,0);
+ assert.equal(r.suggestions.some(value=>value.includes("Morning starts are frequently")),false);
 });

@@ -8,7 +8,7 @@ import { getOpenProjectActions, isOpenTask, useDataConnection, usePersonalData, 
 import { getRhythmPeriod } from "@/domain/weekly-rhythm";
 import { useCalendarCommitments } from "@/hooks/use-calendar-commitments";
 import {
-  createPlannerSession, plannerWeekDays, reconcileSession,
+  createPlannerSession, dailyPlannerRequestInstructions, plannerWeekDays, reconcileSession,
   validatePlannerSession, type PlannerOutcome, type PlannerSession, type PlannerWorkRef,
 } from "@/domain/weekly-planner";
 
@@ -24,6 +24,8 @@ function workId(ref: PlannerWorkRef) {
 function dateDisplay(value: string) {
   return new Date(value + "T12:00:00").toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"});
 }
+function localToday() { const now=new Date(); return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`; }
+function mondayFor(date:string) { const day=new Date(date+"T12:00:00Z"); const offset=(day.getUTCDay()+6)%7; day.setUTCDate(day.getUTCDate()-offset); return day.toISOString().slice(0,10); }
 function minuteLabel(n: number) {
   return n < 60 ? n+" min" : (n / 60).toLocaleString(undefined,{maximumFractionDigits:1})+" h";
 }
@@ -31,8 +33,10 @@ type PlannerDraft = {id:string;revision:number;replaceFrom:string;rationale:stri
 const statuses: {value:PlannerOutcome;label:string}[] = [
   {value:"completed",label:"Completed"},
   {value:"partial",label:"In progress"},
-  {value:"not-started",label:"Not started"},
-  {value:"cancelled",label:"No longer needed"},
+  {value:"skipped",label:"Skipped"},
+  {value:"postponed",label:"Postponed"},
+  {value:"not-started",label:"Not started (legacy)"},
+  {value:"cancelled",label:"No longer needed (legacy)"},
 ];
 export default function PlannerPage() {
   const {items,loaded:itemsLoaded} = usePersonalData();
@@ -44,6 +48,7 @@ export default function PlannerPage() {
   const calendarPeriod = useMemo(()=>({start:days[0] ?? period.start,end:days[4] ?? period.end}),[days,period]);
   const {result:calendar,error:calendarError,retry:retryCalendar} = useCalendarCommitments(calendarPeriod);
   const [date,setDate] = useState("");
+  const [reportDate,setReportDate] = useState(localToday);
   const [start,setStart] = useState("10:30");
   const [minutes,setMinutes] = useState(120);
   const [title,setTitle] = useState("");
@@ -93,13 +98,17 @@ export default function PlannerPage() {
     } catch(error) {setDraftError(error instanceof Error?error.message:"Could not update draft.");}
     finally {setDraftBusy("");}
   }
-  async function queuePlan() {
-    if(queueBusy||!days[0])return;
+  async function queuePlan(dateForReport:string) {
+    if(queueBusy)return;
+    const entries=plannerSessions.filter(session=>session.date===dateForReport&&session.outcome);
+    const reports=entries.map(session=>{
+      return {title:session.title,outcome:session.outcome!,note:session.note??"",actualMinutes:session.actualMinutes};
+    });
     setQueueBusy(true);setQueueError("");
     try{
       const response=await fetch("/api/planner/requests",{
         method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({weekStart:days[0],intent:"replan",instructions:instruction}),
+        body:JSON.stringify({weekStart:mondayFor(dateForReport),intent:"replan",instructions:dailyPlannerRequestInstructions(dateForReport,reports,instruction)}),
       });
       const data=await response.json();
       if(!response.ok)throw new Error(typeof data.error==="string"?data.error:"Could not queue planning request.");
@@ -212,6 +221,16 @@ export default function PlannerPage() {
       </form>
       {message&&<p role="status" className="text-sm">{message}</p>}
     </div>
+    <div className="rounded-2xl border p-4 space-y-3">
+      <div className="flex flex-wrap items-end justify-between gap-3"><div><h3 className="text-xl font-semibold">Daily check-in</h3><p className="pcc-context">Review this date’s sessions together. Save outcomes first; requesting a replan queues one grouped request and never changes the plan automatically.</p></div><label className="text-sm">Date<input type="date" className="mt-1 block rounded-lg border p-2" value={reportDate} onChange={event=>setReportDate(event.target.value)}/></label></div>
+      {plannerSessions.filter(session=>session.date===reportDate).length===0?<p className="pcc-context">No sessions scheduled for this date.</p>:plannerSessions.filter(session=>session.date===reportDate).sort((a,b)=>a.start.localeCompare(b.start)).map(session=>{
+        const state=feedback[session.id] ?? {outcome:session.outcome??"partial",note:session.note??"",actual:session.actualMinutes?.toString()??""};
+        return <article key={session.id} className="rounded-xl border p-3 space-y-2"><p className="text-sm font-semibold">{session.start} · {minuteLabel(session.minutes)} · {session.title}</p><label className="block text-sm">Outcome<select className="mt-1 block w-full rounded-lg border p-2" value={state.outcome} onChange={event=>setFeedback(current=>({...current,[session.id]:{...state,outcome:event.target.value as PlannerOutcome}}))}>{statuses.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}</select></label><label className="block text-sm">Note (optional)<textarea rows={2} maxLength={4000} className="mt-1 block w-full rounded-lg border p-2" value={state.note} onChange={event=>setFeedback(current=>({...current,[session.id]:{...state,note:event.target.value}}))}/></label><div className="flex flex-wrap items-end gap-2"><label className="text-sm">Actual minutes (optional)<input className="mt-1 block w-32 rounded-lg border p-2" type="number" min={0} max={1440} value={state.actual} onChange={event=>setFeedback(current=>({...current,[session.id]:{...state,actual:event.target.value}}))}/></label><button type="button" className="min-h-11 rounded-xl border px-4 text-sm font-semibold" onClick={()=>saveOutcome(session)}>Save outcome</button></div></article>;
+      })}
+      <label className="block text-sm">What should change? (optional)<textarea value={instruction} onChange={event=>setInstruction(event.target.value)} maxLength={1500} className="mt-1 w-full rounded-lg border p-2" placeholder="Optional guidance for the grouped replan" rows={2}/></label>
+      <button type="button" disabled={queueBusy} onClick={()=>{void queuePlan(reportDate);}} className="min-h-11 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white disabled:opacity-50">{queueBusy?"Queuing…":"Request grouped replan"}</button>
+      {queueError&&<p role="alert" className="text-sm">{queueError}</p>}
+    </div>
     <div className="space-y-3">
       <h3 className="text-xl font-semibold">Scheduled work</h3>
       {sorted.length===0&&<p className="pcc-context">No work sessions are planned yet. The rest of the week remains flexible.</p>}
@@ -219,22 +238,12 @@ export default function PlannerPage() {
         <h4 className="font-semibold">{dateDisplay(day)}</h4>
         {!sorted.some(s=>s.date===day)&&<p className="pcc-context">Open / flexible</p>}
         {sorted.filter(s=>s.date===day).map(s=>{
-          const state=feedback[s.id] ?? {outcome:s.outcome??"partial",note:s.note??"",actual:s.actualMinutes?.toString()??""};
           return <div key={s.id} className="rounded-xl border p-3 space-y-2">
             <div className="flex items-start justify-between gap-2">
               <div><p className="text-sm font-semibold">{timeLabel(s.start)} · {minuteLabel(s.minutes)}</p><p>{s.title}</p>{s.outcome&&<p className="pcc-context">Last outcome: {statuses.find(o=>o.value===s.outcome)?.label}</p>}</div>
               <button type="button" className="text-sm underline" onClick={()=>deletePlannerSession(s.id)}>Remove</button>
             </div>
-            <label className="block text-sm">Session outcome
-              <select className="mt-1 block w-full rounded-lg border p-2" value={state.outcome} onChange={e=>setFeedback(v=>({...v,[s.id]:{...state,outcome:e.target.value as PlannerOutcome}}))}>{statuses.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}</select>
-            </label>
-            <label className="block text-sm">What happened? Anything to revisit, estimate differently, or add to your tasks?
-              <textarea rows={2} maxLength={4000} className="mt-1 block w-full rounded-lg border p-2" value={state.note} onChange={e=>setFeedback(v=>({...v,[s.id]:{...state,note:e.target.value}}))}/>
-            </label>
-            <div className="flex flex-wrap gap-2 items-end">
-              <label className="text-sm">Actual minutes (optional)<input className="block w-32 rounded-lg border p-2" type="number" min={0} max={1440} value={state.actual} onChange={e=>setFeedback(v=>({...v,[s.id]:{...state,actual:e.target.value}}))}/></label>
-              <button type="button" className="min-h-11 rounded-xl border px-4 text-sm font-semibold" onClick={()=>saveOutcome(s)}>Save check-in</button>
-            </div>
+            {s.outcome&&<p className="pcc-context">Outcome: {statuses.find(option=>option.value===s.outcome)?.label}</p>}
           </div>;
         })}
       </div>)}
@@ -244,7 +253,9 @@ export default function PlannerPage() {
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <div><p className="pcc-context">Completed</p><p className="text-xl font-semibold">{insight.completed}</p></div>
         <div><p className="pcc-context">Still in progress</p><p className="text-xl font-semibold">{insight.partial}</p></div>
-        <div><p className="pcc-context">Not started</p><p className="text-xl font-semibold">{insight.missed}</p></div>
+        <div><p className="pcc-context">Skipped</p><p className="text-xl font-semibold">{insight.skipped}</p></div>
+        <div><p className="pcc-context">Not started (legacy)</p><p className="text-xl font-semibold">{insight.notStarted}</p></div>
+        <div><p className="pcc-context">Postponed</p><p className="text-xl font-semibold">{insight.postponed}</p></div>
         <div><p className="pcc-context">Unconfirmed</p><p className="text-xl font-semibold">{insight.unconfirmed}</p></div>
         <div><p className="pcc-context">Recorded effort</p><p className="text-xl font-semibold">{minuteLabel(insight.effort.actualMinutes)}</p></div>
       </div>
@@ -274,10 +285,7 @@ export default function PlannerPage() {
     </div>
     <div className="rounded-2xl border p-4 space-y-2">
       <h3 className="font-semibold">OpenClaw planning requests</h3>
-      <p className="pcc-context">Queue a plan or replan for this week. Once the private Rem automation is enabled, it can read this request, check current tasks and Calendar, and submit a draft for your review. It will not run immediately from the browser or change sessions until you approve.</p>
-      <textarea value={instruction} onChange={e=>setInstruction(e.target.value)} maxLength={2000} className="w-full rounded-lg border p-2" placeholder="Optional: Keep unfinished work from the same project first; move my deep work later tomorrow…" rows={3}/>
-      <button type="button" disabled={queueBusy} onClick={()=>{void queuePlan();}} className="min-h-11 rounded-xl border px-4 text-sm disabled:opacity-50">{queueBusy?"Queuing…":"Request plan / replan"}</button>
-      {queueError&&<p role="alert" className="text-sm">{queueError}</p>}
+      <p className="pcc-context">Requests use the existing durable queue. Rem can prepare a draft for review; sessions remain unchanged unless you approve it.</p>
       {pendingRequests.filter(request=>request.processedAt===null).map(request=><div key={request.id} className="flex justify-between items-start gap-2 rounded-xl border p-3">
         <div><p className="text-sm font-semibold">Pending · {request.weekStart}</p><p className="pcc-context">{request.instructions||"Use current priorities and preferences"}</p></div>
         <button type="button" className="text-sm underline" onClick={()=>{void cancelRequest(request.id);}}>Cancel</button>

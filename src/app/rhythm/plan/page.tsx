@@ -238,7 +238,6 @@ export default function PlannerPage() {
         <h4 className="font-semibold">{dateDisplay(day)}</h4>
         {!sorted.some(s=>s.date===day)&&<p className="pcc-context">Open / flexible</p>}
         {sorted.filter(s=>s.date===day).map(s=>{
-          const state=feedback[s.id] ?? {outcome:s.outcome??"partial",note:s.note??"",actual:s.actualMinutes?.toString()??""};
           return <div key={s.id} className="rounded-xl border p-3 space-y-2">
             <div className="flex items-start justify-between gap-2">
               <div><p className="text-sm font-semibold">{timeLabel(s.start)} · {minuteLabel(s.minutes)}</p><p>{s.title}</p>{s.outcome&&<p className="pcc-context">Last outcome: {statuses.find(o=>o.value===s.outcome)?.label}</p>}</div>
@@ -254,7 +253,9 @@ export default function PlannerPage() {
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <div><p className="pcc-context">Completed</p><p className="text-xl font-semibold">{insight.completed}</p></div>
         <div><p className="pcc-context">Still in progress</p><p className="text-xl font-semibold">{insight.partial}</p></div>
-        <div><p className="pcc-context">Not started</p><p className="text-xl font-semibold">{insight.missed}</p></div>
+        <div><p className="pcc-context">Skipped</p><p className="text-xl font-semibold">{insight.skipped}</p></div>
+        <div><p className="pcc-context">Not started (legacy)</p><p className="text-xl font-semibold">{insight.notStarted}</p></div>
+        <div><p className="pcc-context">Postponed</p><p className="text-xl font-semibold">{insight.postponed}</p></div>
         <div><p className="pcc-context">Unconfirmed</p><p className="text-xl font-semibold">{insight.unconfirmed}</p></div>
         <div><p className="pcc-context">Recorded effort</p><p className="text-xl font-semibold">{minuteLabel(insight.effort.actualMinutes)}</p></div>
       </div>

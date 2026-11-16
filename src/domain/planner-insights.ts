@@ -2,7 +2,7 @@ import type { PlannerSession } from "./weekly-planner.ts";
 
 export type PlannerInsightSummary = {
   total:number; confirmed:number; unconfirmed:number; engaged:number;
-  completed:number; partial:number; missed:number; cancelled:number;
+  completed:number; partial:number; missed:number; skipped:number; notStarted:number; postponed:number; cancelled:number;
   morning:{confirmed:number;engaged:number};
   effort:{recorded:number;actualMinutes:number;plannedMinutes:number;ratio:number|null};
   suggestions:string[];
@@ -17,7 +17,10 @@ export function summarizePlannerSessions(sessions:readonly PlannerSession[], sin
   const actualMinutes=effort.reduce((sum,s)=>sum+(s.actualMinutes??0),0);
   const completion=confirmed.filter(s=>s.outcome==="completed").length;
   const partial=confirmed.filter(s=>s.outcome==="partial").length;
-  const missed=confirmed.filter(s=>s.outcome==="not-started").length;
+  const skipped=confirmed.filter(s=>s.outcome==="skipped").length;
+  const notStarted=confirmed.filter(s=>s.outcome==="not-started").length;
+  const postponed=confirmed.filter(s=>s.outcome==="postponed").length;
+  const missed=skipped+notStarted;
   const cancelled=confirmed.filter(s=>s.outcome==="cancelled").length;
   const engaged=completion+partial;
   const morningEngaged=morning.filter(s=>s.outcome==="completed"||s.outcome==="partial").length;
@@ -25,14 +28,15 @@ export function summarizePlannerSessions(sessions:readonly PlannerSession[], sin
   const suggestions:string[]=[];
   if(confirmed.length<5) suggestions.push("Record a few more session outcomes before treating any productivity pattern as reliable.");
   else {
-    if(morning.length>=5 && morningEngaged/morning.length<0.5) suggestions.push("Morning starts are frequently missed. Consider testing a later start or working away from home rather than simply rescheduling indefinitely.");
-    if(missed>=4 && missed/confirmed.length>=0.4) suggestions.push("Several sessions were marked not started. Try fewer scheduled blocks and check whether work location or task clarity is the obstacle.");
+    if(morning.length>=5 && morningEngaged/morning.length<0.5) suggestions.push("Morning starts are frequently skipped or not started. Consider testing a later start or working away from home rather than simply rescheduling indefinitely.");
+    if(missed>=4 && missed/confirmed.length>=0.4) suggestions.push("Several sessions were skipped or marked not started. Try fewer scheduled blocks and check whether work location or task clarity is the obstacle.");
+    if(postponed>=3 && postponed/confirmed.length>=0.3) suggestions.push("Several sessions were postponed. Check whether the scheduled timing or task size needs adjusting.");
     if(effort.length>=4 && ratio!==null && ratio>1.4) suggestions.push("Tasks with recorded effort are exceeding their estimates. Consider longer blocks and smaller actionable tasks.");
     if(engaged>=4 && engaged/confirmed.length>=0.7) suggestions.push("Your recent sessions show consistent engagement. You could consider a small, reversible increase in planned work.");
   }
   return {
     total:sample.length,confirmed:confirmed.length,unconfirmed:sample.length-confirmed.length,
-    engaged,completed:completion,partial,missed,cancelled,
+    engaged,completed:completion,partial,missed,skipped,notStarted,postponed,cancelled,
     morning:{confirmed:morning.length,engaged:morningEngaged},
     effort:{recorded:effort.length,actualMinutes,plannedMinutes,ratio},suggestions,
   };

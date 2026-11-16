@@ -20,6 +20,18 @@ test("partial sessions count as engagement; long actual sessions inform estimate
  assert.equal(r.effort.recorded,4);assert.equal(r.effort.ratio,800/480);
  assert.ok(r.suggestions.some(x=>x.includes("exceeding their estimates")));
 });
+test("skipped and postponed outcomes inform counts and heuristics while legacy outcomes remain compatible",()=>{
+ const sessions=[
+  session("1","2026-11-09","skipped"),session("2","2026-11-10","skipped"),
+  session("3","2026-11-11","not-started"),session("4","2026-11-12","skipped"),
+  session("5","2026-11-13","postponed"),session("6","2026-11-14","postponed"),
+  session("7","2026-11-14","postponed"),session("8","2026-11-15","cancelled"),
+ ];
+ const r=summarizePlannerSessions(sessions,"2026-11-09","2026-11-15");
+ assert.equal(r.skipped,3);assert.equal(r.notStarted,1);assert.equal(r.postponed,3);assert.equal(r.missed,4);assert.equal(r.cancelled,1);
+ assert.ok(r.suggestions.some(value=>value.includes("skipped or marked not started")));
+ assert.ok(r.suggestions.some(value=>value.includes("postponed")));
+});
 test("reporting excludes dates outside window",()=>{
  const r=summarizePlannerSessions([session("x","2026-11-01","completed")],"2026-11-09","2026-11-15");
  assert.equal(r.total,0);

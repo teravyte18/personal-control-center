@@ -121,6 +121,14 @@ test("daily grouped request includes only the selected date reports in one bound
  assert.match(dailyPlannerRequestInstructions("2026-11-16",[]),/No session outcomes were changed/);
 });
 
+test("daily grouped request rejects oversized reports instead of truncating reports or guidance",()=>{
+ const note="x".repeat(2100);
+ assert.throws(()=>dailyPlannerRequestInstructions("2026-11-16",[
+  {title:"First report",outcome:"partial",note},
+  {title:"Later report",outcome:"skipped",note:"Keep this report"},
+ ],"Preserve this guidance."),/Shorten session notes or guidance/);
+});
+
 test("scoped planning reader exposes bounded session notes and preferences without generic write access",()=>{
   const session=reconcileSession(make(),"partial","Next session: investigate a new detail.",150,now);
   const snapshot={...emptyPersonalDataSnapshot,plannerSessions:[session]};

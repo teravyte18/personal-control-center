@@ -180,7 +180,9 @@ export function reconcileSession(session: PlannerSession, outcome: PlannerOutcom
 }
 export function dailyPlannerRequestInstructions(date: string, reports: Array<{title:string;outcome:PlannerOutcome;note:string;actualMinutes?:number}>, guidance = "") {
   const summary = reports.map(report => `${report.title}: ${report.outcome}; actual ${report.actualMinutes === undefined ? "not recorded" : report.actualMinutes} min${report.note.trim() ? `; note: ${report.note.trim()}` : ""}`).join("\n");
-  return [`Daily check-in for ${date}.`, summary ? `Reported sessions:\n${summary}` : "No session outcomes were changed.", guidance.trim()].filter(Boolean).join("\n\n").slice(0,2000);
+  const instructions = [`Daily check-in for ${date}.`, summary ? `Reported sessions:\n${summary}` : "No session outcomes were changed.", guidance.trim()].filter(Boolean).join("\n\n");
+  if (instructions.length > 2000) throw new RangeError("This grouped report exceeds the 2,000-character queue limit. Shorten session notes or guidance before requesting a replan.");
+  return instructions;
 }
 export function plannerWeekDays(weekStart: string) {
   const saturday = new Date(weekStart+"T12:00:00Z");

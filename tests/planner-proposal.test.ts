@@ -69,11 +69,13 @@ test("planner availability filters padded fetches to requested Lisbon dates acro
  const events=[
   {source:"google",start:"2026-03-27T22:30:00Z",end:"2026-03-27T23:30:00Z",allDay:false}, // local 27th only
   {source:"agenda",start:"2026-03-28T23:30:00Z",end:"2026-03-29T00:30:00Z",allDay:false}, // spans local 28th
+  {source:"google",start:"2026-03-29T22:50:00Z",end:"2026-03-29T23:00:30Z",allDay:false}, // ends 00:00:30 local on 30th
   {source:"google",start:"2026-03-29T23:30:00Z",end:"2026-03-30T00:30:00Z",allDay:false}, // local 30th only
   {source:"pcc",start:"2026-03-29",end:"2026-03-30",allDay:true},
  ];
  const filtered=plannerBusyEventsInLocalDateRange(events,"2026-03-28","2026-03-29","Europe/Lisbon");
- assert.equal(filtered.length,2);
+ assert.equal(filtered.length,3);
  assert.equal(filtered.some(event=>event.start==="2026-03-28T23:30:00Z"),true);
  assert.equal(filtered.some(event=>event.allDay),true);
+ assert.equal(filtered.some(event=>event.end==="2026-03-29T23:00:30Z"),true);
 });

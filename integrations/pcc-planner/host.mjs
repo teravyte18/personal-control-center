@@ -60,11 +60,7 @@ export async function startPlannerHost(configPath) {
   const require = createRequire(config.openclawPackage), pkg = require(config.openclawPackage);
   if (pkg.name !== 'openclaw' || pkg.version !== OPENCLAW_VERSION) throw new Error('Unsupported SDK version.');
   const {GatewayClient} = await import(pathToFileURL(require.resolve('openclaw/plugin-sdk/gateway-runtime')).href);
-  let device = privateJson(config.devicePath); const ledger = privateJson(config.ledgerPath);
-  if (device.purpose !== purpose || device.bindingId !== binding.id || ledger.purpose !== purpose || ledger.bindingId !== binding.id
-    || !device.identity?.privateKeyPem || !device.identity?.publicKeyPem || !device.identity?.deviceId || typeof device.token !== 'string' || device.token.length < 16) throw new Error('Separate planner device and custody journal required.');
   const lockPath = join(dirname(config.ledgerPath), 'planner-writer.lock'), lock = openSync(lockPath, 'wx', 0o600);
-  writeFileSync(lock, String(process.pid));
   let client, server, ready = false, generation = 0;
   const scopes = ['operator.read','operator.write'];
   const validScopes = value => Array.isArray(value) && value.length === scopes.length && scopes.every(scope => value.includes(scope));
@@ -76,6 +72,12 @@ export async function startPlannerHost(configPath) {
     return result;
   };
   try {
+    writeFileSync(lock, String(process.pid));
+    // Mutable state must be loaded only after exclusive custody is acquired.
+    // A prior writer can finish between configuration/SDK loading and this lock.
+    let device = privateJson(config.devicePath); const ledger = privateJson(config.ledgerPath);
+    if (device.purpose !== purpose || device.bindingId !== binding.id || ledger.purpose !== purpose || ledger.bindingId !== binding.id
+      || !device.identity?.privateKeyPem || !device.identity?.publicKeyPem || !device.identity?.deviceId || typeof device.token !== 'string' || device.token.length < 16) throw new Error('Separate planner device and custody journal required.');
     const controller = new PlannerDispatchController({binding, rows: ledger.rows,
       save: rows => atomicJson(config.ledgerPath, {purpose, bindingId: binding.id, rows}),
       snapshot: inputRunIds => rpc('chat.history', {agentId: binding.agentId, sessionKey: binding.sessionKey, limit: 20, maxBytes: 65536, maxChars: 100,

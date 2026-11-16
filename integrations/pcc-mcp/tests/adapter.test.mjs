@@ -59,13 +59,21 @@ test("planner POST uses a distinct opt-in credential, scoped URL and JSON schema
 });
 test("planner request poll uses no calendar API or LLM input", async () => {
   const plannerToken = "pcc_plan_" + "b".repeat(43);
+  const requestIds=[];
   const call=createPccClient({origin:"http://127.0.0.1:3107",token:plannerToken,fetchImpl:async(url,init)=>{
+    requestIds.push(url.searchParams.get("requestId"));
     assert.equal(init.method,"GET");
     assert.equal(url.pathname,"/api/assistant/planner");
     assert.equal(url.searchParams.get("mode"),"requests");
     return Response.json({requests:[]});
   }});
   assert.deepEqual(await call("planner-requests",{}),{requests:[]});
+  const requestId="00000000-0000-4000-8000-000000000001";
+  assert.deepEqual(await call("planner-requests",{requestId}),{requests:[]});
+  assert.deepEqual(requestIds,[null,requestId]);
+  const schema=tools.find(tool=>tool.name==="pcc_get_planner_requests").schema;
+  assert.equal(schema.safeParse({requestId}).success,true);
+  assert.equal(schema.safeParse({requestId,agentId:"foreign"}).success,false);
 });
 test("malformed, HTML and oversized responses never reach tools", async () => {
   for (const response of [Response.json({ token }), new Response("<html>login</html>", { headers: { "content-type": "text/html" } }), new Response('"' + "x".repeat(250001) + '"', { headers: { "content-type": "application/json" } })]) {

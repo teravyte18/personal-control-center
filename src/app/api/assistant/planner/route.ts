@@ -1,4 +1,4 @@
-import { listPlannerRequests } from "@/server/planner-requests";
+import { listPlannerRequests, PlannerRequestInputError } from "@/server/planner-requests";
 import { AssistantAccessError, AssistantInputError, readAssistantJson, recordInput } from "@/domain/assistant-access";
 import { requireAssistantGrant } from "@/server/assistant-grants";
 import { plannerAvailability, PlannerConflictError, PlannerInputError, submitPlannerProposal } from "@/server/assistant-planner";
@@ -10,7 +10,7 @@ const headers={"Cache-Control":"private, no-store","Referrer-Policy":"no-referre
 function failure(error:unknown,hasAuth:boolean) {
   const status=error instanceof AssistantAccessError ? (hasAuth?403:401)
     : error instanceof PlannerConflictError ? 409
-    : error instanceof PlannerInputError || error instanceof AssistantInputError ? 400 : 503;
+    : error instanceof PlannerInputError || error instanceof PlannerRequestInputError || error instanceof AssistantInputError ? 400 : 503;
   return Response.json({error:status===409?"Planner state or Calendar availability changed; retrieve current context."
     : status===400?"Invalid planner request."
     : status===503?"Planner is temporarily unavailable.":"Planning access denied."},{status,headers});
@@ -24,8 +24,8 @@ export async function GET(request:Request) {
   try {
     const grant=await grantForPlanner(request);
     const params=new URL(request.url).searchParams;
-    if(params.get("mode")==="requests" && [...params.keys()].every(k=>k==="mode")) {
-      return Response.json({requests:await listPlannerRequests(grant.userId,true)},{headers});
+    if(params.get("mode")==="requests" && [...params.keys()].every(k=>["mode","requestId"].includes(k))) {
+      return Response.json({requests:await listPlannerRequests(grant.userId,true,params.get("requestId") ?? undefined)},{headers});
     }
     if([...params.keys()].some(k=>!["from","to"].includes(k))) throw new PlannerInputError("Invalid availability query.");
     const from=params.get("from")??"",to=params.get("to")??"";

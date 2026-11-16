@@ -37,6 +37,7 @@ export function createPccClient({ origin, token, fetchImpl = fetch, timeoutMs = 
     const url = new URL(plannerWrite || plannerCalendar || plannerRequests ? "/api/assistant/planner" : `/api/assistant/${operation}`, base);
     if (plannerRequests) {
       url.searchParams.set("mode","requests");
+      if (args.requestId !== undefined) url.searchParams.set("requestId", args.requestId);
     } else if (plannerCalendar) {
       url.searchParams.set("from", args.from);
       url.searchParams.set("to", args.to);

@@ -52,9 +52,23 @@ token files separate.
 
 > Inspect the PCC planner integration code and the runbook at `docs/weekly-planner-openclaw.md` on the merged deployed branch. Do not install or change production credentials, enable cron jobs, access private calendar data or change any PCC records yet. Report (a) your current OpenClaw version, (b) the exact owner-private MCP configuration location, (c) a safe deployment/update procedure for the pinned PCC adapter, and (d) how to create two paused jobs: weekly planning on Saturday and daily reconciliation on weekdays. Propose a low-token agent execution approach that uses the new planner tools. Do not expose credentials, private prompts, personal tasks or private schedule details in logs or GitHub. Await my approval before you enable or run jobs.
 
+## Optional private request dispatch (disabled)
+
+The separate [`integrations/pcc-planner`](../integrations/pcc-planner/README.md)
+boundary can dispatch an opaque durable request ID to a fixed owner-private
+planner after explicit host provisioning. It never reuses the Talk-to-Rem
+transport, device/session or credentials. PCC persists a stable dispatch ID
+before send; later retries only reconcile status. Unknown delivery is never
+automatically resent. A delivered request is not a draft or approval.
+Cancellation now retains a tombstone and delivery custody; it does not promise
+a runtime abort. The worker fetches the exact pending request using its existing
+planner-only grant and submits an approval-gated draft. Host setup, private
+requester isolation and real integration tests remain separate deployment gates;
+no configuration, credentials, jobs or automatic scheduling are enabled here.
+
 ## Request polling and automation
 
-PCC now stores authenticated Plan / Replan requests in `planner_requests`. Rem should call `pcc_get_planner_requests` on a low-cost schedule; **if there are no pending requests, stop without making an LLM inference call**. For a pending request, retrieve relevant task pages and last session notes via `pcc_get_planning`, fetch the fresh Calendar busy intervals via `pcc_get_planner_calendar`, and submit a proposal with that request ID using `pcc_submit_planner_plan`. A durable draft save acknowledges the request; it does not change canonical sessions or Calendar events. The owner reviews the draft in PCC and explicitly approves or rejects it. Approval revalidates the current revision, movable sessions, open source work and live Calendar busy intervals before atomically changing sessions, then reports Calendar sync separately. Stale or conflicting drafts remain visible without publication. The browser can cancel requests that have not been processed. There is no standing license to modify Tasks or Calendar events.
+PCC now stores authenticated Plan / Replan requests in `planner_requests`. Rem should call `pcc_get_planner_requests` on a low-cost schedule; **if there are no pending requests, stop without making an LLM inference call**. For a pending request, retrieve relevant task pages and last session notes via `pcc_get_planning`, fetch the fresh Calendar busy intervals via `pcc_get_planner_calendar`, and submit a proposal with that request ID using `pcc_submit_planner_plan`. A durable draft save acknowledges the request; it does not change canonical sessions or Calendar events. The owner reviews the draft in PCC and explicitly approves or rejects it. Approval revalidates the current revision, movable sessions, open source work and live Calendar busy intervals before atomically changing sessions, then reports Calendar sync separately. Stale or conflicting drafts remain visible without publication. The browser can cancel requests that have not been processed; cancellation preserves the request and dispatch custody as a tombstone. Exact worker reads exclude it and a subsequent draft submission fails closed. If draft persistence wins the request-row lock first, cancellation cannot retract the saved draft. There is no standing license to modify Tasks or Calendar events.
 
 A weekly Saturday job may generate a next-week plan proactively; a user-triggered Daily check-in groups date-scoped outcomes and notes into one request in the existing durable planner queue. Daily reconciliation should read actual outcomes and propose explicit changes only to unlocked, unconfirmed future sessions, including manual-origin blocks where appropriate. Do not automatically treat unconfirmed sessions as failed or downgrade aspirations after one bad week. Save useful trends in the private agent memory deliberately and concisely, not full raw PCC exports. Keep weekly and daily model calls bounded by explicit limits.
 

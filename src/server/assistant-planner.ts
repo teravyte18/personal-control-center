@@ -107,7 +107,7 @@ export async function submitPlannerProposal(userId: string, input: unknown) {
     const [state] = await tx<{revision: number | string}[]>`select revision from personal_data_state where user_id=${userId} for update`;
     if (!state || Number(state.revision) !== parsed.revision) throw new PlannerConflictError("Plan changed; retrieve current context.");
     if (parsed.requestId) {
-      const [queued] = await tx<{week_start: Date | string}[]>`select week_start from planner_requests where user_id=${userId} and id=${parsed.requestId} and processed_at is null for update`;
+      const [queued] = await tx<{week_start: Date | string}[]>`select week_start from planner_requests where user_id=${userId} and id=${parsed.requestId} and processed_at is null and cancelled_at is null for update`;
       if (!queued) {
         const [previous] = await tx<ProposalRow[]>`select id,request_id,snapshot_revision,replace_from,rationale,changes,status,conflict_reason,applied_revision,calendar_sync,created_at,decided_at
           from planner_proposals where user_id=${userId} and request_id=${parsed.requestId}`;

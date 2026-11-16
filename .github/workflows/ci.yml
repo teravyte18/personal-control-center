@@ -41,7 +41,9 @@ jobs:
           npm pack --dry-run
 
       - name: Validate disabled Rem adapter fixtures
-        run: node --test integrations/pcc-rem/*.test.mjs
+        run: |
+          node --test integrations/pcc-rem/*.test.mjs
+          node --test integrations/pcc-planner/*.test.mjs
 
       - name: Validate Rem stream lifecycle
         run: node --experimental-strip-types --test tests/rem-chat-stream.test.mjs
@@ -59,6 +61,8 @@ jobs:
             sleep 1
           done
           node --test tests/rem-chat-server.test.mjs
+          docker exec pcc-rem-cookie-ci createdb -U pcc planner_dispatch_test
+          PCC_TEST_PLANNER_FICTIONAL_DATABASE_URL=postgres://pcc:fictional-password@127.0.0.1:54329/planner_dispatch_test node --test tests/planner-dispatch-server.test.mjs
 
       - name: Verify Keychain crypto dependency lock
         run: node scripts/check-keychain-dependencies.mjs

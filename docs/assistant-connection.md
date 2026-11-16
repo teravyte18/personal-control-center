@@ -139,3 +139,14 @@ Disable the MCP entry and revoke the grant. PCC keeps working independently.
 Use normal application rollback if required; preserve data and backups. The
 additive token table may remain unused; never drop it or restore older personal
 snapshots automatically as part of connector rollback.
+
+## Optional planner wake-up boundary
+
+[`integrations/pcc-planner`](../integrations/pcc-planner/README.md) is a separate,
+disabled owner-private dispatch integration. It conveys only an opaque durable
+request ID, never a grant or PCC records. The fixed worker independently uses
+its existing planner-only MCP grant, optionally fetching exactly one pending
+request with `pcc_get_planner_requests({requestId})`; cancellation returns no
+request and prevents later draft submission. Host setup and requester isolation
+are explicit later deployment gates. Existing read-only connections and
+Talk-to-Rem runtime transport/credentials remain unchanged.

@@ -29,8 +29,8 @@ export const tools = [
   { name: "pcc_get_context", operation: "context", description: "Build bounded PCC context from selected granted domains. Optional question invokes deterministic lexical retrieval. This is not an exhaustive list; respect truncation, record/recency bounds and source provenance. Use planning/library tools for complete pagination.", schema: z.object({
     domains, query: z.string().trim().min(1).max(240).optional(), current: z.array(z.enum(["projects", "tasks", "rhythm"])).max(3).optional(), maxChars: z.number().int().min(1000).max(20000).optional(), maxRecords: z.number().int().min(1).max(20).optional() }).strict() },
   { name: "pcc_get_planner_requests", operation: "planner-requests",
-    description: "Check for pending plan/replan requests in this private PCC account. Read-only, no LLM calls required if the queue is empty. Poll sparingly.",
-    schema: z.object({}).strict() },
+    description: "Check pending plan/replan requests in this private PCC account, optionally by one exact requestId. Canceled/processed/foreign IDs return no request; stop. Read-only; no LLM call is needed for an empty queue. Poll sparingly.",
+    schema: z.object({requestId: z.string().uuid().optional()}).strict() },
   { name: "pcc_get_planner_calendar", operation: "planner-calendar",
     description: "Read privacy-minimised busy intervals, planner preferences and current work sessions for at most 21 days. Requires opt-in planner-only grant. No event titles are returned. Never claim free time from unverified calendar state.",
     schema: z.object({ from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) }).strict() },

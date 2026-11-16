@@ -121,6 +121,12 @@ The chat transport additionally requires private host device pairing, a dedicate
 conversation, socket/credential provisioning and an explicit disabled-by-default
 deployment override. Do not enable it merely because the SDK version tests pass.
 
+The optional [planner dispatch boundary](../integrations/pcc-planner/README.md)
+is a third, separate integration: it sends only a durable PCC request ID to a
+fixed private planner. It does not modify this chat transport or share its
+credentials, device identity or conversation. Later chat-to-planner delegation
+requires a separate authorization/setup gate and is not enabled here.
+
 ## Verification and remaining gates
 
 Run repo lint/tests/build, both Compose checks and full fictional production-stack

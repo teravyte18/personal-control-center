@@ -52,7 +52,7 @@ export default function PlannerPage() {
   const [feedback,setFeedback] = useState<Record<string,{outcome:PlannerOutcome;note:string;actual:string}>>({});
   const [showPreferences,setShowPreferences] = useState(false);
   const [instruction,setInstruction] = useState("");
-  const [pendingRequests,setPendingRequests] = useState<Array<{id:string;weekStart:string;intent:string;instructions:string;processedAt:string|null}>>([]);
+  const [pendingRequests,setPendingRequests] = useState<Array<{id:string;weekStart:string;intent:string;instructions:string;processedAt:string|null;cancelledAt:string|null;dispatchState:"unknown"|"accepted"|"committed"|null}>>([]);
   const [proposals,setProposals] = useState<PlannerDraft[]>([]);
   const [draftBusy,setDraftBusy] = useState("");
   const [draftError,setDraftError] = useState("");
@@ -105,7 +105,7 @@ export default function PlannerPage() {
       if(!response.ok)throw new Error(typeof data.error==="string"?data.error:"Could not queue planning request.");
       setPendingRequests(v=>[data.request,...v]);
       setInstruction("");
-      setMessage("Planning request queued. Rem will process it after the private automation is enabled.");
+      setMessage(data.request.dispatchState === "committed" ? "Request delivered. A draft still needs your approval." : data.request.dispatchState === "accepted" ? "Request accepted. Waiting for a draft." : data.request.dispatchState === "unknown" ? "Request saved. Delivery is uncertain; it will not be sent again automatically." : "Planning request queued. Private processing has not been enabled.");
     }catch(error){setQueueError(error instanceof Error?error.message:"Could not queue request.");}
     finally{setQueueBusy(false);}
   }
@@ -274,12 +274,12 @@ export default function PlannerPage() {
     </div>
     <div className="rounded-2xl border p-4 space-y-2">
       <h3 className="font-semibold">OpenClaw planning requests</h3>
-      <p className="pcc-context">Queue a plan or replan for this week. Once the private Rem automation is enabled, it can read this request, check current tasks and Calendar, and submit a draft for your review. It will not run immediately from the browser or change sessions until you approve.</p>
+      <p className="pcc-context">Request a plan or replan for this week. If private processing is enabled, Rem can check current tasks and Calendar and submit a draft. Sessions change only after you approve.</p>
       <textarea value={instruction} onChange={e=>setInstruction(e.target.value)} maxLength={2000} className="w-full rounded-lg border p-2" placeholder="Optional: Keep unfinished work from the same project first; move my deep work later tomorrow…" rows={3}/>
       <button type="button" disabled={queueBusy} onClick={()=>{void queuePlan();}} className="min-h-11 rounded-xl border px-4 text-sm disabled:opacity-50">{queueBusy?"Queuing…":"Request plan / replan"}</button>
       {queueError&&<p role="alert" className="text-sm">{queueError}</p>}
-      {pendingRequests.filter(request=>request.processedAt===null).map(request=><div key={request.id} className="flex justify-between items-start gap-2 rounded-xl border p-3">
-        <div><p className="text-sm font-semibold">Pending · {request.weekStart}</p><p className="pcc-context">{request.instructions||"Use current priorities and preferences"}</p></div>
+      {pendingRequests.filter(request=>request.processedAt===null && request.cancelledAt===null).map(request=><div key={request.id} className="flex justify-between items-start gap-2 rounded-xl border p-3">
+        <div><p className="text-sm font-semibold">Pending · {request.weekStart}</p><p className="pcc-context">{request.dispatchState==="committed"?"Delivered · waiting for a draft":request.dispatchState==="accepted"?"Accepted · waiting for delivery confirmation":request.dispatchState==="unknown"?"Delivery uncertain · no automatic resend":"Queued · private processing not enabled"}</p><p className="pcc-context">{request.instructions||"Use current priorities and preferences"}</p></div>
         <button type="button" className="text-sm underline" onClick={()=>{void cancelRequest(request.id);}}>Cancel</button>
       </div>)}
     </div>

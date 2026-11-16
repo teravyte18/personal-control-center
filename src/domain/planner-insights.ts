@@ -11,7 +11,7 @@ export type PlannerInsightSummary = {
 export function summarizePlannerSessions(sessions:readonly PlannerSession[], since:string, until:string):PlannerInsightSummary {
   const sample=sessions.filter(s=>s.date>=since && s.date<=until);
   const confirmed=sample.filter(s=>Boolean(s.outcome));
-  const morning=confirmed.filter(s=>Number(s.start.slice(0,2))<12);
+  const morning=confirmed.filter(s=>Number(s.start.slice(0,2))<12 && (s.outcome==="skipped"||s.outcome==="not-started"||s.outcome==="completed"||s.outcome==="partial"));
   const effort=sample.filter(s=>s.actualMinutes!==undefined && s.outcome!=="cancelled");
   const plannedMinutes=effort.reduce((sum,s)=>sum+s.estimateMinutes,0);
   const actualMinutes=effort.reduce((sum,s)=>sum+(s.actualMinutes??0),0);

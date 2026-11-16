@@ -36,3 +36,10 @@ test("reporting excludes dates outside window",()=>{
  const r=summarizePlannerSessions([session("x","2026-11-01","completed")],"2026-11-09","2026-11-15");
  assert.equal(r.total,0);
 });
+test("postponed and cancelled morning outcomes do not count as missed morning starts",()=>{
+ const sessions=["postponed","cancelled","postponed","cancelled","postponed"].map((outcome,index)=>
+  session(String(index),`2026-11-${String(9+index).padStart(2,"0")}`,outcome as PlannerSession["outcome"],"09:00"));
+ const r=summarizePlannerSessions(sessions,"2026-11-09","2026-11-15");
+ assert.equal(r.morning.confirmed,0);
+ assert.equal(r.suggestions.some(value=>value.includes("Morning starts are frequently")),false);
+});

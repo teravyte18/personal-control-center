@@ -8,7 +8,7 @@ import {
   type PlannerSession,
 } from "@/domain/weekly-planner";
 import { createId } from "@/domain/personal-data";
-import { conflictWithEvent, localPlannerClock, plannerBusyEventsInLocalDateRange, plannerCalendarCoverageIssue, reviewPlannerChanges, withinPlannerHorizon, type ProposalChanges } from "@/domain/planner-proposal";
+import { conflictWithEvent, localPlannerClock, plannerAvailabilityUtcRange, plannerBusyEventsInLocalDateRange, plannerCalendarCoverageIssue, reviewPlannerChanges, withinPlannerHorizon, type ProposalChanges } from "@/domain/planner-proposal";
 import { normalizePersonalDataSnapshot } from "@/domain/personal-data-snapshot";
 import { attemptCalendarSync } from "@/domain/calendar-sync-result";
 
@@ -23,9 +23,8 @@ export async function plannerAvailability(userId:string, from:string, to:string)
   const span = (Date.parse(to+"T12:00:00Z")-Date.parse(from+"T12:00:00Z")) / 86400000;
   if (!Number.isFinite(span) || span > 21) throw new PlannerInputError("Date range must not exceed 21 days.");
   // Cover timezone offsets and DST at both boundaries; overlap filtering happens in the configured local zone.
-  const min = new Date(from+"T12:00:00Z"); min.setUTCDate(min.getUTCDate()-1);
-  const max = new Date(to+"T12:00:00Z"); max.setUTCDate(max.getUTCDate()+2);
-  const calendar = await getAgendaEvents(userId,min.toISOString(),max.toISOString());
+  const range = plannerAvailabilityUtcRange(from,to);
+  const calendar = await getAgendaEvents(userId,range.timeMin,range.timeMax);
   if (!calendar.connected || calendar.needsReconnect) throw new PlannerConflictError("Calendar is not available.");
   // Do not expose appointment titles, locations or notes to an agent.
   const state=await loadPersonalDataState(userId);

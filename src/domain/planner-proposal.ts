@@ -3,6 +3,12 @@ import type { Item } from "./personal-data.ts";
 
 export type ProposalChanges = { sessions: PlannerSession[]; removeSessionIds: string[] };
 type CalendarEvent = { source: string; start: string; end: string; allDay: boolean };
+/** Broad UTC window that safely captures requested local dates through UTC+14 and UTC-12. */
+export function plannerAvailabilityUtcRange(from: string, to: string) {
+  const min = new Date(from+"T12:00:00Z"); min.setUTCDate(min.getUTCDate()-2);
+  const max = new Date(to+"T12:00:00Z"); max.setUTCDate(max.getUTCDate()+2);
+  return {timeMin:min.toISOString(),timeMax:max.toISOString()};
+}
 export function plannerBusyEvents(events: CalendarEvent[]) {
   // Recognised PCC projections are already represented by canonical planner state.
   // Unknown events on the PCC calendar are commitments, not safe-to-ignore projections.

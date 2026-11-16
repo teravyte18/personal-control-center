@@ -20,9 +20,13 @@ export function useCalendarCommitments(period: RhythmPeriod) {
   const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     const controller = new AbortController();
+    const start = new Date(`${period.start}T00:00:00`);
+    // Fetch with two days of UTC padding so local dates in UTC+13/+14 and
+    // UTC-12 are not clipped before downstream local-date filtering.
+    start.setDate(start.getDate() - 2);
     const end = new Date(`${period.end}T00:00:00`);
     end.setDate(end.getDate() + 1);
-    const query = new URLSearchParams({ timeMin: new Date(`${period.start}T00:00:00`).toISOString(), timeMax: end.toISOString() });
+    const query = new URLSearchParams({ timeMin: start.toISOString(), timeMax: end.toISOString() });
     void fetch(`/api/integrations/google-calendar/events?${query}`, { signal: controller.signal, cache: "no-store" })
       .then(async response => {
         const body = await response.json();

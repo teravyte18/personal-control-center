@@ -8,7 +8,7 @@ import {
   type PlannerSession,
 } from "@/domain/weekly-planner";
 import { createId } from "@/domain/personal-data";
-import { conflictWithEvent, localPlannerClock, plannerBusyEvents, plannerCalendarCoverageIssue, reviewPlannerChanges, withinPlannerHorizon, type ProposalChanges } from "@/domain/planner-proposal";
+import { conflictWithEvent, localPlannerClock, plannerBusyEventsInLocalDateRange, plannerCalendarCoverageIssue, reviewPlannerChanges, withinPlannerHorizon, type ProposalChanges } from "@/domain/planner-proposal";
 import { normalizePersonalDataSnapshot } from "@/domain/personal-data-snapshot";
 import { attemptCalendarSync } from "@/domain/calendar-sync-result";
 
@@ -28,8 +28,8 @@ export async function plannerAvailability(userId:string, from:string, to:string)
   const calendar = await getAgendaEvents(userId,min.toISOString(),max.toISOString());
   if (!calendar.connected || calendar.needsReconnect) throw new PlannerConflictError("Calendar is not available.");
   // Do not expose appointment titles, locations or notes to an agent.
-  const busy = plannerBusyEvents(calendar.events);
   const state=await loadPersonalDataState(userId);
+  const busy = plannerBusyEventsInLocalDateRange(calendar.events,from,to,state.snapshot.plannerPreferences.timezone);
   return {revision:state.revision,coverageComplete:calendar.coverageComplete,timezone:state.snapshot.plannerPreferences.timezone,
     preferences:state.snapshot.plannerPreferences, busy, sessions:state.snapshot.plannerSessions.filter(s=>s.date>=from&&s.date<=to),
     fetchedAt:new Date().toISOString()};

@@ -2,7 +2,7 @@ import { createId, type Item } from "./personal-data.ts";
 
 /** A session is not a task. One work session can reference multiple existing actions. */
 export type PlannerWorkRef = { sourceType: "task" | "project-action"; sourceItemId: string; sourceActionId?: string };
-export type PlannerOutcome = "completed" | "partial" | "not-started" | "cancelled";
+export type PlannerOutcome = "completed" | "partial" | "skipped" | "postponed" | "not-started" | "cancelled";
 export type PlannerSession = {
   id: string;
   date: string;
@@ -122,7 +122,7 @@ export function normalizePlannerSession(value: unknown): PlannerSession | null {
       || (ref.sourceActionId !== undefined && typeof ref.sourceActionId !== "string")) return null;
     work.push({sourceType:ref.sourceType as PlannerWorkRef["sourceType"],sourceItemId:ref.sourceItemId,sourceActionId:typeof ref.sourceActionId === "string" ? ref.sourceActionId : undefined});
   }
-  const outcome = ["completed","partial","not-started","cancelled"].includes(String(value.outcome)) ? value.outcome as PlannerOutcome : undefined;
+  const outcome = ["completed","partial","skipped","postponed","not-started","cancelled"].includes(String(value.outcome)) ? value.outcome as PlannerOutcome : undefined;
   if (value.outcome !== undefined && !outcome) return null;
   if (outcome && !validTimestamp(value.outcomeAt)) return null;
   if (value.actualMinutes !== undefined && !minutesInRange(value.actualMinutes, 0, 1440)) return null;
@@ -177,6 +177,10 @@ export function createPlannerSession(input: Pick<PlannerSession,"date"|"start"|"
 }
 export function reconcileSession(session: PlannerSession, outcome: PlannerOutcome, note: string, actualMinutes?: number, now = new Date()): PlannerSession {
   return {...session,outcome,outcomeAt:now.toISOString(),note:note.slice(0,4000),actualMinutes};
+}
+export function dailyPlannerRequestInstructions(date: string, reports: Array<{title:string;outcome:PlannerOutcome;note:string;actualMinutes?:number}>, guidance = "") {
+  const summary = reports.map(report => `${report.title}: ${report.outcome}; actual ${report.actualMinutes === undefined ? "not recorded" : report.actualMinutes} min${report.note.trim() ? `; note: ${report.note.trim()}` : ""}`).join("\n");
+  return [`Daily check-in for ${date}.`, summary ? `Reported sessions:\n${summary}` : "No session outcomes were changed.", guidance.trim()].filter(Boolean).join("\n\n").slice(0,2000);
 }
 export function plannerWeekDays(weekStart: string) {
   const saturday = new Date(weekStart+"T12:00:00Z");

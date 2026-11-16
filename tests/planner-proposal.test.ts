@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createPlannerSession } from "../src/domain/weekly-planner.ts";
-import { conflictWithEvent, localPlannerClock, plannerBusyEvents, plannerCalendarCoverageIssue, reviewPlannerChanges, withinPlannerHorizon } from "../src/domain/planner-proposal.ts";
+import { conflictWithEvent, localPlannerClock, plannerBusyEvents, plannerBusyEventsInLocalDateRange, plannerCalendarCoverageIssue, reviewPlannerChanges, withinPlannerHorizon } from "../src/domain/planner-proposal.ts";
 import type { Item } from "../src/domain/personal-data.ts";
 
 const now = new Date("2026-11-16T12:00:00Z");
@@ -63,4 +63,17 @@ test("approval busy checks include local timezone, DST and all-day commitments",
   assert.equal(conflictWithEvent(block,{start:"2026-03-30T08:30:00Z",end:"2026-03-30T09:30:00Z",allDay:false},"Europe/Lisbon"),true);
   assert.equal(conflictWithEvent(block,{start:"2026-03-30T07:00:00Z",end:"2026-03-30T08:00:00Z",allDay:false},"Europe/Lisbon"),false);
   assert.equal(conflictWithEvent(block,{start:"2026-03-30",end:"2026-03-31",allDay:true},"Europe/Lisbon"),true);
+});
+
+test("planner availability filters padded fetches to requested Lisbon dates across DST boundaries",()=>{
+ const events=[
+  {source:"google",start:"2026-03-27T22:30:00Z",end:"2026-03-27T23:30:00Z",allDay:false}, // local 27th only
+  {source:"agenda",start:"2026-03-28T23:30:00Z",end:"2026-03-29T00:30:00Z",allDay:false}, // spans local 28th
+  {source:"google",start:"2026-03-29T23:30:00Z",end:"2026-03-30T00:30:00Z",allDay:false}, // local 30th only
+  {source:"pcc",start:"2026-03-29",end:"2026-03-30",allDay:true},
+ ];
+ const filtered=plannerBusyEventsInLocalDateRange(events,"2026-03-28","2026-03-29","Europe/Lisbon");
+ assert.equal(filtered.length,2);
+ assert.equal(filtered.some(event=>event.start==="2026-03-28T23:30:00Z"),true);
+ assert.equal(filtered.some(event=>event.allDay),true);
 });

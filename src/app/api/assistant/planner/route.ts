@@ -2,10 +2,14 @@ import { listPlannerRequests, PlannerRequestInputError } from "@/server/planner-
 import { AssistantAccessError, AssistantInputError, readAssistantJson, recordInput } from "@/domain/assistant-access";
 import { requireAssistantGrant } from "@/server/assistant-grants";
 import { plannerAvailability, PlannerConflictError, PlannerInputError, submitPlannerProposal } from "@/server/assistant-planner";
+import { plannerSubmissionErrorCode } from "@/domain/planner-submission-error";
 
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 const headers={"Cache-Control":"private, no-store","Referrer-Policy":"no-referrer"};
+function plannerInputCode(error: unknown) {
+  return error instanceof PlannerInputError ? plannerSubmissionErrorCode(error.message) : "planner-request-invalid";
+}
 
 function failure(error:unknown,hasAuth:boolean) {
   const status=error instanceof AssistantAccessError ? (hasAuth?403:401)
@@ -13,7 +17,8 @@ function failure(error:unknown,hasAuth:boolean) {
     : error instanceof PlannerInputError || error instanceof PlannerRequestInputError || error instanceof AssistantInputError ? 400 : 503;
   return Response.json({error:status===409?"Planner state or Calendar availability changed; retrieve current context."
     : status===400?"Invalid planner request."
-    : status===503?"Planner is temporarily unavailable.":"Planning access denied."},{status,headers});
+    : status===503?"Planner is temporarily unavailable.":"Planning access denied.",
+    ...(status===400 ? {code:plannerInputCode(error)} : {})},{status,headers});
 }
 async function grantForPlanner(request:Request) {
   const grant=await requireAssistantGrant(request);

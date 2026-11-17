@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createPlannerSession } from "../src/domain/weekly-planner.ts";
 import { conflictWithEvent, localPlannerClock, plannerBusyEvents, plannerCalendarCoverageIssue, reviewPlannerChanges, withinPlannerHorizon } from "../src/domain/planner-proposal.ts";
+import { plannerSubmissionErrorCode } from "../src/domain/planner-submission-error.ts";
 import type { Item } from "../src/domain/personal-data.ts";
 
 const now = new Date("2026-11-16T12:00:00Z");
@@ -56,6 +57,11 @@ test("planner treats unmarked PCC events as busy but excludes known projections"
 test("approval fails closed when Calendar coverage is incomplete",()=>{
   assert.match(plannerCalendarCoverageIssue(false),/could not be fully verified/);
   assert.equal(plannerCalendarCoverageIssue(true),"");
+});
+test("planner submission diagnostics use only fixed validation codes",()=>{
+  assert.equal(plannerSubmissionErrorCode("Another scheduled session overlaps this block."),"session-overlap");
+  assert.equal(plannerSubmissionErrorCode("This session refers to work that is no longer open."),"work-not-open");
+  assert.equal(plannerSubmissionErrorCode("untrusted server detail"),"proposal-invalid");
 });
 
 test("approval busy checks include local timezone, DST and all-day commitments",()=>{

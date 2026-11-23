@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createPlannerSession } from "../src/domain/weekly-planner.ts";
-import { conflictWithEvent, localPlannerClock, plannerAvailabilityUtcRange, plannerBusyEvents, plannerBusyEventsInLocalDateRange, plannerCalendarCoverageIssue, reviewPlannerChanges, withinPlannerHorizon } from "../src/domain/planner-proposal.ts";
+import { conflictWithEvent, localPlannerClock, plannerAvailabilityUtcRange, plannerBusyEvents, plannerBusyEventsInLocalDateRange, plannerCalendarEvent, plannerCalendarCoverageIssue, reviewPlannerChanges, withinPlannerHorizon } from "../src/domain/planner-proposal.ts";
 import type { Item } from "../src/domain/personal-data.ts";
 
 const now = new Date("2026-11-16T12:00:00Z");
@@ -52,6 +52,24 @@ test("planner treats unmarked PCC events as busy but excludes known projections"
   const busy=plannerBusyEvents([event("pcc"),event("agenda"),event("google"),event("planner-session"),event("task"),event("project-action")]);
   assert.equal(busy.length,3);
   assert.equal(busy.some(value=>conflictWithEvent(session("draft"),value,"UTC")),true);
+});
+test("planner metadata leaves free and native birthday events informational while unknowns block",()=>{
+  const base={source:"google",start:"2026-11-17T14:00:00Z",end:"2026-11-17T15:00:00Z",allDay:false};
+  const busy=plannerBusyEvents([
+    {...base,transparency:"transparent"},
+    {...base,eventType:"birthday"},
+    {...base,transparency:"opaque",title:"Neutral meeting",calendarName:"Calendar A",eventType:"default"},
+    {...base,transparency:"unknown",eventType:"unknown"},
+    base,
+  ]);
+  assert.equal(busy.length,3);
+  assert.equal(busy.every(event=>conflictWithEvent(session("draft"),event,"UTC")),true);
+});
+test("planner metadata does not expose the Agenda UI fallback for missing Calendar titles",()=>{
+  const metadata=plannerCalendarEvent({source:"google",start:"2026-11-17T14:00:00Z",end:"2026-11-17T15:00:00Z",allDay:false,calendarName:"Calendar A",title:"Untitled event"});
+  assert.equal("title" in metadata,false);
+  assert.equal(metadata.availability,"busy");
+  assert.equal(plannerCalendarEvent({...metadata,plannerTitle:"Actual title"}).title,"Actual title");
 });
 test("approval fails closed when Calendar coverage is incomplete",()=>{
   assert.match(plannerCalendarCoverageIssue(false),/could not be fully verified/);

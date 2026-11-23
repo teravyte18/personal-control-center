@@ -8,7 +8,7 @@ import {
   type PlannerSession,
 } from "@/domain/weekly-planner";
 import { createId } from "@/domain/personal-data";
-import { conflictWithEvent, localPlannerClock, plannerAvailabilityUtcRange, plannerBusyEventsInLocalDateRange, plannerCalendarCoverageIssue, reviewPlannerChanges, withinPlannerHorizon, type ProposalChanges } from "@/domain/planner-proposal";
+import { conflictWithEvent, localPlannerClock, plannerAvailabilityUtcRange, plannerBusyEventsInLocalDateRange, plannerCalendarEvent, plannerEventsInLocalDateRange, plannerCalendarCoverageIssue, reviewPlannerChanges, withinPlannerHorizon, type ProposalChanges } from "@/domain/planner-proposal";
 import { normalizePersonalDataSnapshot } from "@/domain/personal-data-snapshot";
 import { attemptCalendarSync } from "@/domain/calendar-sync-result";
 
@@ -26,11 +26,13 @@ export async function plannerAvailability(userId:string, from:string, to:string)
   const range = plannerAvailabilityUtcRange(from,to);
   const calendar = await getAgendaEvents(userId,range.timeMin,range.timeMax);
   if (!calendar.connected || calendar.needsReconnect) throw new PlannerConflictError("Calendar is not available.");
-  // Do not expose appointment titles, locations or notes to an agent.
   const state=await loadPersonalDataState(userId);
-  const busy = plannerBusyEventsInLocalDateRange(calendar.events,from,to,state.snapshot.plannerPreferences.timezone);
+  const events = plannerEventsInLocalDateRange(calendar.events.filter(event => ["google", "agenda", "pcc"].includes(event.source)),from,to,state.snapshot.plannerPreferences.timezone)
+    .map(plannerCalendarEvent);
+  const inRange=plannerBusyEventsInLocalDateRange(calendar.events,from,to,state.snapshot.plannerPreferences.timezone);
+  const busy = inRange;
   return {revision:state.revision,coverageComplete:calendar.coverageComplete,timezone:state.snapshot.plannerPreferences.timezone,
-    preferences:state.snapshot.plannerPreferences, busy, sessions:state.snapshot.plannerSessions.filter(s=>s.date>=from&&s.date<=to),
+    preferences:state.snapshot.plannerPreferences, busy, events, sessions:state.snapshot.plannerSessions.filter(s=>s.date>=from&&s.date<=to),
     fetchedAt:new Date().toISOString()};
 }
 

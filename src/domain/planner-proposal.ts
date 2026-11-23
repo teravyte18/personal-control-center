@@ -2,7 +2,14 @@ import { applyPlannerSessionChanges, normalizePlannerSession, plannerSessionCanM
 import type { Item } from "./personal-data.ts";
 
 export type ProposalChanges = { sessions: PlannerSession[]; removeSessionIds: string[] };
-type CalendarEvent = { source: string; start: string; end: string; allDay: boolean };
+export type CalendarEvent = { source: string; start: string; end: string; allDay: boolean; title?: string; calendarName?: string; transparency?: string; eventType?: string };
+export type PlannerCalendarEvent = CalendarEvent & { calendar: string; availability: "busy" | "free" | "unknown" };
+/** Builds the planner-private metadata projection without leaking the Agenda UI fallback title. */
+export function plannerCalendarEvent(event: CalendarEvent & { plannerTitle?: string }): PlannerCalendarEvent {
+  return {start:event.start,end:event.end,allDay:event.allDay,source:event.source,calendar:event.calendarName ?? "",
+    ...(event.plannerTitle ? {title:event.plannerTitle} : {}), availability:event.transparency === "transparent" ? "free" : event.transparency === "opaque" || !event.transparency ? "busy" : "unknown",
+    transparency:event.transparency ?? "opaque", eventType:event.eventType ?? "unknown"};
+}
 /** Broad UTC window that safely captures requested local dates through UTC+14 and UTC-12. */
 export function plannerAvailabilityUtcRange(from: string, to: string) {
   const min = new Date(from+"T12:00:00Z"); min.setUTCDate(min.getUTCDate()-2);
@@ -13,6 +20,7 @@ export function plannerBusyEvents(events: CalendarEvent[]) {
   // Recognised PCC projections are already represented by canonical planner state.
   // Unknown events on the PCC calendar are commitments, not safe-to-ignore projections.
   return events.filter(event => ["google", "agenda", "pcc"].includes(event.source))
+    .filter(event => event.transparency !== "transparent" && event.eventType !== "birthday")
     .map(({start, end, allDay}) => ({start, end, allDay}));
 }
 function localDate(value: string, timezone: string) {
@@ -24,7 +32,10 @@ function localDate(value: string, timezone: string) {
 }
 /** Keep only events whose half-open interval intersects the requested inclusive local-date range. */
 export function plannerBusyEventsInLocalDateRange(events: CalendarEvent[], from: string, to: string, timezone: string) {
-  return plannerBusyEvents(events).filter(event => {
+  return plannerBusyEvents(plannerEventsInLocalDateRange(events, from, to, timezone));
+}
+export function plannerEventsInLocalDateRange<T extends CalendarEvent>(events: T[], from: string, to: string, timezone: string) {
+  return events.filter(event => {
     const startDate = event.allDay ? event.start.slice(0,10) : localDate(event.start, timezone);
     const endDate = event.allDay ? event.end.slice(0,10) : localDate(event.end, timezone);
     if (!startDate || !endDate || startDate > to) return false;

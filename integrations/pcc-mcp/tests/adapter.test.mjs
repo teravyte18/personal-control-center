@@ -59,6 +59,14 @@ test("planner POST uses a distinct opt-in credential, scoped URL and JSON schema
   assert.equal(availability.revision,4);
   assert.equal(availability.events[0].title,"Fictional meeting");
 });
+test("planner POST exposes only fixed, safe rejection guidance", async () => {
+  const plannerToken = "pcc_plan_" + "b".repeat(43);
+  const call = createPccClient({ origin: "http://127.0.0.1:3107", token: plannerToken,
+    fetchImpl: async () => Response.json({ error: "Invalid planner request.", code: "session-overlap", private: "must not surface" }, { status: 400 }),
+  });
+  await assert.rejects(call("planner-submit", { revision:4, replaceFrom:"2026-11-16", rationale:"Fictional.", removeSessionIds:[], sessions:[] }),
+    { message: "PCC rejected overlapping proposed sessions." });
+});
 test("planner request poll uses no calendar API or LLM input", async () => {
   const plannerToken = "pcc_plan_" + "b".repeat(43);
   const requestIds=[];

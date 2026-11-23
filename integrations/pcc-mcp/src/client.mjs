@@ -26,6 +26,44 @@ export async function loadCredential(env) {
   return token;
 }
 
+const plannerInputMessages = {
+  "proposal-invalid": "PCC rejected the proposal format; refresh planner context and revise the draft.",
+  "planner-request-invalid": "PCC rejected the planner request; refresh planner context and revise the draft.",
+  "removal-invalid": "PCC rejected an invalid session removal.",
+  "session-invalid": "PCC rejected an invalid proposed session.",
+  "duplicate-session-change": "PCC rejected a duplicate session change.",
+  "session-not-movable": "PCC rejected a session that is no longer movable; refresh planner context.",
+  "session-conflict": "PCC rejected a proposed session conflict; refresh planner context.",
+  "session-overlap": "PCC rejected overlapping proposed sessions.",
+  "session-after-midnight": "PCC rejected a session that ends after midnight.",
+  "work-not-open": "PCC rejected a session whose linked work is no longer open; refresh planner context.",
+  "calendar-conflict": "PCC rejected a proposed session that conflicts with a Calendar commitment.",
+  "request-week-mismatch": "PCC rejected a proposal outside its requested week.",
+};
+
+async function plannerInputMessage(response) {
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!contentType.startsWith("application/json")) return undefined;
+  const reader = response.body?.getReader();
+  if (!reader) return undefined;
+  let size = 0;
+  const chunks = [];
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > 2048) { await reader.cancel(); return undefined; }
+      chunks.push(value);
+    }
+    const bytes = new Uint8Array(size); let offset = 0;
+    for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+    const value = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
+    return value && typeof value === "object" && typeof value.code === "string" && Object.hasOwn(plannerInputMessages, value.code) ? plannerInputMessages[value.code] : undefined;
+  } catch { return undefined; }
+  finally { reader.releaseLock(); }
+}
+
 export function createPccClient({ origin, token, fetchImpl = fetch, timeoutMs = 15000 }) {
   const base = validateOrigin(origin);
   if (!/^pcc_(ro|plan)_[A-Za-z0-9_-]{43}$/.test(token ?? "")) throw new Error("Invalid PCC credential format.");
@@ -50,9 +88,10 @@ export function createPccClient({ origin, token, fetchImpl = fetch, timeoutMs = 
     try { response = await fetchImpl(url, { method: plannerWrite ? "POST" : "GET", headers: { Authorization: `Bearer ${token}`, Accept: "application/json", ...(plannerWrite ? { "Content-Type": "application/json" } : {}) }, ...(plannerWrite ? { body: JSON.stringify(args) } : {}), redirect: "error", cache: "no-store", signal: requestSignal }); }
     catch { throw new Error("PCC request failed, timed out, or was cancelled."); }
     if (!response.ok) {
-      await response.body?.cancel();
+      const plannerMessage = plannerWrite && response.status === 400 ? await plannerInputMessage(response) : undefined;
+      if (!plannerMessage) await response.body?.cancel();
       const messages = { 401: "PCC authentication required.", 403: "PCC access denied or credential expired/revoked.", 409: "PCC state or filters changed; restart pagination.", 413: "PCC result too large; narrow the query." };
-      throw new Error(messages[response.status] ?? "PCC request was not accepted.");
+      throw new Error(plannerMessage ?? messages[response.status] ?? "PCC request was not accepted.");
     }
     if (!(response.headers.get("content-type") ?? "").startsWith("application/json")) { await response.body?.cancel(); throw new Error("PCC returned an invalid response."); }
     const reader = response.body?.getReader();

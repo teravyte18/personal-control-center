@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
- createPlannerSession, defaultPlannerPreferences, normalizePlannerSession, normalizePlannerState,
+ createPlannerSession, dailyPlannerRequestInstructions, defaultPlannerPreferences, normalizePlannerSession, normalizePlannerState,
  applyPlannerSessionChanges, plannerSessionCanMove, plannerSessionInReplacementWindow,
  plannerWeekDays, reconcileSession, sessionOverlaps, validatePlannerSession,
 } from "../src/domain/weekly-planner.ts";
@@ -99,6 +99,34 @@ test("outcomes preserve notes, unfinished work and explicit actual effort",()=>{
  const restored=normalizePersonalDataSnapshot(JSON.parse(JSON.stringify(snapshot)));
  assert.equal(restored.plannerSessions[0].note,"Unexpected research follow-up");
  assert.equal(normalizePersonalDataMutation({type:"upsert-planner-session",session:{...a,minutes:-1}}),null);
+});
+
+test("new outcomes round-trip while legacy not-started and cancelled records remain readable",()=>{
+ const original=make();
+ for(const outcome of ["completed","partial","skipped","postponed","not-started","cancelled"] as const) {
+  const saved=reconcileSession(original,outcome,"Fictional note",45,now);
+  assert.equal(normalizePlannerSession(saved)?.outcome,outcome);
+ }
+});
+test("daily grouped request includes only the selected date reports in one bounded queue payload",()=>{
+ const request=dailyPlannerRequestInstructions("2026-11-16",[
+  {title:"Review sample",outcome:"partial",note:"Continue with section two",actualMinutes:35},
+  {title:"Prepare outline",outcome:"postponed",note:""},
+ ],"Keep remaining work flexible.");
+ assert.match(request,/Daily check-in for 2026-11-16/);
+ assert.match(request,/Review sample: partial; actual 35 min; note: Continue with section two/);
+ assert.match(request,/Prepare outline: postponed; actual not recorded min/);
+ assert.match(request,/Keep remaining work flexible/);
+ assert.ok(request.length<=2000);
+ assert.match(dailyPlannerRequestInstructions("2026-11-16",[]),/No session outcomes were changed/);
+});
+
+test("daily grouped request rejects oversized reports instead of truncating reports or guidance",()=>{
+ const note="x".repeat(2100);
+ assert.throws(()=>dailyPlannerRequestInstructions("2026-11-16",[
+  {title:"First report",outcome:"partial",note},
+  {title:"Later report",outcome:"skipped",note:"Keep this report"},
+ ],"Preserve this guidance."),/Shorten session notes or guidance/);
 });
 
 test("scoped planning reader exposes bounded session notes and preferences without generic write access",()=>{

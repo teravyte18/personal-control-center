@@ -3,11 +3,36 @@ import type { Item } from "./personal-data.ts";
 
 export type ProposalChanges = { sessions: PlannerSession[]; removeSessionIds: string[] };
 type CalendarEvent = { source: string; start: string; end: string; allDay: boolean };
+/** Broad UTC window that safely captures requested local dates through UTC+14 and UTC-12. */
+export function plannerAvailabilityUtcRange(from: string, to: string) {
+  const min = new Date(from+"T12:00:00Z"); min.setUTCDate(min.getUTCDate()-2);
+  const max = new Date(to+"T12:00:00Z"); max.setUTCDate(max.getUTCDate()+2);
+  return {timeMin:min.toISOString(),timeMax:max.toISOString()};
+}
 export function plannerBusyEvents(events: CalendarEvent[]) {
   // Recognised PCC projections are already represented by canonical planner state.
   // Unknown events on the PCC calendar are commitments, not safe-to-ignore projections.
   return events.filter(event => ["google", "agenda", "pcc"].includes(event.source))
     .map(({start, end, allDay}) => ({start, end, allDay}));
+}
+function localDate(value: string, timezone: string) {
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "";
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: timezone, year:"numeric", month:"2-digit", day:"2-digit" }).formatToParts(date);
+  const get = (key:string) => parts.find(part=>part.type===key)?.value ?? "";
+  return `${get("year")}-${get("month")}-${get("day")}`;
+}
+/** Keep only events whose half-open interval intersects the requested inclusive local-date range. */
+export function plannerBusyEventsInLocalDateRange(events: CalendarEvent[], from: string, to: string, timezone: string) {
+  return plannerBusyEvents(events).filter(event => {
+    const startDate = event.allDay ? event.start.slice(0,10) : localDate(event.start, timezone);
+    const endDate = event.allDay ? event.end.slice(0,10) : localDate(event.end, timezone);
+    if (!startDate || !endDate || startDate > to) return false;
+    if (event.allDay) return endDate > from;
+    const end = new Date(event.end);
+    const clock = new Intl.DateTimeFormat("en-GB", {timeZone:timezone,hour:"2-digit",minute:"2-digit",second:"2-digit",hourCycle:"h23"}).format(end);
+    return endDate > from || (endDate === from && clock !== "00:00:00");
+  });
 }
 export function plannerCalendarCoverageIssue(coverageComplete: boolean) {
   return coverageComplete ? "" : "Calendar availability could not be fully verified.";

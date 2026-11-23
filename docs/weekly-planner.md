@@ -12,6 +12,7 @@ Add an optional time-block planning surface inside Week. It should make a small 
 - Session records with a title, optional source Task/Project Action, local date, start, planned/estimated minutes, outcome, actual minutes and a free-text check-in note.
 - Editable starter preferences (start time, morning buffer, number and length of sessions, agent guidance).
 - Manual session entry, removal and end-of-day completion/reconciliation, with unconfirmed sessions preserved.
+- Date-scoped Daily check-in with explicit Completed, In progress, Skipped, and Postponed outcomes, optional notes and actual minutes per session, plus one grouped explicit replan request. Legacy Not started and No longer needed records remain readable; check-ins never change linked Task or Project status.
 - Optional rule-based morning starter proposal that refuses to claim availability when Calendar is disconnected, and skips fixed Google/Agenda commitments.
 - Server persistence via the existing user-scoped personal-data snapshot, browser fallback and the standard export/restore path.
 - Planned sessions are projected to the user's PCC Google Calendar as timed, read-only events in the configured timezone. Session IDs provide stable Calendar mappings, so rescheduling updates the same event; external appointments remain protected and are not treated as PCC-owned. An unlinked session such as a check-in projects in the same way. The planned daily 09:00 check-in itself is a later approved planning step; Phase 2 does not create sessions automatically.

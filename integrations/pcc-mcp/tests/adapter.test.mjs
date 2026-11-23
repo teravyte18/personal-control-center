@@ -53,9 +53,11 @@ test("planner POST uses a distinct opt-in credential, scoped URL and JSON schema
     assert.equal(init.method,"GET");
     assert.equal(url.pathname,"/api/assistant/planner");
     assert.equal(url.searchParams.get("from"),"2026-11-16");
-    return Response.json({revision:4,timezone:"Europe/Lisbon",preferences:{},busy:[],sessions:[],fetchedAt:"2026-11-14T16:00:00.000Z"});
+    return Response.json({revision:4,timezone:"Europe/Lisbon",preferences:{},busy:[],events:[{start:"2026-11-16T10:00:00.000Z",end:"2026-11-16T11:00:00.000Z",allDay:false,source:"google",calendar:"Fictional calendar",title:"Fictional meeting",availability:"busy",transparency:"opaque",eventType:"default"}],sessions:[],fetchedAt:"2026-11-14T16:00:00.000Z"});
   }});
-  assert.equal((await calendar("planner-calendar",{from:"2026-11-16",to:"2026-11-20"})).revision,4);
+  const availability=await calendar("planner-calendar",{from:"2026-11-16",to:"2026-11-20"});
+  assert.equal(availability.revision,4);
+  assert.equal(availability.events[0].title,"Fictional meeting");
 });
 test("planner POST exposes only fixed, safe rejection guidance", async () => {
   const plannerToken = "pcc_plan_" + "b".repeat(43);

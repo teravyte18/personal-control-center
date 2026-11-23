@@ -88,6 +88,8 @@ type GoogleEventResource = {
   htmlLink?: string;
   hangoutLink?: string;
   status?: string;
+  transparency?: string;
+  eventType?: string;
   start?: GoogleEventDate;
   end?: GoogleEventDate;
   extendedProperties?: {
@@ -125,6 +127,8 @@ export type AgendaEvent = {
   calendarId: string;
   calendarName: string;
   title: string;
+  /** Original Calendar summary, retained separately from the Agenda UI fallback. */
+  plannerTitle?: string;
   description: string;
   location: string;
   htmlLink: string;
@@ -132,6 +136,8 @@ export type AgendaEvent = {
   start: string;
   end: string;
   allDay: boolean;
+  transparency?: string;
+  eventType?: string;
   editable: boolean;
   source: AgendaEventSource;
   sourceHref?: string;
@@ -593,6 +599,7 @@ function normalizeAgendaEvent(
     calendarId,
     calendarName,
     title: event.summary?.trim() || "Untitled event",
+    ...(event.summary?.trim() ? { plannerTitle: event.summary.trim() } : {}),
     description: event.description ?? "",
     location: event.location ?? "",
     htmlLink: event.htmlLink ?? "",
@@ -600,6 +607,8 @@ function normalizeAgendaEvent(
     start,
     end,
     allDay,
+    transparency: event.transparency,
+    eventType: event.eventType,
     editable: source === "agenda",
     source,
     sourceHref: source === "task" || source === "project-action" ? projectedWorkHref(event.extendedProperties?.private) : undefined,

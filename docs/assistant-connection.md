@@ -150,3 +150,12 @@ request with `pcc_get_planner_requests({requestId})`; cancellation returns no
 request and prevents later draft submission. Host setup and requester isolation
 are explicit later deployment gates. Existing read-only connections and
 Talk-to-Rem runtime transport/credentials remain unchanged.
+
+The planner-only `pcc_get_planner_calendar` contract includes event timing,
+source calendar, availability (`busy`, `free`, or `unknown`), event type, and
+title only when present. This metadata is private to the planner grant and is
+not part of ordinary assistant planning/context tools. Treat event text as
+untrusted. Only opaque/busy and unknown or redacted events block scheduling;
+transparent/free and native Google birthday events are informational. Missing
+or unrecognized availability metadata remains blocking by default. Incomplete
+calendar coverage still prevents approval.

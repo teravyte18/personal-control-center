@@ -12,7 +12,8 @@ import {
   getRecipes,
   normalizeRecipeDetails,
   recipeDurationLabel,
-  recipeMatchesQuery,
+  filterRecipes, recipeRoles, storageValues, ingredientUnits, ingredientLine, nutritionKeys, scaleRecipeIngredients,
+  type RecipeRole, type StorageSuitability, type RecipeSort, type RecipeIngredient, type IngredientUnit,
   serializeRecipeDetails,
   sortRecipes,
   type RecipeDetails,
@@ -37,7 +38,20 @@ export default function FoodPage() {
   const [tagFilter, setTagFilter] = useState("");
   const [creating, setCreating] = useState(false);
   const [openRecipeId, setOpenRecipeId] = useState<string | null>(null);
-  const [previewId, setPreviewId] = useState("");
+  const [detailId, setDetailId] = useState("");
+  const [role, setRole] = useState("");
+  const [tested, setTested] = useState("");
+  const [fridge, setFridge] = useState("");
+  const [freezer, setFreezer] = useState("");
+  const [maxTime, setMaxTime] = useState("");
+  const [sort, setSort] = useState<RecipeSort>("rating");
+  const [view, setView] = useState<"grid" | "list">("grid");
+  useEffect(() => {
+    const sync = () => setDetailId(new URLSearchParams(window.location.search).get("recipe") ?? "");
+    const frame = window.requestAnimationFrame(sync);
+    window.addEventListener("popstate", sync);
+    return () => {window.cancelAnimationFrame(frame);window.removeEventListener("popstate",sync);};
+  }, []);
   const openRecipe = recipes.find((recipe) => recipe.item.id === openRecipeId);
 
   const tags = useMemo(() => {
@@ -51,12 +65,16 @@ export default function FoodPage() {
     return [...values.values()].sort((left, right) => left.localeCompare(right, undefined, { sensitivity: "base" }));
   }, [recipes]);
 
-  const visibleRecipes = useMemo(() => sortRecipes(recipes).filter((recipe) => {
-    if (!recipeMatchesQuery(recipe, query)) return false;
-    if (tagFilter && !recipe.details.tags.some((tag) => tag.toLocaleLowerCase() === tagFilter.toLocaleLowerCase())) return false;
-    return true;
-  }), [recipes, query, tagFilter]);
-  const preview = visibleRecipes.find(recipe => recipe.item.id === previewId) ?? visibleRecipes[0];
+  const visibleRecipes = useMemo(() => sortRecipes(filterRecipes(recipes, {
+    query, tag: tagFilter, role: role ? role as RecipeRole : undefined,
+    tested: tested ? tested === "yes" : undefined, fridge: fridge ? fridge as StorageSuitability : undefined,
+    freezer: freezer ? freezer as StorageSuitability : undefined, maxMinutes: maxTime ? Number(maxTime) : undefined,
+  }), sort), [recipes, query, tagFilter, role, tested, fridge, freezer, maxTime, sort]);
+  const detail = recipes.find(recipe => recipe.item.id === detailId);
+  function openDetail(id: string) {
+    setDetailId(id);
+    window.history.pushState(null, "", id ? "/food?recipe=" + encodeURIComponent(id) : "/food");
+  }
 
   function saveRecipe(recipe: RecipeItem | undefined, title: string, details: RecipeDetails) {
     const description = serializeRecipeDetails(details);
@@ -77,10 +95,12 @@ export default function FoodPage() {
   }
 
   async function removeRecipe(recipe: RecipeItem) {
-    if (!window.confirm(`Delete “${recipe.item.title}”? This cannot be undone.`)) return;
+    if (!window.confirm(`Delete “${recipe.item.title}”? This cannot be undone.`)) return false;
     if (recipe.details.photoId) await deletePhoto(recipe.details.photoId);
     deleteItem(recipe.item.id);
     setOpenRecipeId(null);
+    openDetail("");
+    return true;
   }
 
   return (
@@ -103,7 +123,7 @@ export default function FoodPage() {
             className="input"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search recipes or tags"
+            placeholder="Search recipes, ingredients or tags"
           />
         </label>
         <label>
@@ -115,6 +135,15 @@ export default function FoodPage() {
         </label>
       </div>
 
+      <div className="mt-3 flex flex-wrap gap-2">
+        <select aria-label="Role" className="input max-w-full w-auto" value={role} onChange={e => setRole(e.target.value)}><option value="">All roles</option>{recipeRoles.map(r => <option key={r}>{r}</option>)}</select>
+        <select aria-label="Tested status" className="input w-auto" value={tested} onChange={e => setTested(e.target.value)}><option value="">All tested states</option><option value="yes">Tested</option><option value="no">Untested</option></select>
+        <StorageFilter label="Fridge" value={fridge} onChange={setFridge} />
+        <StorageFilter label="Freezer" value={freezer} onChange={setFreezer} />
+        <select aria-label="Maximum total time" className="input w-auto" value={maxTime} onChange={e => setMaxTime(e.target.value)}><option value="">Any time</option>{[15,30,45,60,120].map(n => <option key={n} value={n}>Up to {n} min</option>)}</select>
+        <select aria-label="Sort recipes" className="input w-auto" value={sort} onChange={e => setSort(e.target.value as RecipeSort)}>{[["rating","Rating"],["name","Name"],["time","Total time"],["created","Recently added"],["updated","Recently modified"]].map(([v,l]) => <option key={v} value={v}>{l}</option>)}</select>
+        <button type="button" className="pcc-control" onClick={() => setView(v => v === "grid" ? "list" : "grid")}>{view === "grid" ? "List view" : "Grid view"}</button>
+      </div>
       {recipes.length === 0 ? (
         <div className="mt-8 rounded-[2rem] border border-dashed border-slate-300 bg-white p-8 text-center">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-slate-300 bg-slate-50 text-2xl">🍳</div>
@@ -128,14 +157,12 @@ export default function FoodPage() {
           <p className="mt-2 text-sm leading-6 text-slate-500">Change the search or tag filter.</p>
         </div>
       ) : (
-        <div className="pcc-food-layout"><div className="pcc-food-list">
-          {visibleRecipes.map((recipe) => (
-            <RecipeCard key={recipe.item.id} recipe={recipe} onOpen={() => {setPreviewId(recipe.item.id); if (!window.matchMedia("(min-width: 768px)").matches) setOpenRecipeId(recipe.item.id);}} />
-          ))}
+        <div className={view === "grid" ? "mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3" : "mt-5 grid gap-2"}>
+          {visibleRecipes.map(recipe => <RecipeCard key={recipe.item.id} recipe={recipe} grid={view === "grid"} onOpen={() => openDetail(recipe.item.id)} />)}
         </div>
-        {preview ? <aside className="pcc-food-detail"><h3 className="pcc-section-title">{preview.item.title}</h3>{preview.details.photoId ? <RecipePhoto photoId={preview.details.photoId} title={preview.item.title} /> : <p className="pcc-record-meta">No photo added</p>}<p className="pcc-record-meta">Rating {preview.details.rating ?? "unrated"}{preview.details.makeAgain === "yes" ? " · Make again" : ""}</p><button className="pcc-control w-full mt-3" onClick={() => setOpenRecipeId(preview.item.id)}>Open recipe</button></aside> : null}</div>
       )}
 
+      {detail && !openRecipe && !creating ? <RecipeDetail key={detail.item.id} recipe={detail} onClose={() => openDetail("")} onEdit={() => setOpenRecipeId(detail.item.id)} /> : null}
       {creating ? (
         <RecipeEditor
           key="new-recipe"
@@ -156,11 +183,12 @@ export default function FoodPage() {
   );
 }
 
-function RecipeCard({ recipe, onOpen }: { recipe: RecipeItem; onOpen: () => void }) {
+function RecipeCard({ recipe, onOpen, grid }: { recipe: RecipeItem; onOpen: () => void; grid: boolean }) {
   const duration = recipeDurationLabel(recipe.details);
   return (
-    <article className="pcc-recipe-row">
+    <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
       <button type="button" onClick={onOpen} className="block w-full text-left active:bg-slate-50">
+        {grid && recipe.details.photoId ? <RecipePhoto photoId={recipe.details.photoId} title={recipe.item.title} /> : null}
         <div className="p-3">
           <div className="flex items-start justify-between gap-2">
             <p className="line-clamp-2 text-sm font-semibold leading-5 text-slate-900">{recipe.item.title}</p>
@@ -170,6 +198,9 @@ function RecipeCard({ recipe, onOpen }: { recipe: RecipeItem; onOpen: () => void
           </div>
           <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500">
             {duration ? <span>{duration}</span> : null}
+            <span>{recipe.details.tested ? "Tested" : "Untested"}</span>
+            <span>Freezer: {recipe.details.freezer}</span>
+            {recipe.details.roles.map(role => <span key={role}>{role}</span>)}
             {recipe.details.servings ? <span>{recipe.details.servings} servings</span> : null}
             {recipe.details.makeAgain === "yes" ? <span>Make again</span> : null}
           </div>
@@ -183,6 +214,39 @@ function RecipeCard({ recipe, onOpen }: { recipe: RecipeItem; onOpen: () => void
       </button>
     </article>
   );
+}
+
+function StorageFilter({label, value, onChange}: {label: string; value: string; onChange: (value: string) => void}) {
+  return <select aria-label={label + " suitability"} className="input w-auto" value={value} onChange={e => onChange(e.target.value)}><option value="">Any {label.toLowerCase()}</option>{storageValues.map(v => <option key={v} value={v}>{label}: {v}</option>)}</select>;
+}
+
+function RecipeDetail({recipe, onClose, onEdit}: {recipe: RecipeItem; onClose: () => void; onEdit: () => void}) {
+  const {details: d, item} = recipe;
+  const [servings, setServings] = useState(String(d.servings ?? ""));
+  const [checked, setChecked] = useState<number[]>([]);
+  const [copyState, setCopyState] = useState("");
+  const ref = useDialogFocus<HTMLDivElement>();
+  const valid = !!d.servings && Number(servings) > 0 && Number(servings) <= 100;
+  const rows = valid ? scaleRecipeIngredients(d, Number(servings)) : d.ingredientRows;
+  return <div ref={ref} role="dialog" aria-modal="true" aria-label={item.title} tabIndex={-1} className="pcc-editor fixed inset-0 z-[100] overflow-y-auto bg-slate-50" onKeyDown={e => {if(e.key === "Escape") onClose();}}>
+    <header className="sticky top-0 z-20 flex justify-between gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3"><button className="pcc-control" onClick={onClose}>Back to recipes</button><button className="pcc-control" onClick={onEdit}>Edit recipe</button></header>
+    <main className="mx-auto max-w-4xl space-y-5 px-4 py-6 pb-28">
+      <h2 className="text-3xl font-semibold">{item.title}</h2>
+      {d.photoId && <RecipePhoto photoId={d.photoId} title={item.title} />}
+      <p className="whitespace-pre-wrap">{d.description}</p><p className="text-sm text-slate-600">{d.roles.join(" · ")} · {d.tested ? "Tested" : "Untested"}{d.rating !== undefined ? " · Rating " + d.rating + "/10" : ""}</p>
+      <p className="text-sm">Prep: {d.prepMinutes ?? "Unknown"} min · Cook: {d.cookMinutes ?? "Unknown"} min · Difficulty: {d.difficulty}</p>
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 space-y-3"><h3 className="text-lg font-semibold">Ingredients</h3>
+        {d.servings ? <label className="flex items-center gap-3">Servings <input aria-label="Desired servings" className="input max-w-28" type="number" min="0.25" max="100" step="any" value={servings} onChange={e => {setServings(e.target.value);setCopyState("");}} /></label> : <p className="text-sm text-slate-500">Set base servings in Edit to enable scaling.</p>}
+        <button className="pcc-control" onClick={async () => {try {await navigator.clipboard.writeText((!valid || Number(servings) === d.servings) && d.ingredients ? d.ingredients : rows.map(row => "- " + ingredientLine(row)).join("\n")); setCopyState("Copied");} catch {setCopyState("Copy failed");}}}>{copyState || "Copy ingredients"}</button>
+        {rows.map((row,i) => <label key={i} className="flex min-h-11 items-center gap-3"><input type="checkbox" checked={checked.includes(i)} onChange={() => setChecked(c => c.includes(i) ? c.filter(n => n !== i) : [...c,i])}/><span className={checked.includes(i) ? "line-through" : ""}>{ingredientLine(row)}</span></label>)}
+        {!rows.length && <p>No ingredients added.</p>}
+      </section>
+      <section className="rounded-2xl border border-slate-200 bg-white p-4"><h3 className="text-lg font-semibold">Instructions</h3><ol className="mt-3 list-decimal space-y-4 pl-6">{d.cookingSteps.map((step,i) => <li key={i} className="whitespace-pre-wrap">{step}</li>)}</ol>{!d.cookingSteps.length && <p>No steps added.</p>}</section>
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 space-y-2"><h3 className="text-lg font-semibold">Storage &amp; meal prep</h3><p>Fridge: {d.fridge}{d.fridgeDays !== undefined ? " · " + d.fridgeDays + " days" : ""}</p><p>Freezer: {d.freezer}{d.freezerDays !== undefined ? " · " + d.freezerDays + " days" : ""}</p>{([["Freezing",d.freezing],["Defrosting",d.defrosting],["Reheating",d.reheating],["Notes",d.storageNotes]]).map(([label,value]) => value && <div key={label}><h4 className="font-semibold">{label}</h4><p className="whitespace-pre-wrap">{value}</p></div>)}</section>
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 space-y-2"><h3 className="text-lg font-semibold">Personal notes</h3><p>Last cooked: {d.lastCooked || "Unknown"}</p><p className="whitespace-pre-wrap">{d.notes || "No notes yet."}</p>{d.sourceUrl && <a className="underline" href={d.sourceUrl} target="_blank" rel="noreferrer">Original recipe</a>}</section>
+      {Object.keys(d.nutrition).length > 0 && <section className="rounded-2xl border border-slate-200 bg-white p-4"><h3 className="text-lg font-semibold">Nutrition per serving</h3>{nutritionKeys.map(key => d.nutrition[key] !== undefined && <p key={key}>{key}: {d.nutrition[key]} {key === "calories" ? "kcal" : "g"}</p>)}</section>}
+    </main>
+  </div>;
 }
 
 function RecipePhoto({ photoId, title, previewUrl = "" }: { photoId: string; title: string; previewUrl?: string }) {
@@ -199,7 +263,7 @@ function RecipeEditor({
   recipe?: RecipeItem;
   onCancel: () => void;
   onSave: (title: string, details: RecipeDetails) => boolean | Promise<boolean>;
-  onDelete?: () => Promise<void>;
+  onDelete?: () => Promise<boolean>;
 }) {
   const initialDetails = recipe?.details ?? createRecipeDetails();
   const dialogRef = useDialogFocus<HTMLDivElement>();
@@ -271,7 +335,7 @@ function RecipeEditor({
     setSaving(true);
     setError("");
     try {
-      await onDelete();
+      if (!(await onDelete())) setSaving(false);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "The recipe could not be deleted.");
       setSaving(false);
@@ -289,6 +353,9 @@ function RecipeEditor({
     }
   }
 
+  function changeSteps(steps: string[]) {
+    setDetails(c => ({...c, cookingSteps: steps, steps:steps.map((step,i) => (i+1) + ". " + step).join("\n")}));
+  }
   const shownPhotoId = removeExistingPhoto ? "" : details.photoId;
 
   return (
@@ -333,6 +400,11 @@ function RecipeEditor({
               <h3 className="text-sm font-semibold text-slate-900">Recipe</h3>
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 <Field label="Name" wide><input className="input" value={title} onChange={(event) => setTitle(event.target.value)} required autoFocus /></Field>
+                <Field label="Description" wide><textarea className="input" value={details.description} onChange={e => setDetails(c => ({...c, description:e.target.value}))}/></Field>
+                <fieldset className="sm:col-span-2"><legend className="text-sm font-medium">Recipe roles (optional)</legend><div className="mt-2 flex flex-wrap gap-x-4 gap-y-2">{recipeRoles.map(role => <label key={role} className="flex min-h-10 items-center gap-2"><input type="checkbox" checked={details.roles.includes(role)} onChange={() => setDetails(c => ({...c, roles:c.roles.includes(role) ? c.roles.filter(r => r !== role) : [...c.roles,role]}))}/>{role}</label>)}</div></fieldset>
+                <Field label="Difficulty"><select className="input" value={details.difficulty} onChange={e => setDetails(c => ({...c, difficulty:e.target.value as RecipeDetails["difficulty"]}))}>{["unknown","easy","medium","hard"].map(v => <option key={v}>{v}</option>)}</select></Field>
+                <Field label="Tested"><select className="input" value={details.tested ? "yes" : "no"} onChange={e => setDetails(c => ({...c,tested:e.target.value === "yes"}))}><option value="no">Untested</option><option value="yes">Tested</option></select></Field>
+                <Field label="Last cooked"><input className="input" type="date" value={details.lastCooked ?? ""} onChange={e => setDetails(c => ({...c,lastCooked:e.target.value || undefined}))}/></Field>
                 <Field label="Source link" wide>
                   <div className="flex gap-2">
                     <input type="url" className="input min-w-0 flex-1" value={details.sourceUrl} onChange={(event) => setDetails((current) => ({ ...current, sourceUrl: event.target.value }))} placeholder="https://…" />
@@ -348,29 +420,21 @@ function RecipeEditor({
               </div>
             </section>
 
-            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <h3 className="text-sm font-semibold text-slate-900">Ingredients</h3>
-                  <p className="mt-1 text-xs leading-5 text-slate-500">Write one item per line with <code>- </code> if you want it to paste directly as a Notes shopping list.</p>
-                </div>
-                <button type="button" onClick={() => void copyIngredients()} disabled={!details.ingredients} className="min-h-10 shrink-0 rounded-xl border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 disabled:opacity-40">
-                  {copyState === "copied" ? "Copied" : copyState === "error" ? "Copy failed" : "Copy ingredients"}
-                </button>
-              </div>
-              <textarea
-                aria-label="Ingredients"
-                className="input mt-4 min-h-52 resize-y font-mono text-sm leading-6"
-                value={details.ingredients}
-                onChange={(event) => { setDetails((current) => ({ ...current, ingredients: event.target.value })); setCopyState("idle"); }}
-                placeholder={"- 500 g chicken\n- 2 cloves garlic\n- 1 onion"}
-              />
+            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-3">
+              <div className="flex justify-between gap-2"><h3 className="font-semibold">Ingredients</h3><button type="button" className="pcc-control" onClick={() => void copyIngredients()} disabled={!details.ingredients}>{copyState === "copied" ? "Copied" : copyState === "error" ? "Copy failed" : "Copy ingredients"}</button></div>
+              <p className="text-xs text-slate-500">Existing free-text lines remain unscaled until you separate the quantity and unit.</p>
+              <IngredientEditor rows={details.ingredientRows} onChange={rows => setDetails(c => ({...c, ingredientRows: rows, ingredients:rows.map(row => "- " + ingredientLine(row)).join("\n")}))} />
             </section>
-
-            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <h3 className="text-sm font-semibold text-slate-900">Steps</h3>
-              <textarea aria-label="Cooking steps" className="input mt-4 min-h-64 resize-y text-sm leading-6" value={details.steps} onChange={(event) => setDetails((current) => ({ ...current, steps: event.target.value }))} placeholder={"1. Prepare the ingredients.\n2. Cook…"} />
+            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-3">
+              <h3 className="font-semibold">Cooking steps</h3>
+              {details.cookingSteps.map((step,i) => <div key={i} className="space-y-2"><label className="block text-sm">Step {i+1}<textarea className="input mt-1" value={step} onChange={e => changeSteps(details.cookingSteps.map((v,j) => i === j ? e.target.value : v))}/></label><RowActions index={i} length={details.cookingSteps.length} onMove={offset => changeSteps(moveRow(details.cookingSteps,i,offset))} onRemove={() => changeSteps(details.cookingSteps.filter((_,j) => i !== j))}/></div>)}
+              <button type="button" className="pcc-control" onClick={() => changeSteps([...details.cookingSteps,""])}>Add step</button>
             </section>
+            <details className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><summary className="cursor-pointer font-semibold">Storage &amp; meal prep (optional)</summary><div className="mt-4 grid gap-3 sm:grid-cols-2">
+              {(["fridge","freezer"] as const).map(key => <div key={key} className="space-y-2"><Field label={key + " suitability"}><select className="input" value={details[key]} onChange={e => setDetails(c => ({...c,[key]:e.target.value as StorageSuitability}))}>{storageValues.map(v => <option key={v}>{v}</option>)}</select></Field><Field label={key + " storage days"}><input className="input" type="number" min="1" max={key === "fridge" ? 365 : 3650} value={details[key === "fridge" ? "fridgeDays" : "freezerDays"] ?? ""} onChange={e => setDetails(c => ({...c,[key === "fridge" ? "fridgeDays" : "freezerDays"]:numberOrUndefined(e.target.value)}))}/></Field></div>)}
+              {(["freezing","defrosting","reheating","storageNotes"] as const).map(key => <Field key={key} label={key} wide><textarea className="input" value={details[key]} onChange={e => setDetails(c => ({...c,[key]:e.target.value}))}/></Field>)}
+            </div></details>
+            <details className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><summary className="cursor-pointer font-semibold">Nutrition per serving (optional)</summary><div className="mt-4 grid gap-3 sm:grid-cols-2">{nutritionKeys.map(key => <Field key={key} label={key + (key === "calories" ? " (kcal)" : " (g)")}><input type="number" min="0" step="any" max="1000000000" className="input" value={details.nutrition[key] ?? ""} onChange={e => setDetails(c => ({...c,nutrition:{...c.nutrition,[key]:numberOrUndefined(e.target.value)}}))}/></Field>)}</div></details>
 
             <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
               <h3 className="text-sm font-semibold text-slate-900">Cooking notes</h3>
@@ -387,6 +451,24 @@ function RecipeEditor({
   );
 }
 
+function moveRow<T,>(rows: T[], index: number, offset: number) {
+  const next = [...rows], target = index + offset;
+  if (target >= 0 && target < next.length) [next[index],next[target]] = [next[target],next[index]];
+  return next;
+}
+function RowActions({index,length,onMove,onRemove}: {index:number;length:number;onMove:(offset:number)=>void;onRemove:()=>void}) {
+  return <div className="flex flex-wrap gap-2"><button type="button" className="pcc-control" disabled={index === 0} onClick={() => onMove(-1)}>Move up</button><button type="button" className="pcc-control" disabled={index === length-1} onClick={() => onMove(1)}>Move down</button><button type="button" className="pcc-control text-rose-700" onClick={onRemove}>Remove</button></div>;
+}
+function IngredientEditor({rows,onChange}: {rows:RecipeIngredient[];onChange:(rows:RecipeIngredient[])=>void}) {
+  function update(index:number, patch:Partial<RecipeIngredient>) {onChange(rows.map((row,i) => i === index ? {...row,...patch} : row));}
+  return <div className="space-y-4">{rows.map((row,i) => <fieldset key={i} className="rounded-xl border border-slate-200 p-3 space-y-2"><legend className="text-sm">Ingredient {i+1}</legend>
+    <Field label="Name"><input className="input" value={row.name} required onChange={e => update(i,{name:e.target.value})}/></Field>
+    <div className="grid grid-cols-2 gap-2"><Field label="Quantity"><input className="input" type="number" min="0" max="1000000000" step="any" value={row.quantity ?? ""} onChange={e => update(i,{quantity:numberOrUndefined(e.target.value)})}/></Field><Field label="Unit"><select className="input" value={row.unit} onChange={e => update(i,{unit:e.target.value as IngredientUnit})}>{ingredientUnits.map(v => <option key={v} value={v}>{v || "None"}</option>)}</select></Field></div>
+    <Field label="Preparation notes"><input className="input" value={row.notes} onChange={e => update(i,{notes:e.target.value})}/></Field>
+    <div className="flex flex-wrap gap-4"><label><input type="checkbox" checked={row.optional} onChange={e => update(i,{optional:e.target.checked})}/> Optional</label><label><input type="checkbox" checked={row.scalable} onChange={e => update(i,{scalable:e.target.checked})}/> Scale quantity</label></div>
+    <RowActions index={i} length={rows.length} onMove={offset => onChange(moveRow(rows,i,offset))} onRemove={() => onChange(rows.filter((_,j) => j !== i))}/>
+  </fieldset>)}<button type="button" className="pcc-control" onClick={() => onChange([...rows,{name:"",unit:"",notes:"",optional:false,scalable:true}])}>Add ingredient</button></div>;
+}
 function Field({ label, wide = false, children }: { label: string; wide?: boolean; children: ReactNode }) {
   return <label className={`block text-sm font-medium text-slate-700 ${wide ? "sm:col-span-2" : ""}`}>{label}<span className="mt-2 block">{children}</span></label>;
 }

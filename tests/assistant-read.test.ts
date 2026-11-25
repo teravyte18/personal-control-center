@@ -4,6 +4,7 @@ import { assistantRead, planningClock, type AssistantOperation } from "../src/do
 import { AssistantAccessError, AssistantConflictError, AssistantInputError, parseAssistantDomains, readAssistantJson, requireSameOrigin } from "../src/domain/assistant-access.ts";
 import { emptyPersonalDataSnapshot } from "../src/domain/personal-data-snapshot.ts";
 import { createBookDetails, serializeBookDetails } from "../src/domain/library.ts";
+import { createRecipeDetails, serializeRecipeDetails } from "../src/domain/food.ts";
 import type { Item } from "../src/domain/personal-data.ts";
 
 const now = new Date("2026-10-30T16:00:00Z");
@@ -109,4 +110,16 @@ test("grant JSON bodies are bounded even without Content-Length", async () => {
   await assert.rejects(readAssistantJson(new Request("http://example.test", { method: "POST", body: "x".repeat(5000) })), AssistantInputError);
   await assert.rejects(readAssistantJson(new Request("http://example.test", { method: "POST", body: "not json" })), AssistantInputError);
   assert.deepEqual(await readAssistantJson(new Request("http://example.test", { method: "POST", body: '{"days":7}' })), { days: 7 });
+});
+
+test("internal Food retrieval does not expand existing assistant access", () => {
+  const state = fixture();
+  state.snapshot.items.push(item("recipe","note",{description:serializeRecipeDetails({...createRecipeDetails(),ingredients:"unique-cookbook-ingredient"})}));
+  assert.throws(() => parseAssistantDomains(["food"]), AssistantInputError);
+  assert.throws(() => assistantRead("read",{domain:"food",sourceId:"recipe"},state,"account-a",[...domains],now),AssistantAccessError);
+  assert.throws(() => assistantRead("search",{domains:["food"],query:"unique-cookbook-ingredient"},state,"account-a",[...domains],now),AssistantInputError);
+  const result = assistantRead("search",{domains:["notes","library"],query:"unique-cookbook-ingredient"},state,"account-a",[...domains],now);
+  assert.doesNotMatch(JSON.stringify(result),/"sourceId":"recipe"/);
+  const resolved = assistantRead("context",{domains:["notes","library"],query:"unique-cookbook-ingredient"},state,"account-a",[...domains],now);
+  assert.doesNotMatch(JSON.stringify(resolved),/"sourceId":"recipe"/);
 });

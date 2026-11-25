@@ -1,5 +1,5 @@
 import { getExpenseCategory } from "./expenses.ts";
-import { getRecipes } from "./food.ts";
+import { getRecipes, recipeSummary, type RecipeDetails, type RecipeIngredient } from "./food.ts";
 import { getBookScore, getBooks } from "./library.ts";
 import { getMediaItems } from "./media.ts";
 import { getNotes } from "./notes.ts";
@@ -155,19 +155,28 @@ type ContextLibraryRecord =
     updatedAt: string;
   };
 
-type ContextRecipe = {
-  id: string;
-  title: string;
-  tags: string[];
+type ContextRecipe = Omit<ReturnType<typeof recipeSummary>, "rating" | "servings" | "prepMinutes" | "cookMinutes"> & {
   rating?: number;
-  makeAgain: string;
   servings?: number;
   prepMinutes?: number;
   cookMinutes?: number;
+  title: string;
+  makeAgain: RecipeDetails["makeAgain"];
+  description?: string;
   ingredients?: string;
   steps?: string;
+  ingredientRows: RecipeIngredient[];
+  cookingSteps: string[];
+  ingredientCount: number;
+  stepCount: number;
+  structuredTruncated: boolean;
+  freezing?: string;
+  defrosting?: string;
+  reheating?: string;
+  storageNotes?: string;
   notes?: string;
-  updatedAt: string;
+  lastCooked?: string;
+  nutrition: RecipeDetails["nutrition"];
 };
 
 type ContextExpense = {
@@ -506,6 +515,18 @@ function libraryContext(items: readonly Item[], limits: PersonalContextLimits): 
     .slice(0, limits.maxRecordsPerDomain);
 }
 
+function boundedRecipeRows<T>(rows: readonly T[], maxChars: number): T[] {
+  const selected: T[] = [];
+  let used = 2; // JSON array brackets
+  for (const row of rows) {
+    const size = JSON.stringify(row).length + (selected.length ? 1 : 0);
+    if (used + size > maxChars) break;
+    selected.push(row);
+    used += size;
+  }
+  return selected;
+}
+
 function foodContext(items: readonly Item[], limits: PersonalContextLimits): ContextRecipe[] {
   return getRecipes(items)
     .sort((left, right) => {
@@ -517,20 +538,37 @@ function foodContext(items: readonly Item[], limits: PersonalContextLimits): Con
       return rightRating - leftRating || Date.parse(right.item.updatedAt) - Date.parse(left.item.updatedAt);
     })
     .slice(0, limits.maxRecordsPerDomain)
-    .map((recipe) => ({
-      id: recipe.item.id,
-      title: recipe.item.title,
-      tags: recipe.details.tags,
-      rating: recipe.details.rating,
-      makeAgain: recipe.details.makeAgain,
-      servings: recipe.details.servings,
-      prepMinutes: recipe.details.prepMinutes,
-      cookMinutes: recipe.details.cookMinutes,
-      ingredients: text(recipe.details.ingredients, limits.maxTextChars),
-      steps: text(recipe.details.steps, limits.maxTextChars),
-      notes: text(recipe.details.notes, limits.maxTextChars),
-      updatedAt: recipe.item.updatedAt,
-    }));
+    .map((recipe) => {
+      const d = recipe.details;
+      // Bound each structured collection by the same per-field character
+      // limit as legacy text. Never split a quantity or a JSON record.
+      const ingredientRows = boundedRecipeRows(d.ingredientRows, limits.maxTextChars);
+      const cookingSteps = boundedRecipeRows(d.cookingSteps, limits.maxTextChars);
+      return {
+        ...recipeSummary(recipe),
+        rating: d.rating,
+        servings: d.servings,
+        prepMinutes: d.prepMinutes,
+        cookMinutes: d.cookMinutes,
+        title: recipe.item.title,
+        makeAgain: d.makeAgain,
+        description: text(d.description, limits.maxTextChars),
+        ingredients: text(d.ingredients, limits.maxTextChars),
+        steps: text(d.steps, limits.maxTextChars),
+        ingredientRows,
+        cookingSteps,
+        ingredientCount: d.ingredientRows.length,
+        stepCount: d.cookingSteps.length,
+        structuredTruncated: ingredientRows.length < d.ingredientRows.length || cookingSteps.length < d.cookingSteps.length,
+        freezing: text(d.freezing, limits.maxTextChars),
+        defrosting: text(d.defrosting, limits.maxTextChars),
+        reheating: text(d.reheating, limits.maxTextChars),
+        storageNotes: text(d.storageNotes, limits.maxTextChars),
+        notes: text(d.notes, limits.maxTextChars),
+        lastCooked: d.lastCooked,
+        nutrition: d.nutrition,
+      };
+    });
 }
 
 function rhythmContext(snapshot: PersonalDataSnapshot, limits: PersonalContextLimits, now: Date): ContextRhythm {

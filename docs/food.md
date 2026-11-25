@@ -135,3 +135,43 @@ Food could eventually use that context: a day usually spent away from home may b
 Food can become another explicit opt-in Advisor context domain later. Useful signals may include saved recipes, personal ratings, make-again decisions, cooking notes, and eventually meal/prep state if those features are implemented.
 
 The Advisor should remain suggestion-only and must not silently change recipes, schedule meals, or infer health goals.
+
+## Recipe Book v2 — structured cookbook
+
+The existing note payload prefix and recipe IDs remain unchanged. New fields are
+additive, and old multiline ingredients and steps remain available. Legacy
+ingredient lines become ordered, unscaled names until explicitly edited; no
+quantity or food-safety metadata is guessed. The browser exposes grid/list,
+search and property filters, a read-first cooking view with temporary ingredient
+checks and serving scaling, and optional storage, feedback and nutrition fields.
+Stable links use `/food?recipe=<id>`. Scaling requires a known base serving count
+and never writes back automatically. Nutrition values are optional per serving,
+in kcal and grams. Storage durations are days; unspecified suitability is unknown.
+
+Meal combinations may refer to recipe IDs and serving counts. Calendar scheduling,
+automated planning, freezer inventory and shopping aggregation remain deferred.
+
+### Authenticated recipe API
+
+`GET /api/recipes` uses the normal authenticated user session, not assistant
+bearer credentials. List results contain summary records and a snapshot revision,
+total and nextOffset; optional filters are query, role, tested (true/false), fridge,
+freezer, tag, maxMinutes, limit (1–100) and offset. Restart pagination if the
+revision changes. `GET /api/recipes?id=<id>&servings=3` returns one full record
+with original and scaled ingredients; omit servings for the unscaled detail.
+A missing base serving count produces a validation error rather than inventing
+quantities. Writes continue through the existing authenticated mutation path.
+
+A dedicated opt-in recipe grant and MCP tools are a follow-up. The existing
+assistant bearer grant and planner permissions have not been changed. Do not
+use browser credentials as a substitute for a scoped agent grant.
+
+### Context and retrieval
+
+The existing Food context provider exposes the new cookbook metadata, with
+bounded structured ingredients and steps alongside the legacy text fields.
+Use the Context Inspector's Food / Recipes domain to inspect raw context or
+keyword search. Search hits retain stable IDs and links; complete structured
+details are available through the authenticated recipe API. Context/retrieval
+does not itself authorize external agents, and existing Rem permissions remain
+unchanged.

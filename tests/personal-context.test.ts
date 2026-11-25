@@ -299,3 +299,35 @@ test("context domain parsing rejects undeclared domains and limits are clamped",
     maxProjectActions: 1,
   });
 });
+
+test("Food context exposes structured cookbook data, keeps legacy text and flags bounded collections", () => {
+  const details = {...createRecipeDetails(), roles:["protein" as const], servings:2, tested:true,
+    fridge:"unknown" as const, freezer:"yes" as const, freezerDays:30, freezing:"Cool and portion",
+    defrosting:"Thaw in refrigerator", reheating:"Reheat thoroughly", nutrition:{protein:12},
+    photoId:"private-photo-id", ingredientRows:[{name:"Beans",quantity:150,unit:"g" as const,notes:"",optional:false,scalable:true}],
+    cookingSteps:["Cook beans", "Serve"], notes:"Use less salt", lastCooked:"2026-09-10"};
+  const recipe = item("recipe","Beans","note",{description:serializeRecipeDetails(details)});
+  const data = snapshot({items:[recipe]});
+  const result = buildPersonalContext(data,{domains:["food"],purpose:"weekly-planning"});
+  const row = result.domains.food?.[0];
+  assert.ok(row);
+  assert.equal(row.path,"/food?recipe=recipe");
+  assert.deepEqual(row.roles,["protein"]);
+  assert.equal(row.ingredientRows[0].quantity,150);
+  assert.deepEqual(row.cookingSteps,["Cook beans","Serve"]);
+  assert.match(row.ingredients ?? "",/Beans/);
+  assert.equal(row.tested,true);
+  assert.equal(row.fridge,"unknown");
+  assert.equal(row.freezer,"yes");
+  assert.equal(row.freezerDays,30);
+  assert.equal(row.reheating,"Reheat thoroughly");
+  assert.equal(row.nutrition.protein,12);
+  assert.equal(row.nutrition.calories,undefined);
+  assert.equal(row.structuredTruncated,false);
+  assert.doesNotMatch(JSON.stringify(result),/private-photo-id|__pcc_recipe/);
+  const bounded = buildPersonalContext(data,{domains:["food"],purpose:"development",limits:{maxTextChars:80}}).domains.food?.[0];
+  assert.equal(bounded?.ingredientCount,1);
+  assert.equal(bounded?.ingredientRows.length,0);
+  assert.equal(bounded?.structuredTruncated,true);
+  assert.equal(buildPersonalContext(data,{domains:["notes"],purpose:"development"}).domains.notes?.length,0);
+});

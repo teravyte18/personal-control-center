@@ -347,7 +347,7 @@ the original **Raw domain context** and **Resolved question**.
 
 In Resolved question mode:
 
-1. Enter a test question and manually choose the six historical search domains (Phase 2 uses lexical ranking, **not semantic similarity**).
+1. Enter a test question and manually choose the supported search domains (Phase 2 uses lexical ranking, **not semantic similarity**).
 2. Optionally choose current Projects, Tasks and Rhythm, included because they are current, even if they do not match the question. Default is **none** to avoid irrelevant records being silently included.
 3. Optionally supply an inclusive creation/event date range, plus max context characters (1,000–20,000; default 8,000) and records (1–20; default 12).
 4. Inspect the explicit **manual/deterministic plan**, Phase 2 ranked matches and their relevance reasons, current-state candidates, the canonical source IDs for included records, and exclusions for hitting budget or record limits.
@@ -432,13 +432,13 @@ It must not expose unrestricted SQL or Keychain.
 **Implemented as a pure projection**, `buildRetrievalDocuments(snapshot, userId)`.
 It returns `RetrievalDocument[]` without touching network, database or LLM services.
 
-- Explicitly allowlisted domains: Reviews, Library (Books/Comics/Movies/Series), Projects, Tasks, Thoughts, and Notes.
+- Explicitly allowlisted domains: Reviews, Library (Books/Comics/Movies/Series), Projects, Tasks, Thoughts, Notes, and Food (active recipes).
 - The document carries `id`, `userId`, `domain`, `sourceId`, optional `sourceSubId` for a project action, `sourceKind`, `title`, `text`, `occurredAt`, `updatedAt`, and allowlisted metadata.
 - Published Review entries, including old entries, are projected. An unsubmitted Review draft remains *current state*, not historical retrieval content.
 - Each Project has a parent document and one document per action, including completed actions, details, completion notes and rescheduling history.
 - Retained archived/completed Tasks, Projects, Notes and Thoughts remain eligible; canonical deletion removes them on the next projection. No 90-day window, 12-record cap or `maxTextChars` truncation is applied.
 - Library payloads are decoded with the canonical Book/Media parsers. Raw structured Note JSON, cover/poster identifiers, Note ordering metadata and unknown/invalid PCC structured payloads are excluded.
-- Keychain never enters the domain allowlist or projection. Expenses, Food, Rhythm, Music and Calendar are intentionally outside this initial historical corpus.
+- Keychain never enters the domain allowlist or projection. Expenses, Rhythm, Music and Calendar remain outside the historical corpus.
 - The returned array is deterministically ordered; user-scoped derived IDs incorporate the authenticated user ID supplied by the eventual Phase 2 caller. The builder itself **does not authenticate** any caller.
 - Unit tests cover old and archived records, multiple actions, exact source provenance, structured-record isolation, deterministic projection and disappearing/deleted sources.
 
@@ -451,7 +451,7 @@ It returns `RetrievalDocument[]` without touching network, database or LLM servi
 Parameters:
 
 - `q` (required, 1–240 characters, 1–16 meaningful terms after basic English/Portuguese stopwords);
-- `domains` (optional comma-separated subset of `reviews,library,projects,tasks,thoughts,notes`; defaults to all);
+- `domains` (optional comma-separated subset of `reviews,library,projects,tasks,thoughts,notes,food`; defaults to all);
 - `from` and `to` (optional **inclusive** `YYYY-MM-DD` range on the record's **event/creation date**, not its last edit date);
 - `limit` (optional, 1–25, default 10).
 
@@ -530,3 +530,20 @@ versus missing canonical source records and assess the size of the final bundle.
 only after retrieval quality is inspectable on real data. Keep semantic/vector
 retrieval, final LLM chat, episodic summaries and stable memories later and
 evidence-driven.
+
+### Food context and recipe retrieval
+
+Food is now available in both raw domain context and deterministic lexical
+retrieval. Raw context retains legacy ingredient/step text and adds ordered
+structured ingredient and step arrays, counts and a structuredTruncated flag,
+recipe roles, storage suitability/durations, preparation information, nutrition,
+personal feedback and stable recipe links. Each structured array is bounded
+by the existing maxTextChars budget; omitted rows are not evidence of absence.
+
+The searchable corpus includes all active recipes (not just those selected
+by bounded raw context). Search by name, description, ingredients, roles, tags
+or cooking/storage notes; results carry canonical source IDs and a recipe path.
+The authenticated recipe detail API is the source for complete structured
+information, including scaling. No private photo identifiers or raw note
+payloads are projected. Recipes remain excluded from Notes. Existing assistant
+grants and external MCP tool access are unchanged.

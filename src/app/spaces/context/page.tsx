@@ -22,7 +22,7 @@ const domainLabels: Record<PersonalContextDomain, string> = {
   thoughts: "Thoughts",
   notes: "Notes",
   library: "Library",
-  food: "Food",
+  food: "Food / Recipes",
   expenses: "Expenses",
 };
 
@@ -175,10 +175,10 @@ export default function ContextInspectorPage() {
                   placeholder="What did I say about…?"/>
               </label>
               <p className="mt-2 text-xs text-slate-500">
-                This is keyword retrieval, not an answer from an AI. Try names or exact terms found in old records.
+                This is keyword retrieval, not an answer from an AI. Try names, recipe ingredients, roles, tags or exact terms found in records.
               </p>
               <fieldset className="mt-5">
-                <legend className="text-sm font-semibold text-slate-800">Search history in</legend>
+                <legend className="text-sm font-semibold text-slate-800">Search records in</legend>
                 <div className="mt-2 grid grid-cols-2 gap-1">
                   {retrievalDomains.map((domain) => (
                     <label key={domain} className="flex min-h-9 cursor-pointer items-center gap-2 rounded-lg px-1 text-sm text-slate-700 hover:bg-slate-50">
@@ -275,7 +275,7 @@ export default function ContextInspectorPage() {
                     {resolvedResult.search.results.map((hit) => (
                       <div key={hit.id} className="min-w-0 rounded-xl border border-slate-200 p-3">
                         <div className="flex flex-wrap items-center justify-between gap-2">
-                          <p className="min-w-0 break-words text-sm font-medium text-slate-900">{hit.title}</p>
+                          <p className="min-w-0 break-words text-sm font-medium text-slate-900">{hit.domain === "food" ? <a className="underline" href={"/food?recipe=" + encodeURIComponent(hit.sourceId)}>{hit.title}</a> : hit.title}</p>
                           <span className="text-xs font-semibold text-slate-600">Score {hit.score}</span>
                         </div>
                         <p className="mt-1 break-all text-xs text-slate-500">

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { createRecipeDetails, serializeRecipeDetails } from "../src/domain/food.ts";
 import { createBookDetails, serializeBookDetails } from "../src/domain/library.ts";
 import { emptyReview, type Item } from "../src/domain/personal-data.ts";
 import { emptyPersonalDataSnapshot, type PersonalDataSnapshot } from "../src/domain/personal-data-snapshot.ts";
@@ -31,7 +32,7 @@ test("strict input validation and bounded defaults", () => {
   const parsed = options("  thesis  ");
   assert.equal(parsed.query, "thesis");
   assert.equal(parsed.limit, 10);
-  assert.deepEqual(parsed.domains, ["reviews", "library", "projects", "tasks", "thoughts", "notes"]);
+  assert.deepEqual(parsed.domains, ["reviews", "library", "projects", "tasks", "thoughts", "notes", "food"]);
   assert.deepEqual(options("física", new URLSearchParams("limit=25&domains=notes,reviews,notes&from=2020-01-01&to=2026-10-20")).domains, ["notes", "reviews"]);
   assert.throws(() => parseRetrievalSearchParams(new URLSearchParams("q=")), RetrievalSearchInputError);
   assert.throws(() => options("what did I do"), /meaningful search terms/);
@@ -164,4 +165,16 @@ test("Library matches decoded author, title and reflection rather than serialize
   assert.equal(result.results[0].sourceKind, "book");
   assert.equal(result.results[0].sourceId, "book");
   assert.equal(result.results[0].metadata.status, "active");
+});
+
+test("Food search matches ingredients, roles and tags across the full eligible cookbook", () => {
+  const recipes = Array.from({length:30},(_,i)=>item("recipe-"+i,"Dish "+i,"note",{description:serializeRecipeDetails({...createRecipeDetails(),
+    roles:i===29?["protein"]:[], tags:i===29?["Mediterranean"]:[], ingredients:i===29?"Chickpeas":"Rice"})}));
+  const docs = buildRetrievalDocuments(snapshot(recipes),"owner");
+  for(const query of ["Chickpeas","protein","Mediterranean","Dish 29"]) {
+    const result=search(docs,query,new URLSearchParams("domains=food"));
+    assert.equal(result.results[0].sourceId,"recipe-29");
+  }
+  assert.equal(search(docs,"Chickpeas",new URLSearchParams("domains=notes")).totalMatches,0);
+  assert.equal(searchRetrievalDocuments(docs,"other",options("Chickpeas",new URLSearchParams("domains=food")),now).totalMatches,0);
 });

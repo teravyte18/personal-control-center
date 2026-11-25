@@ -108,3 +108,13 @@ test("formats practical total recipe time", () => {
   assert.equal(recipeDurationLabel({ prepMinutes: 20, cookMinutes: 60 }), "1h 20m");
   assert.equal(recipeDurationLabel({ prepMinutes: 60, cookMinutes: 60 }), "2h");
 });
+
+test("legacy recipes retain original text and expose ordered conservative rows", () => {
+  const details = parseRecipeDetails('__pcc_recipe_v1__\n{"ingredients":"- 500 g chicken\\n- salt to taste","steps":"1. Cook\\n2. Serve"}');
+  assert.ok(details);
+  assert.equal(details.ingredients, "- 500 g chicken\n- salt to taste");
+  assert.deepEqual(details.ingredientRows.map(row => row.name), ["500 g chicken","salt to taste"]);
+  assert.equal(details.ingredientRows[0].scalable, false);
+  assert.deepEqual(details.cookingSteps, ["Cook","Serve"]);
+  assert.equal(details.freezer, "unknown");
+});

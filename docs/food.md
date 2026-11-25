@@ -135,3 +135,18 @@ Food could eventually use that context: a day usually spent away from home may b
 Food can become another explicit opt-in Advisor context domain later. Useful signals may include saved recipes, personal ratings, make-again decisions, cooking notes, and eventually meal/prep state if those features are implemented.
 
 The Advisor should remain suggestion-only and must not silently change recipes, schedule meals, or infer health goals.
+
+## Recipe Book v2 — structured cookbook
+
+The existing note payload prefix and recipe IDs remain unchanged. New fields are
+additive, and old multiline ingredients and steps remain available. Legacy
+ingredient lines become ordered, unscaled names until explicitly edited; no
+quantity or food-safety metadata is guessed. The browser exposes grid/list,
+search and property filters, a read-first cooking view with temporary ingredient
+checks and serving scaling, and optional storage, feedback and nutrition fields.
+Stable links use `/food?recipe=<id>`. Scaling requires a known base serving count
+and never writes back automatically. Nutrition values are optional per serving,
+in kcal and grams. Storage durations are days; unspecified suitability is unknown.
+
+Meal combinations may refer to recipe IDs and serving counts. Calendar scheduling,
+automated planning, freezer inventory and shopping aggregation remain deferred.

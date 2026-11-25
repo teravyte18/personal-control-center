@@ -150,3 +150,18 @@ in kcal and grams. Storage durations are days; unspecified suitability is unknow
 
 Meal combinations may refer to recipe IDs and serving counts. Calendar scheduling,
 automated planning, freezer inventory and shopping aggregation remain deferred.
+
+### Authenticated recipe API
+
+`GET /api/recipes` uses the normal authenticated user session, not assistant
+bearer credentials. List results contain summary records and a snapshot revision,
+total and nextOffset; optional filters are query, role, tested (true/false), fridge,
+freezer, tag, maxMinutes, limit (1–100) and offset. Restart pagination if the
+revision changes. `GET /api/recipes?id=<id>&servings=3` returns one full record
+with original and scaled ingredients; omit servings for the unscaled detail.
+A missing base serving count produces a validation error rather than inventing
+quantities. Writes continue through the existing authenticated mutation path.
+
+A dedicated opt-in recipe grant and MCP tools are a follow-up. The existing
+assistant bearer grant and planner permissions have not been changed. Do not
+use browser credentials as a substitute for a scoped agent grant.

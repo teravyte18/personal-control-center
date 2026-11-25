@@ -47,8 +47,10 @@ export default function FoodPage() {
   const [sort, setSort] = useState<RecipeSort>("rating");
   const [view, setView] = useState<"grid" | "list">("grid");
   useEffect(() => {
-    const id = new URLSearchParams(window.location.search).get("recipe");
-    if (id) setDetailId(id);
+    const sync = () => setDetailId(new URLSearchParams(window.location.search).get("recipe") ?? "");
+    const frame = window.requestAnimationFrame(sync);
+    window.addEventListener("popstate", sync);
+    return () => {window.cancelAnimationFrame(frame);window.removeEventListener("popstate",sync);};
   }, []);
   const openRecipe = recipes.find((recipe) => recipe.item.id === openRecipeId);
 
@@ -71,7 +73,7 @@ export default function FoodPage() {
   const detail = recipes.find(recipe => recipe.item.id === detailId);
   function openDetail(id: string) {
     setDetailId(id);
-    window.history.replaceState(null, "", id ? "/food?recipe=" + encodeURIComponent(id) : "/food");
+    window.history.pushState(null, "", id ? "/food?recipe=" + encodeURIComponent(id) : "/food");
   }
 
   function saveRecipe(recipe: RecipeItem | undefined, title: string, details: RecipeDetails) {
@@ -93,11 +95,12 @@ export default function FoodPage() {
   }
 
   async function removeRecipe(recipe: RecipeItem) {
-    if (!window.confirm(`Delete “${recipe.item.title}”? This cannot be undone.`)) return;
+    if (!window.confirm(`Delete “${recipe.item.title}”? This cannot be undone.`)) return false;
     if (recipe.details.photoId) await deletePhoto(recipe.details.photoId);
     deleteItem(recipe.item.id);
     setOpenRecipeId(null);
     openDetail("");
+    return true;
   }
 
   return (
@@ -133,7 +136,7 @@ export default function FoodPage() {
       </div>
 
       <div className="mt-3 flex flex-wrap gap-2">
-        <select aria-label="Role" className="input w-auto" value={role} onChange={e => setRole(e.target.value)}><option value="">All roles</option>{recipeRoles.map(r => <option key={r}>{r}</option>)}</select>
+        <select aria-label="Role" className="input max-w-full w-auto" value={role} onChange={e => setRole(e.target.value)}><option value="">All roles</option>{recipeRoles.map(r => <option key={r}>{r}</option>)}</select>
         <select aria-label="Tested status" className="input w-auto" value={tested} onChange={e => setTested(e.target.value)}><option value="">All tested states</option><option value="yes">Tested</option><option value="no">Untested</option></select>
         <StorageFilter label="Fridge" value={fridge} onChange={setFridge} />
         <StorageFilter label="Freezer" value={freezer} onChange={setFreezer} />
@@ -223,7 +226,7 @@ function RecipeDetail({recipe, onClose, onEdit}: {recipe: RecipeItem; onClose: (
   const [checked, setChecked] = useState<number[]>([]);
   const [copyState, setCopyState] = useState("");
   const ref = useDialogFocus<HTMLDivElement>();
-  const valid = d.servings && Number(servings) > 0 && Number(servings) <= 100;
+  const valid = !!d.servings && Number(servings) > 0 && Number(servings) <= 100;
   const rows = valid ? scaleRecipeIngredients(d, Number(servings)) : d.ingredientRows;
   return <div ref={ref} role="dialog" aria-modal="true" aria-label={item.title} tabIndex={-1} className="pcc-editor fixed inset-0 z-[100] overflow-y-auto bg-slate-50" onKeyDown={e => {if(e.key === "Escape") onClose();}}>
     <header className="sticky top-0 z-20 flex justify-between gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3"><button className="pcc-control" onClick={onClose}>Back to recipes</button><button className="pcc-control" onClick={onEdit}>Edit recipe</button></header>
@@ -234,7 +237,7 @@ function RecipeDetail({recipe, onClose, onEdit}: {recipe: RecipeItem; onClose: (
       <p className="text-sm">Prep: {d.prepMinutes ?? "Unknown"} min · Cook: {d.cookMinutes ?? "Unknown"} min · Difficulty: {d.difficulty}</p>
       <section className="rounded-2xl border border-slate-200 bg-white p-4 space-y-3"><h3 className="text-lg font-semibold">Ingredients</h3>
         {d.servings ? <label className="flex items-center gap-3">Servings <input aria-label="Desired servings" className="input max-w-28" type="number" min="0.25" max="100" step="any" value={servings} onChange={e => {setServings(e.target.value);setCopyState("");}} /></label> : <p className="text-sm text-slate-500">Set base servings in Edit to enable scaling.</p>}
-        <button className="pcc-control" onClick={async () => {try {await navigator.clipboard.writeText(rows.map(row => "- " + ingredientLine(row)).join("\n")); setCopyState("Copied");} catch {setCopyState("Copy failed");}}}>{copyState || "Copy ingredients"}</button>
+        <button className="pcc-control" onClick={async () => {try {await navigator.clipboard.writeText((!valid || Number(servings) === d.servings) && d.ingredients ? d.ingredients : rows.map(row => "- " + ingredientLine(row)).join("\n")); setCopyState("Copied");} catch {setCopyState("Copy failed");}}}>{copyState || "Copy ingredients"}</button>
         {rows.map((row,i) => <label key={i} className="flex min-h-11 items-center gap-3"><input type="checkbox" checked={checked.includes(i)} onChange={() => setChecked(c => c.includes(i) ? c.filter(n => n !== i) : [...c,i])}/><span className={checked.includes(i) ? "line-through" : ""}>{ingredientLine(row)}</span></label>)}
         {!rows.length && <p>No ingredients added.</p>}
       </section>
@@ -260,7 +263,7 @@ function RecipeEditor({
   recipe?: RecipeItem;
   onCancel: () => void;
   onSave: (title: string, details: RecipeDetails) => boolean | Promise<boolean>;
-  onDelete?: () => Promise<void>;
+  onDelete?: () => Promise<boolean>;
 }) {
   const initialDetails = recipe?.details ?? createRecipeDetails();
   const dialogRef = useDialogFocus<HTMLDivElement>();
@@ -332,7 +335,7 @@ function RecipeEditor({
     setSaving(true);
     setError("");
     try {
-      await onDelete();
+      if (!(await onDelete())) setSaving(false);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "The recipe could not be deleted.");
       setSaving(false);

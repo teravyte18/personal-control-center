@@ -128,6 +128,29 @@ export function scaleRecipeIngredients(details: RecipeDetails, servings: number)
     ? Math.round(row.quantity * ratio * 1e6) / 1e6 : row.quantity }));
 }
 
+export function recipeSummary(recipe: RecipeItem) {
+  const { item, details } = recipe;
+  return {
+    id: item.id, name: item.title, path: "/food?recipe=" + encodeURIComponent(item.id),
+    roles: details.roles, tags: details.tags, servings: details.servings ?? null,
+    prepMinutes: details.prepMinutes ?? null, cookMinutes: details.cookMinutes ?? null,
+    tested: details.tested, difficulty: details.difficulty, rating: details.rating ?? null,
+    fridge: details.fridge, freezer: details.freezer, fridgeDays: details.fridgeDays ?? null,
+    freezerDays: details.freezerDays ?? null, hasPhoto: !!details.photoId,
+    createdAt: item.createdAt, updatedAt: item.updatedAt,
+  };
+}
+
+export function recipeDetail(recipe: RecipeItem, servings?: number) {
+  const d = recipe.details;
+  return { ...recipeSummary(recipe), description: d.description, ingredients: d.ingredientRows,
+    steps: d.cookingSteps, sourceUrl: d.sourceUrl, freezing: d.freezing, defrosting: d.defrosting,
+    reheating: d.reheating, storageNotes: d.storageNotes, notes: d.notes, makeAgain: d.makeAgain,
+    lastCooked: d.lastCooked ?? null, nutrition: d.nutrition,
+    ...(servings !== undefined ? { desiredServings: servings, scaledIngredients: scaleRecipeIngredients(d, servings) } : {}),
+  };
+}
+
 export function ingredientLine(row: RecipeIngredient) {
   return [row.quantity, row.unit, row.name].filter(value => value !== undefined && value !== "").join(" ")
     + (row.notes ? " — " + row.notes : "") + (row.optional ? " (optional)" : "");
@@ -181,8 +204,8 @@ export function normalizeRecipeDetails(value: unknown): RecipeDetails {
     freezing: stringOrEmpty(value.freezing), defrosting: stringOrEmpty(value.defrosting),
     reheating: stringOrEmpty(value.reheating), storageNotes: stringOrEmpty(value.storageNotes),
     tested: value.tested === true, lastCooked: validDate ? lastCooked : undefined, nutrition,
-    ingredients: stringOrEmpty(value.ingredients).replace(/\r\n?/g, "\n"),
-    steps: stringOrEmpty(value.steps).replace(/\r\n?/g, "\n"),
+    ingredients: rawIngredients || ingredientRows.map(row => "- " + ingredientLine(row)).join("\n"),
+    steps: rawSteps || cookingSteps.map((step, index) => (index + 1) + ". " + step).join("\n"),
     sourceUrl: normalizeSourceUrl(value.sourceUrl),
     photoId: stringOrEmpty(value.photoId).trim(),
     servings: optionalInteger(value.servings, 100),

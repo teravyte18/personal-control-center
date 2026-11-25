@@ -10,6 +10,10 @@ import {
   recipeMatchesQuery,
   serializeRecipeDetails,
   sortRecipes,
+  scaleRecipeIngredients,
+  filterRecipes,
+  recipeDetail,
+  recipeSummary,
 } from "../src/domain/food.ts";
 import { getNotes } from "../src/domain/notes.ts";
 import type { Item } from "../src/domain/personal-data.ts";
@@ -117,4 +121,32 @@ test("legacy recipes retain original text and expose ordered conservative rows",
   assert.equal(details.ingredientRows[0].scalable, false);
   assert.deepEqual(details.cookingSteps, ["Cook","Serve"]);
   assert.equal(details.freezer, "unknown");
+});
+
+test("scaling handles fractional, optional and fixed amounts without mutating the recipe", () => {
+  const details = normalizeRecipeDetails({servings:2, ingredientRows:[
+    {name:"Oil",quantity:1.5,unit:"tbsp",scalable:true},
+    {name:"Salt",notes:"to taste"},
+    {name:"Bay leaf",quantity:1,unit:"piece",scalable:false},
+  ]});
+  assert.deepEqual(scaleRecipeIngredients(details,3).map(row => row.quantity),[2.25,undefined,1]);
+  assert.equal(details.ingredientRows[0].quantity,1.5);
+  assert.throws(() => scaleRecipeIngredients(details,0),RangeError);
+  assert.throws(() => scaleRecipeIngredients(createRecipeDetails(),2),RangeError);
+});
+test("filter by role, ingredient, storage and tested status without assuming missing metadata", () => {
+  const recipes = getRecipes([item("beans",serializeRecipeDetails(normalizeRecipeDetails({roles:["protein","vegetable side"],freezer:"yes",tested:true,ingredientRows:[{name:"Black beans"}],prepMinutes:5,cookMinutes:20}))),item("unknown",serializeRecipeDetails(createRecipeDetails()))]);
+  assert.equal(filterRecipes(recipes,{query:"black beans",role:"protein",freezer:"yes",tested:true,maxMinutes:30}).length,1);
+  assert.equal(filterRecipes(recipes,{freezer:"unknown"}).length,1);
+  assert.equal(filterRecipes(recipes,{maxMinutes:10}).length,0);
+});
+test("summary and detail projections preserve identity and omit private photo identifiers", () => {
+  const recipe = getRecipes([item("beans",serializeRecipeDetails(normalizeRecipeDetails({servings:2,photoId:"private-photo",ingredientRows:[{name:"Beans",quantity:100,unit:"g"}]})))])[0];
+  const summary = recipeSummary(recipe);
+  assert.equal(summary.path,"/food?recipe=beans");
+  assert.equal("ingredients" in summary,false);
+  const detail = recipeDetail(recipe,3);
+  assert.equal(detail.ingredients[0].quantity,100);
+  assert.equal(detail.scaledIngredients?.[0].quantity,150);
+  assert.doesNotMatch(JSON.stringify(detail),/private-photo/);
 });

@@ -174,7 +174,7 @@ export function normalizeRecipeDetails(value: unknown): RecipeDetails {
 
   const rawIngredients = stringOrEmpty(value.ingredients).replace(/\r\n?/g, "\n");
   const rawSteps = stringOrEmpty(value.steps).replace(/\r\n?/g, "\n");
-  const ingredientRows = Array.isArray(value.ingredientRows) && value.ingredientRows.length
+  const ingredientRows: RecipeIngredient[] = Array.isArray(value.ingredientRows) && value.ingredientRows.length
     ? value.ingredientRows.flatMap((row): RecipeIngredient[] => {
       if (!isRecord(row) || !stringOrEmpty(row.name).trim()) return [];
       return [{ name: stringOrEmpty(row.name).trim(), quantity: nonnegative(row.quantity),

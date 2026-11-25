@@ -31,6 +31,18 @@ const makeAgainLabels: Record<RecipeMakeAgain, string> = {
   no: "No",
 };
 
+const roleLabels: Record<RecipeRole, string> = {
+  protein: "Protein", "carbohydrate side": "Carb side", "vegetable side": "Vegetable side",
+  "complete dish": "Complete dish", "sauce and dressing": "Sauce / dressing",
+  breakfast: "Breakfast", snack: "Snack", dessert: "Dessert",
+};
+const roleCategories: Array<{value: RecipeRole; label: string}> = [
+  {value:"protein",label:"Proteins"}, {value:"carbohydrate side",label:"Carbs"},
+  {value:"vegetable side",label:"Vegetables"}, {value:"complete dish",label:"Complete dishes"},
+  {value:"sauce and dressing",label:"Sauces"}, {value:"breakfast",label:"Breakfast"},
+  {value:"snack",label:"Snacks"}, {value:"dessert",label:"Desserts"},
+];
+
 export default function FoodPage() {
   const { items, addItem, updateItem, deleteItem } = usePersonalData();
   const recipes = useMemo(() => getRecipes(items), [items]);
@@ -39,7 +51,8 @@ export default function FoodPage() {
   const [creating, setCreating] = useState(false);
   const [openRecipeId, setOpenRecipeId] = useState<string | null>(null);
   const [detailId, setDetailId] = useState("");
-  const [role, setRole] = useState("");
+  const [role, setRole] = useState<RecipeRole | "">("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [tested, setTested] = useState("");
   const [fridge, setFridge] = useState("");
   const [freezer, setFreezer] = useState("");
@@ -66,11 +79,18 @@ export default function FoodPage() {
   }, [recipes]);
 
   const visibleRecipes = useMemo(() => sortRecipes(filterRecipes(recipes, {
-    query, tag: tagFilter, role: role ? role as RecipeRole : undefined,
+    query, tag: tagFilter, role: role || undefined,
     tested: tested ? tested === "yes" : undefined, fridge: fridge ? fridge as StorageSuitability : undefined,
     freezer: freezer ? freezer as StorageSuitability : undefined, maxMinutes: maxTime ? Number(maxTime) : undefined,
   }), sort), [recipes, query, tagFilter, role, tested, fridge, freezer, maxTime, sort]);
   const detail = recipes.find(recipe => recipe.item.id === detailId);
+  const activeFilters = [tagFilter, tested, fridge, freezer, maxTime, sort !== "rating"].filter(Boolean).length;
+  function clearAdvancedFilters() {
+    setTagFilter(""); setTested(""); setFridge(""); setFreezer(""); setMaxTime(""); setSort("rating");
+  }
+  function clearSearch() {
+    setQuery(""); setRole(""); clearAdvancedFilters();
+  }
   function openDetail(id: string) {
     setDetailId(id);
     window.history.pushState(null, "", id ? "/food?recipe=" + encodeURIComponent(id) : "/food");
@@ -104,60 +124,85 @@ export default function FoodPage() {
   }
 
   return (
-    <section className="mx-auto max-w-6xl">
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          <p className="text-sm text-slate-500">{recipes.length} {recipes.length === 1 ? "recipe" : "recipes"}</p>
-          <h2 className="mt-1 text-3xl font-semibold tracking-tight">Food</h2>
-        </div>
-        <button type="button" onClick={() => setCreating(true)} className="min-h-11 shrink-0 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white active:scale-[0.99]">
-          New recipe
+    <section className="pcc-cookbook">
+      <header className="pcc-cookbook-header">
+        <h2>Recipes</h2>
+        <button type="button" onClick={() => setCreating(true)} className="pcc-control">
+          <RecipeIcon name="plus" /> New recipe
         </button>
+      </header>
+
+      <label className="pcc-cookbook-search">
+        <span className="sr-only">Search recipes</span>
+        <RecipeIcon name="search" />
+        <input type="search" className="input" value={query} onChange={e => setQuery(e.target.value)}
+          placeholder="Search recipes, ingredients, tags…" />
+      </label>
+
+      <div className="pcc-cookbook-categories" role="group" aria-label="Recipe categories">
+        <button type="button" aria-pressed={!role} onClick={() => setRole("")}>All recipes</button>
+        {roleCategories.map(category => (
+          <button type="button" key={category.value} aria-pressed={role === category.value}
+            onClick={() => setRole(category.value)}>{category.label}</button>
+        ))}
       </div>
 
-      <div className="mt-5 grid gap-2 sm:grid-cols-[minmax(0,1fr)_14rem]">
-        <label>
-          <span className="sr-only">Search recipes</span>
-          <input
-            type="search"
-            className="input"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search recipes, ingredients or tags"
-          />
-        </label>
-        <label>
-          <span className="sr-only">Filter by tag</span>
-          <select className="input" value={tagFilter} onChange={(event) => setTagFilter(event.target.value)}>
-            <option value="">All tags</option>
-            {tags.map((tag) => <option key={tag} value={tag}>{tag}</option>)}
-          </select>
-        </label>
+      <div className="pcc-cookbook-toolbar">
+        <div className="min-w-0">
+          <h3>{role ? roleCategories.find(category => category.value === role)?.label : "Your cookbook"}</h3>
+          <p className="pcc-record-meta" aria-live="polite">{visibleRecipes.length}{visibleRecipes.length !== recipes.length ? " of " + recipes.length : ""} {recipes.length === 1 ? "recipe" : "recipes"}</p>
+        </div>
+        <div className="pcc-cookbook-actions">
+          <button type="button" className="pcc-control pcc-cookbook-icon-button" aria-expanded={filtersOpen}
+            aria-controls="cookbook-advanced-filters" aria-label={activeFilters ? "Filters, " + activeFilters + " active" : "Filters"}
+            onClick={() => setFiltersOpen(open => !open)} title="Filters">
+            <RecipeIcon name="filter" />{activeFilters > 0 && <span className="pcc-cookbook-filter-count">{activeFilters}</span>}
+          </button>
+          <button type="button" className="pcc-control pcc-cookbook-icon-button" aria-label={view === "grid" ? "Switch to list view" : "Switch to grid view"}
+            onClick={() => setView(current => current === "grid" ? "list" : "grid")} title={view === "grid" ? "List view" : "Grid view"}>
+            <RecipeIcon name={view === "grid" ? "list" : "grid"} />
+          </button>
+        </div>
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-2">
-        <select aria-label="Role" className="input max-w-full w-auto" value={role} onChange={e => setRole(e.target.value)}><option value="">All roles</option>{recipeRoles.map(r => <option key={r}>{r}</option>)}</select>
-        <select aria-label="Tested status" className="input w-auto" value={tested} onChange={e => setTested(e.target.value)}><option value="">All tested states</option><option value="yes">Tested</option><option value="no">Untested</option></select>
-        <StorageFilter label="Fridge" value={fridge} onChange={setFridge} />
-        <StorageFilter label="Freezer" value={freezer} onChange={setFreezer} />
-        <select aria-label="Maximum total time" className="input w-auto" value={maxTime} onChange={e => setMaxTime(e.target.value)}><option value="">Any time</option>{[15,30,45,60,120].map(n => <option key={n} value={n}>Up to {n} min</option>)}</select>
-        <select aria-label="Sort recipes" className="input w-auto" value={sort} onChange={e => setSort(e.target.value as RecipeSort)}>{[["rating","Rating"],["name","Name"],["time","Total time"],["created","Recently added"],["updated","Recently modified"]].map(([v,l]) => <option key={v} value={v}>{l}</option>)}</select>
-        <button type="button" className="pcc-control" onClick={() => setView(v => v === "grid" ? "list" : "grid")}>{view === "grid" ? "List view" : "Grid view"}</button>
+      <div id="cookbook-advanced-filters" hidden={!filtersOpen} className="pcc-cookbook-filters">
+        <div className="pcc-cookbook-filter-grid">
+          <Field label="Tag"><select className="input" value={tagFilter} onChange={e => setTagFilter(e.target.value)}>
+            <option value="">All tags</option>{tags.map(tag => <option key={tag} value={tag}>{tag}</option>)}
+          </select></Field>
+          <Field label="Tested status"><select className="input" value={tested} onChange={e => setTested(e.target.value)}>
+            <option value="">All recipes</option><option value="yes">Tested</option><option value="no">To try</option>
+          </select></Field>
+          <Field label="Fridge"><StorageFilter label="Fridge" value={fridge} onChange={setFridge} /></Field>
+          <Field label="Freezer"><StorageFilter label="Freezer" value={freezer} onChange={setFreezer} /></Field>
+          <Field label="Total time"><select className="input" value={maxTime} onChange={e => setMaxTime(e.target.value)}>
+            <option value="">Any time</option>{[15,30,45,60,120].map(n => <option key={n} value={n}>Up to {n} min</option>)}
+          </select></Field>
+          <Field label="Sort by"><select className="input" value={sort} onChange={e => setSort(e.target.value as RecipeSort)}>
+            {[["rating","Rating"],["name","Name"],["time","Total time"],["created","Recently added"],["updated","Recently modified"]].map(([v,l]) => <option key={v} value={v}>{l}</option>)}
+          </select></Field>
+        </div>
+        <div className="pcc-cookbook-filter-footer">
+          <button type="button" className="pcc-control" disabled={!activeFilters} onClick={clearAdvancedFilters}>Reset filters</button>
+          <button type="button" className="pcc-control" onClick={() => setFiltersOpen(false)}>Done</button>
+        </div>
       </div>
+
       {recipes.length === 0 ? (
-        <div className="mt-8 rounded-[2rem] border border-dashed border-slate-300 bg-white p-8 text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-slate-300 bg-slate-50 text-2xl">🍳</div>
-          <h3 className="mt-5 text-lg font-semibold">Your recipe book is empty.</h3>
-          <p className="mt-2 text-sm leading-6 text-slate-500">Start with something you already cook or one recipe you want to try.</p>
-          <button type="button" onClick={() => setCreating(true)} className="mt-5 min-h-11 rounded-xl bg-slate-950 px-5 text-sm font-semibold text-white">Add first recipe</button>
+        <div className="pcc-cookbook-empty">
+          <RecipeIcon name="book" />
+          <h3>Your cookbook is empty</h3>
+          <p>Save a protein, a side, a sauce or a complete dish.</p>
+          <button type="button" className="pcc-control" onClick={() => setCreating(true)}>Add first recipe</button>
         </div>
       ) : visibleRecipes.length === 0 ? (
-        <div className="mt-8 rounded-[2rem] border border-dashed border-slate-300 bg-white p-8 text-center">
-          <h3 className="text-lg font-semibold">No recipes match.</h3>
-          <p className="mt-2 text-sm leading-6 text-slate-500">Change the search or tag filter.</p>
+        <div className="pcc-cookbook-empty">
+          <h3>No recipes match</h3>
+          <p>Try a different category or clear your search and filters.</p>
+          <button type="button" className="pcc-control" onClick={clearSearch}>Clear search &amp; filters</button>
         </div>
       ) : (
-        <div className={view === "grid" ? "mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3" : "mt-5 grid gap-2"}>
+        <div className={view === "grid" ? "pcc-cookbook-grid" : "pcc-cookbook-list"}>
           {visibleRecipes.map(recipe => <RecipeCard key={recipe.item.id} recipe={recipe} grid={view === "grid"} onOpen={() => openDetail(recipe.item.id)} />)}
         </div>
       )}
@@ -166,6 +211,7 @@ export default function FoodPage() {
       {creating ? (
         <RecipeEditor
           key="new-recipe"
+          initialRole={role || undefined}
           onCancel={() => setCreating(false)}
           onSave={(title, details) => saveRecipe(undefined, title, details)}
         />
@@ -183,33 +229,40 @@ export default function FoodPage() {
   );
 }
 
+function RecipeIcon({name}: {name: "plus" | "search" | "filter" | "grid" | "list" | "check" | "try" | "snow" | "star" | "book"}) {
+  const paths: Record<typeof name, ReactNode> = {
+    plus: <path d="M12 5v14M5 12h14"/>,
+    search: <><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></>,
+    filter: <path d="M4 5h16l-6 7v6l-4 2v-8z"/>,
+    grid: <><rect x="4" y="4" width="6" height="6" rx="1.2"/><rect x="14" y="4" width="6" height="6" rx="1.2"/><rect x="4" y="14" width="6" height="6" rx="1.2"/><rect x="14" y="14" width="6" height="6" rx="1.2"/></>,
+    list: <><path d="M8 6h12M8 12h12M8 18h12"/><path d="M4 6h.1M4 12h.1M4 18h.1"/></>,
+    check: <><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></>,
+    try: <><path d="M9 3h6M10 3v7l-5 8a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-8V3M8 15h8"/></>,
+    snow: <path d="M12 3v18M4.2 7.5l15.6 9M4.2 16.5l15.6-9M9 5l3 3 3-3M9 19l3-3 3 3"/>,
+    star: <path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-2.9-5.6 2.9 1.1-6.2L3 9.6l6.2-.9z"/>,
+    book: <><path d="M12 5v15M3 4h5a4 4 0 0 1 4 3 4 4 0 0 1 4-3h5v15h-5a4 4 0 0 0-4 2 4 4 0 0 0-4-2H3z"/></>,
+  };
+  return <svg aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">{paths[name]}</svg>;
+}
+
 function RecipeCard({ recipe, onOpen, grid }: { recipe: RecipeItem; onOpen: () => void; grid: boolean }) {
-  const duration = recipeDurationLabel(recipe.details);
+  const d = recipe.details;
+  const duration = recipeDurationLabel(d);
+  const roleText = d.roles.length ? d.roles.map(role => roleLabels[role]).join(" · ") : "Uncategorised";
   return (
-    <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-      <button type="button" onClick={onOpen} className="block w-full text-left active:bg-slate-50">
-        {grid && recipe.details.photoId ? <RecipePhoto photoId={recipe.details.photoId} title={recipe.item.title} /> : null}
-        <div className="p-3">
-          <div className="flex items-start justify-between gap-2">
-            <p className="line-clamp-2 text-sm font-semibold leading-5 text-slate-900">{recipe.item.title}</p>
-            {recipe.details.rating !== undefined ? (
-              <span className="shrink-0 rounded-full bg-slate-950 px-2 py-1 text-[0.65rem] font-bold text-white">{recipe.details.rating.toFixed(1)}</span>
-            ) : null}
+    <article className="pcc-recipe-card">
+      <button type="button" onClick={onOpen} className="pcc-recipe-card-button">
+        <div className="pcc-recipe-card-art"><RecipePhoto photoId={d.photoId} title={recipe.item.title} /></div>
+        <div className="pcc-recipe-card-content">
+          <p className="pcc-recipe-card-title">{recipe.item.title}</p>
+          <p className="pcc-recipe-card-meta">{roleText}{duration ? " · " + duration : ""}</p>
+          <div className="pcc-recipe-card-status">
+            <span className={d.tested ? "pcc-recipe-tested" : ""}><RecipeIcon name={d.tested ? "check" : "try"}/>{d.tested ? "Tested" : "To try"}</span>
+            {d.freezer === "yes" && <span><RecipeIcon name="snow"/>Freezer friendly</span>}
           </div>
-          <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500">
-            {duration ? <span>{duration}</span> : null}
-            <span>{recipe.details.tested ? "Tested" : "Untested"}</span>
-            <span>Freezer: {recipe.details.freezer}</span>
-            {recipe.details.roles.map(role => <span key={role}>{role}</span>)}
-            {recipe.details.servings ? <span>{recipe.details.servings} servings</span> : null}
-            {recipe.details.makeAgain === "yes" ? <span>Make again</span> : null}
-          </div>
-          {recipe.details.tags.length ? (
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              {recipe.details.tags.slice(0, 3).map((tag) => <Badge key={tag}>{tag}</Badge>)}
-              {recipe.details.tags.length > 3 ? <Badge>+{recipe.details.tags.length - 3}</Badge> : null}
-            </div>
-          ) : null}
+          {d.rating !== undefined && <p className="pcc-recipe-card-rating" aria-label={"Rating " + d.rating + " out of 10"}><RecipeIcon name="star" />{d.rating.toFixed(1)}/10</p>}
+          {!grid && d.tags.length > 0 && <p className="pcc-recipe-card-meta">{d.tags.join(" · ")}</p>}
+          {!grid && d.servings && <p className="pcc-recipe-card-meta">{d.servings} servings{d.makeAgain === "yes" ? " · Make again" : ""}</p>}
         </div>
       </button>
     </article>
@@ -217,7 +270,7 @@ function RecipeCard({ recipe, onOpen, grid }: { recipe: RecipeItem; onOpen: () =
 }
 
 function StorageFilter({label, value, onChange}: {label: string; value: string; onChange: (value: string) => void}) {
-  return <select aria-label={label + " suitability"} className="input w-auto" value={value} onChange={e => onChange(e.target.value)}><option value="">Any {label.toLowerCase()}</option>{storageValues.map(v => <option key={v} value={v}>{label}: {v}</option>)}</select>;
+  return <select aria-label={label + " suitability"} className="input" value={value} onChange={e => onChange(e.target.value)}><option value="">Any</option>{storageValues.map(v => <option key={v} value={v}>{v === "yes" ? "Suitable" : v === "no" ? "Not suitable" : "Unknown"}</option>)}</select>;
 }
 
 function RecipeDetail({recipe, onClose, onEdit}: {recipe: RecipeItem; onClose: () => void; onEdit: () => void}) {
@@ -231,10 +284,22 @@ function RecipeDetail({recipe, onClose, onEdit}: {recipe: RecipeItem; onClose: (
   return <div ref={ref} role="dialog" aria-modal="true" aria-label={item.title} tabIndex={-1} className="pcc-editor fixed inset-0 z-[100] overflow-y-auto bg-slate-50" onKeyDown={e => {if(e.key === "Escape") onClose();}}>
     <header className="sticky top-0 z-20 flex justify-between gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3"><button className="pcc-control" onClick={onClose}>Back to recipes</button><button className="pcc-control" onClick={onEdit}>Edit recipe</button></header>
     <main className="mx-auto max-w-4xl space-y-5 px-4 py-6 pb-28">
-      <h2 className="text-3xl font-semibold">{item.title}</h2>
-      {d.photoId && <RecipePhoto photoId={d.photoId} title={item.title} />}
-      <p className="whitespace-pre-wrap">{d.description}</p><p className="text-sm text-slate-600">{d.roles.join(" · ")} · {d.tested ? "Tested" : "Untested"}{d.rating !== undefined ? " · Rating " + d.rating + "/10" : ""}</p>
-      <p className="text-sm">Prep: {d.prepMinutes ?? "Unknown"} min · Cook: {d.cookMinutes ?? "Unknown"} min · Difficulty: {d.difficulty}</p>
+      <div className="pcc-recipe-hero">
+        <div className="pcc-recipe-hero-copy">
+          <p className="pcc-record-meta">{d.roles.length ? d.roles.map(role => roleLabels[role]).join(" · ") : "Uncategorised"}</p>
+          <h2>{item.title}</h2>
+          {d.description && <p className="whitespace-pre-wrap">{d.description}</p>}
+          <div className="pcc-recipe-card-status">
+            <span className={d.tested ? "pcc-recipe-tested" : ""}><RecipeIcon name={d.tested ? "check" : "try"}/>{d.tested ? "Tested" : "To try"}</span>
+            {d.freezer === "yes" && <span><RecipeIcon name="snow"/>Freezer friendly</span>}
+            {d.rating !== undefined && <span><RecipeIcon name="star"/>{d.rating.toFixed(1)}/10</span>}
+          </div>
+          <p className="pcc-recipe-card-meta">{[d.prepMinutes !== undefined ? "Prep " + d.prepMinutes + " min" : "", d.cookMinutes !== undefined ? "Cook " + d.cookMinutes + " min" : "", d.difficulty !== "unknown" ? d.difficulty : "", d.servings ? d.servings + " servings" : "", d.makeAgain === "yes" ? "Make again" : ""].filter(Boolean).join(" · ")}</p>
+          {d.tags.length > 0 && <p className="pcc-recipe-card-meta">{d.tags.join(" · ")}</p>}
+        </div>
+        {d.photoId && <div className="pcc-recipe-hero-art"><RecipePhoto photoId={d.photoId} title={item.title} /></div>}
+      </div>
+      <div className="pcc-recipe-cooking-grid">
       <section className="rounded-2xl border border-slate-200 bg-white p-4 space-y-3"><h3 className="text-lg font-semibold">Ingredients</h3>
         {d.servings ? <label className="flex items-center gap-3">Servings <input aria-label="Desired servings" className="input max-w-28" type="number" min="0.25" max="100" step="any" value={servings} onChange={e => {setServings(e.target.value);setCopyState("");}} /></label> : <p className="text-sm text-slate-500">Set base servings in Edit to enable scaling.</p>}
         <button className="pcc-control" onClick={async () => {try {await navigator.clipboard.writeText((!valid || Number(servings) === d.servings) && d.ingredients ? d.ingredients : rows.map(row => "- " + ingredientLine(row)).join("\n")); setCopyState("Copied");} catch {setCopyState("Copy failed");}}}>{copyState || "Copy ingredients"}</button>
@@ -242,6 +307,7 @@ function RecipeDetail({recipe, onClose, onEdit}: {recipe: RecipeItem; onClose: (
         {!rows.length && <p>No ingredients added.</p>}
       </section>
       <section className="rounded-2xl border border-slate-200 bg-white p-4"><h3 className="text-lg font-semibold">Instructions</h3><ol className="mt-3 list-decimal space-y-4 pl-6">{d.cookingSteps.map((step,i) => <li key={i} className="whitespace-pre-wrap">{step}</li>)}</ol>{!d.cookingSteps.length && <p>No steps added.</p>}</section>
+      </div>
       <section className="rounded-2xl border border-slate-200 bg-white p-4 space-y-2"><h3 className="text-lg font-semibold">Storage &amp; meal prep</h3><p>Fridge: {d.fridge}{d.fridgeDays !== undefined ? " · " + d.fridgeDays + " days" : ""}</p><p>Freezer: {d.freezer}{d.freezerDays !== undefined ? " · " + d.freezerDays + " days" : ""}</p>{([["Freezing",d.freezing],["Defrosting",d.defrosting],["Reheating",d.reheating],["Notes",d.storageNotes]]).map(([label,value]) => value && <div key={label}><h4 className="font-semibold">{label}</h4><p className="whitespace-pre-wrap">{value}</p></div>)}</section>
       <section className="rounded-2xl border border-slate-200 bg-white p-4 space-y-2"><h3 className="text-lg font-semibold">Personal notes</h3><p>Last cooked: {d.lastCooked || "Unknown"}</p><p className="whitespace-pre-wrap">{d.notes || "No notes yet."}</p>{d.sourceUrl && <a className="underline" href={d.sourceUrl} target="_blank" rel="noreferrer">Original recipe</a>}</section>
       {Object.keys(d.nutrition).length > 0 && <section className="rounded-2xl border border-slate-200 bg-white p-4"><h3 className="text-lg font-semibold">Nutrition per serving</h3>{nutritionKeys.map(key => d.nutrition[key] !== undefined && <p key={key}>{key}: {d.nutrition[key]} {key === "calories" ? "kcal" : "g"}</p>)}</section>}
@@ -256,16 +322,18 @@ function RecipePhoto({ photoId, title, previewUrl = "" }: { photoId: string; tit
 
 function RecipeEditor({
   recipe,
+  initialRole,
   onCancel,
   onSave,
   onDelete,
 }: {
   recipe?: RecipeItem;
+  initialRole?: RecipeRole;
   onCancel: () => void;
   onSave: (title: string, details: RecipeDetails) => boolean | Promise<boolean>;
   onDelete?: () => Promise<boolean>;
 }) {
-  const initialDetails = recipe?.details ?? createRecipeDetails();
+  const initialDetails = recipe?.details ?? { ...createRecipeDetails(), roles: initialRole ? [initialRole] : [] };
   const dialogRef = useDialogFocus<HTMLDivElement>();
   const [title, setTitle] = useState(recipe?.item.title ?? "");
   const [details, setDetails] = useState<RecipeDetails>(initialDetails);
@@ -401,7 +469,7 @@ function RecipeEditor({
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 <Field label="Name" wide><input className="input" value={title} onChange={(event) => setTitle(event.target.value)} required autoFocus /></Field>
                 <Field label="Description" wide><textarea className="input" value={details.description} onChange={e => setDetails(c => ({...c, description:e.target.value}))}/></Field>
-                <fieldset className="sm:col-span-2"><legend className="text-sm font-medium">Recipe roles (optional)</legend><div className="mt-2 flex flex-wrap gap-x-4 gap-y-2">{recipeRoles.map(role => <label key={role} className="flex min-h-10 items-center gap-2"><input type="checkbox" checked={details.roles.includes(role)} onChange={() => setDetails(c => ({...c, roles:c.roles.includes(role) ? c.roles.filter(r => r !== role) : [...c.roles,role]}))}/>{role}</label>)}</div></fieldset>
+                <fieldset className="sm:col-span-2"><legend className="text-sm font-medium">Recipe roles (optional)</legend><div className="pcc-cookbook-role-picker">{recipeRoles.map(role => <label key={role}><input type="checkbox" checked={details.roles.includes(role)} onChange={() => setDetails(c => ({...c, roles:c.roles.includes(role) ? c.roles.filter(r => r !== role) : [...c.roles,role]}))}/>{roleLabels[role]}</label>)}</div></fieldset>
                 <Field label="Difficulty"><select className="input" value={details.difficulty} onChange={e => setDetails(c => ({...c, difficulty:e.target.value as RecipeDetails["difficulty"]}))}>{["unknown","easy","medium","hard"].map(v => <option key={v}>{v}</option>)}</select></Field>
                 <Field label="Tested"><select className="input" value={details.tested ? "yes" : "no"} onChange={e => setDetails(c => ({...c,tested:e.target.value === "yes"}))}><option value="no">Untested</option><option value="yes">Tested</option></select></Field>
                 <Field label="Last cooked"><input className="input" type="date" value={details.lastCooked ?? ""} onChange={e => setDetails(c => ({...c,lastCooked:e.target.value || undefined}))}/></Field>
@@ -471,10 +539,6 @@ function IngredientEditor({rows,onChange}: {rows:RecipeIngredient[];onChange:(ro
 }
 function Field({ label, wide = false, children }: { label: string; wide?: boolean; children: ReactNode }) {
   return <label className={`block text-sm font-medium text-slate-700 ${wide ? "sm:col-span-2" : ""}`}>{label}<span className="mt-2 block">{children}</span></label>;
-}
-
-function Badge({ children }: { children: ReactNode }) {
-  return <span className="rounded-full bg-slate-100 px-2 py-1 text-[0.65rem] font-semibold text-slate-600">{children}</span>;
 }
 
 function numberOrUndefined(value: string) {

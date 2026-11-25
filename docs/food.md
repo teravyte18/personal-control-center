@@ -175,3 +175,23 @@ keyword search. Search hits retain stable IDs and links; complete structured
 details are available through the authenticated recipe API. Context/retrieval
 does not itself authorize external agents, and existing Rem permissions remain
 unchanged.
+
+### Modular cookbook presentation
+
+The Food destination opens the Recipes collection with primary role navigation
+(All recipes, Proteins, Carbs, Vegetables, Complete dishes, Sauces, Breakfast,
+Snacks, Desserts). Roles remain multi-valued and independent from tags. On
+phone the categories scroll horizontally; on wider screens they can wrap.
+Search stays visible; tag, tested status, fridge/freezer suitability, maximum
+duration and sorting are in one expandable filter panel with an active count.
+The grid/list switch is independent. New recipes started from a role category
+preselect that role, which remains editable. Older recipes without roles are
+shown as uncategorised in All recipes.
+
+Cards use a consistent 4:3 private artwork slot (including the existing missing
+photo fallback), role and duration metadata, tested/freezer signals and the
+existing exact ten-point rating. The detail image remains contained. The
+reading view separates ingredients and instructions on sufficiently wide
+screens and keeps them sequential on phone. All existing editing, scaling,
+copy, storage, nutrition, photos, search, context and API semantics are
+preserved; no meal planner, schema or permission change is introduced.

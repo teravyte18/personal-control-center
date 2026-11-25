@@ -354,3 +354,78 @@ input, textarea { caret-color: var(--theme-accent); }
 @media (max-width: 360px) { .rem-composer-actions > .rem-chat-meta { flex-basis: 100%; } .rem-message { max-width: 100%; } }
 .rem-composer .rem-button:not(.rem-button-quiet) { background-color: var(--foreground); color: var(--background); }
 .rem-composer .rem-button:disabled:not(.rem-button-quiet) { background-color: var(--pcc-selected); color: var(--foreground); opacity: 1; }
+
+/* Modular cookbook: category-first, compact controls, photo-led records. */
+.pcc-cookbook { min-width: 0; }
+.pcc-cookbook-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
+.pcc-cookbook-header .pcc-control { flex-shrink: 0; }
+.pcc-cookbook-search { position: relative; display: block; }
+.pcc-cookbook-search > svg { position: absolute; top: 50%; left: 13px; transform: translateY(-50%); color: var(--pcc-muted); pointer-events: none; }
+.pcc-main .pcc-cookbook-search > input { width: 100%; padding-left: 42px; }
+.pcc-cookbook-categories { display: flex; gap: 4px; overflow-x: auto; padding: 5px 4px 7px; margin: 10px -4px 12px; scrollbar-width: thin; }
+.pcc-cookbook-categories > button { flex-shrink: 0; min-height: 44px; padding: 8px 14px; border: 1px solid transparent; border-radius: 999px; color: var(--pcc-muted); font-size: 14px; white-space: nowrap; }
+.pcc-cookbook-categories > button[aria-pressed="true"] { background: var(--foreground); color: var(--background); border-color: var(--foreground); font-weight: 500; }
+.pcc-cookbook-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-block: 14px 12px; }
+.pcc-cookbook-toolbar h3 { font-size: 18px; line-height: 24px; }
+.pcc-cookbook-toolbar .pcc-record-meta { margin-top: 2px; }
+.pcc-cookbook-actions { display: flex; gap: 6px; align-items: center; }
+.pcc-control.pcc-cookbook-icon-button { min-width: 44px; padding: 9px; }
+.pcc-cookbook-icon-button[aria-expanded="true"] { background: var(--pcc-selected); }
+.pcc-cookbook-filter-count { font-size: 12px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.pcc-cookbook-filters { border: 1px solid var(--pcc-divider); background: var(--theme-surface); border-radius: 16px; padding: 16px; margin-bottom: 16px; }
+.pcc-cookbook-filter-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+.pcc-cookbook-filter-grid .input { width: 100%; min-width: 0; }
+.pcc-cookbook-filter-footer { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+.pcc-cookbook-filter-footer button:disabled { opacity: .45; }
+.pcc-cookbook-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; align-items: stretch; }
+.pcc-cookbook-list { display: grid; gap: 8px; }
+.pcc-recipe-card { min-width: 0; border: 1px solid var(--pcc-divider); border-radius: 16px; background: var(--theme-surface); }
+.pcc-recipe-card-button { display: flex; flex-direction: column; height: 100%; width: 100%; min-width: 0; text-align: left; border-radius: inherit; overflow: hidden; }
+.pcc-recipe-card-art { width: 100%; flex-shrink: 0; }
+.pcc-recipe-card-art .pcc-artwork { border-radius: 0; }
+.pcc-recipe-card-art .pcc-artwork img { object-fit: cover; }
+.pcc-recipe-card-content { min-width: 0; padding: 12px; display: grid; align-content: start; gap: 5px; }
+.pcc-recipe-card-title { font-size: 15px; font-weight: 600; line-height: 21px; overflow-wrap: anywhere; }
+.pcc-recipe-card-meta { color: var(--pcc-muted); font-size: 13px; line-height: 19px; overflow-wrap: anywhere; }
+.pcc-recipe-card-meta:empty { display: none; }
+.pcc-recipe-card-status { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 12px; line-height: 18px; color: var(--pcc-muted); }
+.pcc-recipe-card-status span, .pcc-recipe-card-rating { display: inline-flex; align-items: center; gap: 4px; }
+.pcc-recipe-card-status svg, .pcc-recipe-card-rating svg { width: 15px; height: 15px; flex-shrink: 0; }
+.pcc-recipe-tested { color: var(--color-emerald-800, #065f46); }
+.pcc-recipe-card-rating { color: var(--pcc-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.pcc-cookbook-list .pcc-recipe-card-button { flex-direction: row; align-items: center; }
+.pcc-cookbook-list .pcc-recipe-card-art { width: 88px; padding: 8px; }
+.pcc-cookbook-list .pcc-recipe-card-art .pcc-artwork { border-radius: 8px; }
+.pcc-cookbook-list .pcc-recipe-card-art .pcc-artwork > span { font-size: 10px; padding: 4px; margin: 0; }
+.pcc-cookbook-list .pcc-recipe-card-content { padding-left: 4px; flex: 1; }
+.pcc-cookbook-empty { border: 1px dashed var(--pcc-line); border-radius: 16px; padding: 32px 16px; display: grid; justify-items: center; text-align: center; gap: 12px; color: var(--pcc-muted); }
+.pcc-cookbook-empty h3 { font-size: 18px; color: var(--foreground); }
+.pcc-cookbook-empty p { font-size: 14px; }
+.pcc-cookbook-role-picker { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.pcc-cookbook-role-picker label { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 12px; border: 1px solid var(--pcc-line); border-radius: 12px; font-size: 14px; cursor: pointer; }
+.pcc-cookbook-role-picker label:has(input:checked) { background: var(--pcc-selected); border-color: var(--foreground); }
+.pcc-recipe-hero { display: flex; flex-direction: column; gap: 16px; }
+.pcc-recipe-hero-copy { display: grid; align-content: start; gap: 10px; min-width: 0; }
+.pcc-recipe-hero-art { overflow: hidden; border-radius: 16px; }
+.pcc-recipe-cooking-grid { display: grid; gap: 16px; align-items: start; }
+@media (hover: hover) and (pointer: fine) {
+  .pcc-cookbook-categories > button:not([aria-pressed="true"]):hover { background: var(--pcc-selected); color: var(--foreground); }
+  .pcc-recipe-card:hover { border-color: var(--pcc-muted); }
+}
+@media (max-width: 359px) {
+  .pcc-cookbook-grid, .pcc-cookbook-filter-grid { grid-template-columns: minmax(0,1fr); }
+}
+@media (min-width: 768px) {
+  .pcc-cookbook-categories { flex-wrap: wrap; overflow: visible; }
+  .pcc-cookbook-filter-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
+  .pcc-recipe-card-content { padding: 16px; }
+  .pcc-recipe-card-title { font-size: 17px; line-height: 23px; }
+  .pcc-cookbook-list .pcc-recipe-card-art { width: 112px; }
+  .pcc-recipe-hero { flex-direction: row; align-items: flex-start; justify-content: space-between; }
+  .pcc-recipe-hero-copy { flex: 1; }
+  .pcc-recipe-hero-art { width: 40%; max-width: 320px; flex-shrink: 0; }
+  .pcc-recipe-cooking-grid { grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); }
+}
+@media (min-width: 1024px) {
+  .pcc-cookbook-grid { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 16px; }
+}

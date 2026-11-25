@@ -1,5 +1,6 @@
 import { getBookScore, parseBookDetails } from "./library.ts";
 import { parseMediaDetails } from "./media.ts";
+import { parseRecipeDetails, ingredientLine } from "./food.ts";
 import { isStructuredPccNoteDescription, NOTE_ORDER_METADATA_TITLE } from "./notes.ts";
 import type { Item, ProjectAction, ReviewEntry } from "./personal-data.ts";
 import type { PersonalDataSnapshot } from "./personal-data-snapshot.ts";
@@ -10,7 +11,7 @@ import type { PersonalContextDomain } from "./personal-context.ts";
  * Adding a new Personal Context domain does not automatically make it searchable.
  */
 export const retrievalDomains = [
-  "reviews", "library", "projects", "tasks", "thoughts", "notes",
+  "reviews", "library", "projects", "tasks", "thoughts", "notes", "food",
 ] as const satisfies readonly PersonalContextDomain[];
 
 export type RetrievalDomain = (typeof retrievalDomains)[number];
@@ -24,7 +25,7 @@ export type RetrievalDocument = {
   sourceId: string;
   /** Present for a project action, which belongs to a project source. */
   sourceSubId?: string;
-  sourceKind: "review" | "book" | "film" | "series" | "project" | "project-action" | "task" | "thought" | "note";
+  sourceKind: "review" | "book" | "film" | "series" | "project" | "project-action" | "task" | "thought" | "note" | "recipe";
   title: string;
   /** Full eligible source text, deliberately not truncated to context limits. */
   text: string;
@@ -241,6 +242,45 @@ export function buildRetrievalDocuments(snapshot: PersonalDataSnapshot, userId: 
           ...(media.watchedDate ? { watchedDate: media.watchedDate } : {}),
           ...(media.startDate ? { startDate: media.startDate } : {}),
           ...(media.finishDate ? { finishDate: media.finishDate } : {}),
+        },
+      });
+      continue;
+    }
+
+    const recipe = parseRecipeDetails(item.description);
+    if (recipe) {
+      // Only canonical cookbook records are eligible; never project the raw note payload.
+      if (item.status !== "active") continue;
+      documents.push({
+        id: documentId(userId, "food", item.id),
+        userId,
+        domain: "food",
+        sourceId: item.id,
+        sourceKind: "recipe",
+        title: item.title,
+        text: body(item.title, [
+          ["Description", recipe.description],
+          ["Roles", recipe.roles.join(", ")],
+          ["Tags", recipe.tags.join(", ")],
+          ["Ingredients", recipe.ingredientRows.map(ingredientLine).join("\n")],
+          ["Storage suitability", "Fridge: " + recipe.fridge + "; Freezer: " + recipe.freezer],
+          ["Freezing", recipe.freezing],
+          ["Defrosting", recipe.defrosting],
+          ["Reheating", recipe.reheating],
+          ["Storage notes", recipe.storageNotes],
+          ["Steps", recipe.cookingSteps.join("\n")],
+          ["Personal notes", recipe.notes],
+        ]),
+        occurredAt: item.createdAt,
+        updatedAt: item.updatedAt,
+        metadata: {
+          status: item.status, roles: recipe.roles.join(", "), tags: recipe.tags.join(", "),
+          tested: recipe.tested, fridge: recipe.fridge, freezer: recipe.freezer,
+          difficulty: recipe.difficulty, makeAgain: recipe.makeAgain,
+          servings: recipe.servings ?? null, rating: recipe.rating ?? null,
+          prepMinutes: recipe.prepMinutes ?? null, cookMinutes: recipe.cookMinutes ?? null,
+          fridgeDays: recipe.fridgeDays ?? null, freezerDays: recipe.freezerDays ?? null,
+          path: "/food?recipe=" + encodeURIComponent(item.id),
         },
       });
       continue;

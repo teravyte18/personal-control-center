@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { emptyPersonalDataSnapshot, type PersonalDataSnapshot } from "../src/domain/personal-data-snapshot.ts";
 import { createBookDetails, serializeBookDetails } from "../src/domain/library.ts";
+import { createRecipeDetails, serializeRecipeDetails } from "../src/domain/food.ts";
 import { createMediaDetails, serializeMediaDetails } from "../src/domain/media.ts";
 import { NOTE_ORDER_METADATA_TITLE } from "../src/domain/notes.ts";
 import { emptyReview, type Item } from "../src/domain/personal-data.ts";
@@ -41,7 +42,7 @@ test("Phase 1 projects complete eligible history without 12-record or 90-day con
   assert.ok(documents.some((document) => document.sourceId === "task-0" && document.metadata.status === "archived"));
   assert.ok(documents.some((document) => document.sourceId === "task-1" && document.metadata.status === "completed"));
   assert.ok(!JSON.stringify(documents).includes("Private unsubmitted draft"));
-  assert.deepEqual(retrievalDomains, ["reviews", "library", "projects", "tasks", "thoughts", "notes"]);
+  assert.deepEqual(retrievalDomains, ["reviews", "library", "projects", "tasks", "thoughts", "notes", "food"]);
 });
 
 test("Projects produce a parent document and every historical action with stable provenance", () => {
@@ -160,4 +161,23 @@ test("Projection is deterministic, account-scoped and reflects canonical edits/d
   assert.match(changed[0].text, /After/);
   assert.doesNotMatch(JSON.stringify(changed), /Original|Before/);
   assert.throws(() => buildRetrievalDocuments(data, ""), /user ID is required/);
+});
+
+test("Recipes project only into Food with stable references, structured metadata and no private photo IDs", () => {
+  const recipe = item("recipe:1","Beans","note",{description:serializeRecipeDetails({...createRecipeDetails(),
+    roles:["protein"], tags:["Mediterranean"], freezer:"yes", tested:true, photoId:"private-recipe-photo",
+    ingredientRows:[{name:"Chickpeas",quantity:200,unit:"g",notes:"Rinsed",optional:false,scalable:true}], freezing:"Freeze portions"})});
+  const hidden = {...recipe,id:"archived",status:"archived" as const};
+  const malformed = item("invalid","Broken recipe","note",{description:"__pcc_recipe_v1__\n{invalid"});
+  const data = snapshot({items:[recipe,hidden,malformed]});
+  const docs = buildRetrievalDocuments(data,"account");
+  assert.equal(docs.length,1);
+  assert.equal(docs[0].domain,"food");
+  assert.equal(docs[0].sourceKind,"recipe");
+  assert.equal(docs[0].sourceId,"recipe:1");
+  assert.equal(docs[0].metadata.path,"/food?recipe=recipe%3A1");
+  assert.equal(docs[0].metadata.freezer,"yes");
+  assert.match(docs[0].text,/Chickpeas|protein/);
+  assert.doesNotMatch(JSON.stringify(docs),/private-recipe-photo|__pcc_recipe/);
+  assert.notEqual(docs[0].id,buildRetrievalDocuments(data,"other")[0].id);
 });

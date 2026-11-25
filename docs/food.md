@@ -165,3 +165,13 @@ quantities. Writes continue through the existing authenticated mutation path.
 A dedicated opt-in recipe grant and MCP tools are a follow-up. The existing
 assistant bearer grant and planner permissions have not been changed. Do not
 use browser credentials as a substitute for a scoped agent grant.
+
+### Context and retrieval
+
+The existing Food context provider exposes the new cookbook metadata, with
+bounded structured ingredients and steps alongside the legacy text fields.
+Use the Context Inspector's Food / Recipes domain to inspect raw context or
+keyword search. Search hits retain stable IDs and links; complete structured
+details are available through the authenticated recipe API. Context/retrieval
+does not itself authorize external agents, and existing Rem permissions remain
+unchanged.

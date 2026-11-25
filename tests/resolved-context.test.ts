@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { createRecipeDetails, serializeRecipeDetails } from "../src/domain/food.ts";
 import { emptyReview, type Item } from "../src/domain/personal-data.ts";
 import { emptyPersonalDataSnapshot, type PersonalDataSnapshot } from "../src/domain/personal-data-snapshot.ts";
 import { parseResolvedContextParams, resolvePersonalContext } from "../src/domain/resolved-context.ts";
@@ -27,7 +28,7 @@ test("resolved-context params share strict Phase 2 validation and have bounded b
   assert.equal(parsed.maxChars, 8000);
   assert.equal(parsed.maxRecords, 12);
   assert.deepEqual(parsed.includeCurrent, []);
-  assert.deepEqual(parsed.search.domains, ["reviews", "library", "projects", "tasks", "thoughts", "notes"]);
+  assert.deepEqual(parsed.search.domains, ["reviews", "library", "projects", "tasks", "thoughts", "notes", "food"]);
   const custom = options("q=thesis&current=tasks,rhythm,tasks&maxChars=1000&maxRecords=1&limit=3");
   assert.deepEqual(custom.includeCurrent, ["tasks", "rhythm"]);
   assert.equal(custom.search.limit, 3);
@@ -182,4 +183,14 @@ test("only requested domains enter the response, and Keychain remains absent", (
     options("q=thesis&domains=tasks"), now);
   assert.deepEqual(result.selected.map((entry) => entry.sourceId), ["task"]);
   assert.doesNotMatch(JSON.stringify(result), /very-secret|Private keychain|Separate thesis/);
+});
+
+test("recipe matches resolve to canonical Food references within the context budget", () => {
+  const data = snapshot([item("recipe","Bean bowl","note",{description:serializeRecipeDetails({...createRecipeDetails(),ingredients:"Chickpeas",roles:["protein"]})})]);
+  const result = resolvePersonalContext(data,"account",options("q=Chickpeas&domains=food&maxChars=1000"),now);
+  assert.equal(result.search.totalMatches,1);
+  assert.equal(result.selected[0].sourceKind,"recipe");
+  assert.deepEqual(result.selected[0].sourceRefs,[{domain:"food",sourceId:"recipe"}]);
+  assert.match(result.finalContext,/Chickpeas/);
+  assert.ok(result.budget.usedChars <= 1000);
 });
